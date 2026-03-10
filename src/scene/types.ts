@@ -1,0 +1,133 @@
+import * as THREE from "three";
+
+export type ChunkData = {
+  key: string;
+  mesh: THREE.InstancedMesh;
+  count: number;
+  centers: Float32Array;
+  heights: Float32Array;
+  scales: Float32Array;
+};
+
+export type RenderDirectionSettings = {
+  forwardDistance: number;
+  sideDistance: number;
+  backwardDistance: number;
+};
+
+export type GroundMaterialType = "standard" | "matte" | "soft-metal" | "polished";
+
+export type ShadowSettings = {
+  enabled: boolean;
+  intensity: number;
+  bias: number;
+  normalBias: number;
+  radius: number;
+  blurSamples: number;
+  mapSize: number;
+  cameraNear: number;
+  cameraFar: number;
+  cameraLeft: number;
+  cameraRight: number;
+  cameraTop: number;
+  cameraBottom: number;
+  buildingCountWithShadow: number;
+};
+
+export type PointLightConfig = {
+  x: number;
+  y: number;
+  z: number;
+  intensity: number;
+};
+
+export type BuildingSettings = {
+  color: string;
+  roughness: number;
+  metalness: number;
+};
+
+export type GroundSettings = {
+  color: string;
+  roughness: number;
+  metalness: number;
+  materialType: GroundMaterialType;
+};
+
+export type LightSettings = {
+  ambientColor: string;
+  ambientExtraIntensity: number;
+  hemisphereSkyColor: string;
+  hemisphereGroundColor: string;
+  hemisphereIntensity: number;
+  directionalColor: string;
+  directionalDistance: number;
+  directionalElevation: number;
+  directionalAzimuth: number;
+  directionalTargetX: number;
+  directionalTargetY: number;
+  directionalTargetZ: number;
+  pointLightColor: string;
+  pointLights: PointLightConfig[];
+};
+
+export type SceneStats = {
+  buildings: number;
+  fpsMode: string;
+  chunks: number;
+  buildingsWithShadow: number;
+};
+
+export type CameraVisibilityState = {
+  x: number;
+  z: number;
+  forwardX: number;
+  forwardZ: number;
+};
+
+export type CitySceneConfig = {
+  chunkSize: number;
+  chunkRadius: number;
+  blockSize: number;
+  roadWidth: number;
+  minHeight: number;
+  maxHeight: number;
+  maxBuildingsPerChunk: number;
+  dprCap: number;
+  targetFps: number;
+  minRenderScale: number;
+  maxRenderScale: number;
+  far: number;
+  shadowBuildingCap: number;
+  maxSolarIntensity: number;
+  minAmbientDynamic: number;
+  maxAmbientDynamic: number;
+  sceneBackground: string;
+  sceneFogColor: string;
+  sceneFogDensity: number;
+  groundSize: number;
+  gridDivisions: number;
+  gridPrimaryColor: string;
+  gridSecondaryColor: string;
+  cameraFov: number;
+  cameraNear: number;
+  initialCameraPosition: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  controlTarget: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  controls: {
+    dampingFactor: number;
+    rotateSpeed: number;
+    zoomSpeed: number;
+    panSpeed: number;
+    minDistance: number;
+    maxDistance: number;
+    maxPolarAngle: number;
+  };
+};

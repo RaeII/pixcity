@@ -1,0 +1,275 @@
+import * as THREE from "three";
+import { CITY_SCENE_CONFIG } from "../config/citySceneConfig";
+import type {
+  BuildingSettings,
+  ChunkData,
+  RenderDirectionSettings,
+  SceneStats,
+} from "../types";
+import { clamp, getSearchRadius } from "../utils/math";
+import { seeded } from "../utils/random";
+
+type ChunkManagerOptions = {
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  buildingSettings: BuildingSettings;
+  renderDirectionSettings: RenderDirectionSettings;
+  onStatsChange: (stats: Pick<SceneStats, "buildings" | "chunks" | "fpsMode">) => void;
+};
+
+export type ChunkManager = {
+  getChunks: () => IterableIterator<ChunkData>;
+  sync: (forceRefresh?: boolean) => void;
+  updateBuildingSettings: (settings: BuildingSettings) => void;
+  updateRenderDirectionSettings: (settings: RenderDirectionSettings) => void;
+  dispose: () => void;
+};
+
+export function createChunkManager({
+  scene,
+  camera,
+  buildingSettings,
+  renderDirectionSettings,
+  onStatsChange,
+}: ChunkManagerOptions): ChunkManager {
+  const cityGroup = new THREE.Group();
+  scene.add(cityGroup);
+
+  const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const buildingMaterial = new THREE.MeshStandardMaterial({
+    color: buildingSettings.color,
+    roughness: buildingSettings.roughness,
+    metalness: buildingSettings.metalness,
+  });
+
+  const chunkMap = new Map<string, ChunkData>();
+  const dummy = new THREE.Object3D();
+  const tempForward = new THREE.Vector3();
+  const tempDirectionToChunk = new THREE.Vector3();
+  let currentRenderDirectionSettings = { ...renderDirectionSettings };
+
+  const createChunk = (chunkX: number, chunkZ: number) => {
+    const key = `${chunkX}:${chunkZ}`;
+    if (chunkMap.has(key)) {
+      return;
+    }
+
+    const mesh = new THREE.InstancedMesh(
+      buildingGeometry,
+      buildingMaterial,
+      CITY_SCENE_CONFIG.maxBuildingsPerChunk,
+    );
+    mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    mesh.frustumCulled = true;
+    mesh.castShadow = false;
+    mesh.receiveShadow = true;
+    cityGroup.add(mesh);
+
+    let placed = 0;
+    const centers = new Float32Array(CITY_SCENE_CONFIG.maxBuildingsPerChunk * 3);
+    const heights = new Float32Array(CITY_SCENE_CONFIG.maxBuildingsPerChunk);
+    const scales = new Float32Array(CITY_SCENE_CONFIG.maxBuildingsPerChunk * 2);
+    const startX = chunkX * CITY_SCENE_CONFIG.chunkSize;
+    const startZ = chunkZ * CITY_SCENE_CONFIG.chunkSize;
+    const centerX = startX + CITY_SCENE_CONFIG.chunkSize * 0.5;
+    const centerZ = startZ + CITY_SCENE_CONFIG.chunkSize * 0.5;
+
+    for (let localX = 0; localX < CITY_SCENE_CONFIG.chunkSize; localX += CITY_SCENE_CONFIG.blockSize) {
+      for (let localZ = 0; localZ < CITY_SCENE_CONFIG.chunkSize; localZ += CITY_SCENE_CONFIG.blockSize) {
+        if (placed >= CITY_SCENE_CONFIG.maxBuildingsPerChunk) {
+          break;
+        }
+
+        const roadX =
+          Math.abs((localX % (CITY_SCENE_CONFIG.blockSize * 3)) - CITY_SCENE_CONFIG.blockSize * 1.5) <
+          CITY_SCENE_CONFIG.roadWidth;
+        const roadZ =
+          Math.abs((localZ % (CITY_SCENE_CONFIG.blockSize * 3)) - CITY_SCENE_CONFIG.blockSize * 1.5) <
+          CITY_SCENE_CONFIG.roadWidth;
+        if (roadX || roadZ) {
+          continue;
+        }
+
+        const worldX = startX + localX - CITY_SCENE_CONFIG.chunkSize * 0.5;
+        const worldZ = startZ + localZ - CITY_SCENE_CONFIG.chunkSize * 0.5;
+        const densityNoise = seeded(worldX, worldZ, 1);
+        if (densityNoise < 0.16) {
+          continue;
+        }
+
+        const cityDistance = Math.sqrt(centerX * centerX + centerZ * centerZ) * 0.018;
+        const heightNoise = seeded(worldX, worldZ, 2);
+        const shapeNoise = seeded(worldX, worldZ, 3);
+        const offsetX = (seeded(worldX, worldZ, 5) - 0.5) * 0.18;
+        const offsetZ = (seeded(worldX, worldZ, 6) - 0.5) * 0.18;
+        const skylineBias = 1.2 / (1 + cityDistance);
+        const height =
+          CITY_SCENE_CONFIG.minHeight +
+          (0.35 + skylineBias) * (2 + heightNoise * CITY_SCENE_CONFIG.maxHeight);
+
+        const width = 0.85 + shapeNoise * 0.9;
+        const depth = 0.85 + seeded(worldX, worldZ, 7) * 0.9;
+        const finalX = worldX + offsetX;
+        const finalZ = worldZ + offsetZ;
+
+        dummy.position.set(finalX, height / 2, finalZ);
+        dummy.scale.set(width, height, depth);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(placed, dummy.matrix);
+
+        centers[placed * 3] = finalX;
+        centers[placed * 3 + 1] = height / 2;
+        centers[placed * 3 + 2] = finalZ;
+        heights[placed] = height;
+        scales[placed * 2] = width;
+        scales[placed * 2 + 1] = depth;
+        placed += 1;
+      }
+    }
+
+    mesh.count = placed;
+    mesh.instanceMatrix.needsUpdate = true;
+    chunkMap.set(key, { key, mesh, count: placed, centers, heights, scales });
+  };
+
+  const removeChunk = (key: string, chunk: ChunkData) => {
+    cityGroup.remove(chunk.mesh);
+    chunk.mesh.dispose();
+    chunkMap.delete(key);
+  };
+
+  const clear = () => {
+    for (const [key, chunk] of chunkMap.entries()) {
+      removeChunk(key, chunk);
+    }
+  };
+
+  const removeFarChunks = (cameraChunkX: number, cameraChunkZ: number) => {
+    const cleanupRadius = getSearchRadius(
+      CITY_SCENE_CONFIG.chunkRadius,
+      currentRenderDirectionSettings,
+    );
+
+    for (const [key, chunk] of chunkMap.entries()) {
+      const [x, z] = key.split(":").map(Number);
+      if (
+        Math.abs(x - cameraChunkX) > cleanupRadius + 1 ||
+        Math.abs(z - cameraChunkZ) > cleanupRadius + 1
+      ) {
+        removeChunk(key, chunk);
+      }
+    }
+  };
+
+  return {
+    getChunks() {
+      return chunkMap.values();
+    },
+    sync(forceRefresh = false) {
+      const cameraChunkX = Math.floor(
+        (camera.position.x + CITY_SCENE_CONFIG.chunkSize * 0.5) / CITY_SCENE_CONFIG.chunkSize,
+      );
+      const cameraChunkZ = Math.floor(
+        (camera.position.z + CITY_SCENE_CONFIG.chunkSize * 0.5) / CITY_SCENE_CONFIG.chunkSize,
+      );
+
+      if (forceRefresh) {
+        clear();
+      }
+
+      const searchRadius = getSearchRadius(
+        CITY_SCENE_CONFIG.chunkRadius,
+        currentRenderDirectionSettings,
+      );
+
+      camera.getWorldDirection(tempForward);
+      tempForward.y = 0;
+      if (tempForward.lengthSq() === 0) {
+        tempForward.set(0, 0, -1);
+      } else {
+        tempForward.normalize();
+      }
+
+      for (let x = cameraChunkX - searchRadius; x <= cameraChunkX + searchRadius; x += 1) {
+        for (let z = cameraChunkZ - searchRadius; z <= cameraChunkZ + searchRadius; z += 1) {
+          const offsetX = x - cameraChunkX;
+          const offsetZ = z - cameraChunkZ;
+          const distance = Math.sqrt(offsetX * offsetX + offsetZ * offsetZ);
+          if (distance > searchRadius + 0.35) {
+            continue;
+          }
+
+          tempDirectionToChunk.set(offsetX, 0, offsetZ);
+          if (tempDirectionToChunk.lengthSq() === 0) {
+            createChunk(x, z);
+            continue;
+          }
+
+          tempDirectionToChunk.normalize();
+          const dot = tempForward.dot(tempDirectionToChunk);
+          const sideFactor = Math.sqrt(Math.max(0, 1 - dot * dot));
+          const isFront = dot >= 0.18;
+          const isSide = dot > -0.08 && dot < 0.18;
+          const isBack = dot <= -0.08;
+
+          if (isFront) {
+            if (distance > currentRenderDirectionSettings.forwardDistance + sideFactor * 0.5) {
+              continue;
+            }
+            createChunk(x, z);
+            continue;
+          }
+
+          if (isSide) {
+            if (distance > currentRenderDirectionSettings.sideDistance) {
+              continue;
+            }
+            createChunk(x, z);
+            continue;
+          }
+
+          if (distance > currentRenderDirectionSettings.backwardDistance) {
+            const key = `${x}:${z}`;
+            const existingChunk = chunkMap.get(key);
+            if (existingChunk) {
+              removeChunk(key, existingChunk);
+            }
+            continue;
+          }
+
+          if (isBack) {
+            createChunk(x, z);
+          }
+        }
+      }
+
+      removeFarChunks(cameraChunkX, cameraChunkZ);
+
+      let totalBuildings = 0;
+      chunkMap.forEach((chunk) => {
+        totalBuildings += chunk.count;
+      });
+
+      onStatsChange({
+        buildings: totalBuildings,
+        chunks: chunkMap.size,
+        fpsMode: "dynamic",
+      });
+    },
+    updateBuildingSettings(settings) {
+      buildingMaterial.color.set(settings.color);
+      buildingMaterial.roughness = clamp(settings.roughness, 0, 1);
+      buildingMaterial.metalness = clamp(settings.metalness, 0, 1);
+      buildingMaterial.needsUpdate = true;
+    },
+    updateRenderDirectionSettings(settings) {
+      currentRenderDirectionSettings = { ...settings };
+    },
+    dispose() {
+      clear();
+      scene.remove(cityGroup);
+      buildingGeometry.dispose();
+      buildingMaterial.dispose();
+    },
+  };
+}
