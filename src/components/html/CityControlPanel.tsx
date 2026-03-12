@@ -10,7 +10,6 @@ import type {
 import { BuildingControls } from "./BuildingControls";
 import { GroundControls } from "./GroundControls";
 import { PanelIntro } from "./PanelIntro";
-import { PointLightControls } from "./PointLightControls";
 import { RenderDirectionControls } from "./RenderDirectionControls";
 import { SceneLightControls } from "./SceneLightControls";
 import { ShadowControls } from "./ShadowControls";
@@ -90,21 +89,6 @@ export function CityControlPanel({
               value={lightSettings}
               metrics={lightMetrics}
               onChange={onLightSettingsChange}
-            />
-            <PointLightControls
-              pointLightColor={lightSettings.pointLightColor}
-              pointLights={lightSettings.pointLights}
-              onPointLightColorChange={(pointLightColor) =>
-                onLightSettingsChange({ ...lightSettings, pointLightColor })
-              }
-              onPointLightChange={(index, pointLight) =>
-                onLightSettingsChange({
-                  ...lightSettings,
-                  pointLights: lightSettings.pointLights.map((item, itemIndex) =>
-                    itemIndex === index ? pointLight : item,
-                  ),
-                })
-              }
             />
           </div>
         )}

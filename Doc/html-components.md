@@ -25,8 +25,13 @@ Esses componentes:
 Responsabilidades:
 
 - receber todos os estados do editor
-- montar as seções na ordem correta
+- organizar as seções em abas
 - repassar callbacks para cada seção
+
+O painel tem duas abas:
+
+- **Geral**: intro, prédios, sombras, direção de renderização e chão
+- **Luz**: luzes da cena (ambient, hemisphere, directional)
 
 Pense nele como um "compositor" do painel.
 
@@ -84,15 +89,6 @@ Cuida das luzes gerais da cena:
 - alvo da directional light
 - leitura das métricas derivadas, como intensidade solar
 
-### `src/components/html/PointLightControls.tsx`
-
-Cuida das point lights internas da cena.
-
-Ele mostra:
-
-- cor das point lights
-- um card para cada point light
-
 ## Componentes reutilizáveis de formulário
 
 A pasta `src/components/html/controls` guarda componentes pequenos e reaproveitáveis.
@@ -127,17 +123,6 @@ Use quando o valor precisa ser digitado diretamente.
 ### `CheckboxField.tsx`
 
 Campo booleano simples.
-
-### `PointLightCard.tsx`
-
-Card visual para editar uma point light específica.
-
-Ele agrupa:
-
-- posição X
-- posição Y
-- posição Z
-- intensidade
 
 ## Como essa camada conversa com o resto do projeto
 

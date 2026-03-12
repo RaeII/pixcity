@@ -34,24 +34,6 @@ export function createLightingRig(scene: THREE.Scene, lightSettings: LightSettin
   const directionalHelper = new THREE.DirectionalLightHelper(directional, 8);
   scene.add(directionalHelper);
 
-  const pointLights: THREE.PointLight[] = [];
-
-  const syncPointLightCount = (count: number) => {
-    while (pointLights.length < count) {
-      const pointLight = new THREE.PointLight(lightSettings.pointLightColor, 0, 0, 2);
-      pointLights.push(pointLight);
-      scene.add(pointLight);
-    }
-
-    while (pointLights.length > count) {
-      const pointLight = pointLights.pop();
-      if (!pointLight) {
-        continue;
-      }
-      scene.remove(pointLight);
-    }
-  };
-
   const update = (settings: LightSettings) => {
     const nextMetrics = getLightMetrics(settings);
     const directionalPosition = getDirectionalPositionFromAngles(
@@ -84,17 +66,6 @@ export function createLightingRig(scene: THREE.Scene, lightSettings: LightSettin
     directional.target.updateMatrixWorld();
     directionalHelper.update();
 
-    syncPointLightCount(settings.pointLights.length);
-    pointLights.forEach((pointLight, index) => {
-      const configPoint = settings.pointLights[index];
-      if (!configPoint) {
-        return;
-      }
-      pointLight.color.set(settings.pointLightColor);
-      pointLight.intensity = configPoint.intensity;
-      pointLight.position.set(configPoint.x, configPoint.y, configPoint.z);
-    });
-
     return nextMetrics;
   };
 
@@ -106,9 +77,6 @@ export function createLightingRig(scene: THREE.Scene, lightSettings: LightSettin
     directional,
     update,
     dispose() {
-      pointLights.forEach((pointLight) => {
-        scene.remove(pointLight);
-      });
       scene.remove(ambient);
       scene.remove(hemisphere);
       scene.remove(directionalHelper);

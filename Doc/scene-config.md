@@ -47,16 +47,12 @@ Guarda os valores padrão das luzes:
 
 - ambient
 - hemisphere
-- directional
-- point lights
+- directional (distância, elevação, azimute, alvo)
 
-Também guarda:
+Funções importantes:
 
-- `DEFAULT_POINT_LIGHTS`
 - `DEFAULT_LIGHT_SETTINGS`
 - `createDefaultLightSettings()`
-
-Se você quiser mudar a posição inicial das point lights, esse é o lugar certo.
 
 ### `src/scene/config/shadowConfig.ts`
 

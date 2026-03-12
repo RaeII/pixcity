@@ -34,13 +34,6 @@ export type ShadowSettings = {
   buildingCountWithShadow: number;
 };
 
-export type PointLightConfig = {
-  x: number;
-  y: number;
-  z: number;
-  intensity: number;
-};
-
 export type BuildingSettings = {
   color: string;
   roughness: number;
@@ -67,8 +60,6 @@ export type LightSettings = {
   directionalTargetX: number;
   directionalTargetY: number;
   directionalTargetZ: number;
-  pointLightColor: string;
-  pointLights: PointLightConfig[];
 };
 
 export type SceneStats = {

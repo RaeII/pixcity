@@ -1,11 +1,4 @@
-import type { LightSettings, PointLightConfig } from "../types";
-
-export const DEFAULT_POINT_LIGHTS: PointLightConfig[] = [
-  { x: -15, y: 25, z: 10, intensity: 1625 },
-  { x: 15, y: 25, z: 10, intensity: 1625 },
-  { x: -15, y: 25, z: -10, intensity: 1625 },
-  { x: 15, y: 25, z: -10, intensity: 1625 },
-];
+import type { LightSettings } from "../types";
 
 export const DEFAULT_LIGHT_SETTINGS: LightSettings = {
   ambientColor: "#fffaf2",
@@ -20,13 +13,8 @@ export const DEFAULT_LIGHT_SETTINGS: LightSettings = {
   directionalTargetX: 26,
   directionalTargetY: -8,
   directionalTargetZ: -2,
-  pointLightColor: "#fffaf2",
-  pointLights: DEFAULT_POINT_LIGHTS.map((pointLight) => ({ ...pointLight })),
 };
 
 export function createDefaultLightSettings(): LightSettings {
-  return {
-    ...DEFAULT_LIGHT_SETTINGS,
-    pointLights: DEFAULT_LIGHT_SETTINGS.pointLights.map((pointLight) => ({ ...pointLight })),
-  };
+  return { ...DEFAULT_LIGHT_SETTINGS };
 }

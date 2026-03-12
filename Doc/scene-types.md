@@ -50,16 +50,6 @@ Representa as configurações das luzes da cena:
 - ambient
 - hemisphere
 - directional
-- point lights
-
-### `PointLightConfig`
-
-Representa uma point light individual:
-
-- `x`
-- `y`
-- `z`
-- `intensity`
 
 ### `ShadowSettings`
 

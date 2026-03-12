@@ -60,17 +60,18 @@ Responsabilidades:
 - criar `AmbientLight`
 - criar `HemisphereLight`
 - criar `DirectionalLight`
-- criar e sincronizar `PointLight[]`
+- criar `DirectionalLightHelper` para visualizar a direção da luz solar na cena
 - atualizar posição, cor e intensidade das luzes
-- destruir luzes ao final
+- atualizar o helper sempre que a luz muda
+- destruir luzes e helper ao final
 
 Esse builder devolve um `LightingRig`, que é um objeto com referências e métodos de atualização.
 
 Quando mexer aqui:
 
 - se quiser adicionar um novo tipo de luz
-- se quiser mudar como as point lights são criadas
 - se quiser alterar a forma como a directional light recebe posição e alvo
+- se quiser ajustar o tamanho ou aparência do helper visual
 
 ## O que builders não fazem
 
