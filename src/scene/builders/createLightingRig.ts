@@ -31,6 +31,9 @@ export function createLightingRig(scene: THREE.Scene, lightSettings: LightSettin
   scene.add(directional);
   scene.add(directional.target);
 
+  const directionalHelper = new THREE.DirectionalLightHelper(directional, 8);
+  scene.add(directionalHelper);
+
   const pointLights: THREE.PointLight[] = [];
 
   const syncPointLightCount = (count: number) => {
@@ -79,6 +82,7 @@ export function createLightingRig(scene: THREE.Scene, lightSettings: LightSettin
       settings.directionalTargetZ,
     );
     directional.target.updateMatrixWorld();
+    directionalHelper.update();
 
     syncPointLightCount(settings.pointLights.length);
     pointLights.forEach((pointLight, index) => {
@@ -107,6 +111,8 @@ export function createLightingRig(scene: THREE.Scene, lightSettings: LightSettin
       });
       scene.remove(ambient);
       scene.remove(hemisphere);
+      scene.remove(directionalHelper);
+      directionalHelper.dispose();
       scene.remove(directional);
       scene.remove(directional.target);
     },
