@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   BuildingSettings,
   GroundSettings,
@@ -13,6 +14,8 @@ import { PointLightControls } from "./PointLightControls";
 import { RenderDirectionControls } from "./RenderDirectionControls";
 import { SceneLightControls } from "./SceneLightControls";
 import { ShadowControls } from "./ShadowControls";
+
+type Tab = "geral" | "luz";
 
 export type CityControlPanelProps = {
   buildingSettings: BuildingSettings;
@@ -47,37 +50,64 @@ export function CityControlPanel({
   onShadowSettingsChange,
   onRenderDirectionSettingsChange,
 }: CityControlPanelProps) {
+  const [activeTab, setActiveTab] = useState<Tab>("geral");
+
   return (
-    <div className="absolute right-0 top-0 z-20 h-screen w-full max-w-[360px] overflow-y-auto border-l border-white/10 bg-black/55 p-4 text-white shadow-2xl backdrop-blur-md">
-      <div className="space-y-6 pb-8 pt-2">
-        <PanelIntro sceneStats={sceneStats} solarIntensity={lightMetrics.solarIntensity} />
-        <BuildingControls value={buildingSettings} onChange={onBuildingSettingsChange} />
-        <ShadowControls value={shadowSettings} onChange={onShadowSettingsChange} />
-        <RenderDirectionControls
-          value={renderDirectionSettings}
-          onChange={onRenderDirectionSettingsChange}
-        />
-        <GroundControls value={groundSettings} onChange={onGroundSettingsChange} />
-        <SceneLightControls
-          value={lightSettings}
-          metrics={lightMetrics}
-          onChange={onLightSettingsChange}
-        />
-        <PointLightControls
-          pointLightColor={lightSettings.pointLightColor}
-          pointLights={lightSettings.pointLights}
-          onPointLightColorChange={(pointLightColor) =>
-            onLightSettingsChange({ ...lightSettings, pointLightColor })
-          }
-          onPointLightChange={(index, pointLight) =>
-            onLightSettingsChange({
-              ...lightSettings,
-              pointLights: lightSettings.pointLights.map((item, itemIndex) =>
-                itemIndex === index ? pointLight : item,
-              ),
-            })
-          }
-        />
+    <div className="absolute right-0 top-0 z-20 flex h-screen w-full max-w-[360px] flex-col border-l border-white/10 bg-black/55 text-white shadow-2xl backdrop-blur-md">
+      <div className="flex border-b border-white/10">
+        {(["geral", "luz"] as Tab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-3 text-sm font-medium capitalize tracking-wide transition-colors ${
+              activeTab === tab
+                ? "border-b-2 border-white text-white"
+                : "text-white/40 hover:text-white/70"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {activeTab === "geral" && (
+          <div className="space-y-6 pb-8 pt-2">
+            <PanelIntro sceneStats={sceneStats} solarIntensity={lightMetrics.solarIntensity} />
+            <BuildingControls value={buildingSettings} onChange={onBuildingSettingsChange} />
+            <ShadowControls value={shadowSettings} onChange={onShadowSettingsChange} />
+            <RenderDirectionControls
+              value={renderDirectionSettings}
+              onChange={onRenderDirectionSettingsChange}
+            />
+            <GroundControls value={groundSettings} onChange={onGroundSettingsChange} />
+          </div>
+        )}
+
+        {activeTab === "luz" && (
+          <div className="space-y-6 pb-8 pt-2">
+            <SceneLightControls
+              value={lightSettings}
+              metrics={lightMetrics}
+              onChange={onLightSettingsChange}
+            />
+            <PointLightControls
+              pointLightColor={lightSettings.pointLightColor}
+              pointLights={lightSettings.pointLights}
+              onPointLightColorChange={(pointLightColor) =>
+                onLightSettingsChange({ ...lightSettings, pointLightColor })
+              }
+              onPointLightChange={(index, pointLight) =>
+                onLightSettingsChange({
+                  ...lightSettings,
+                  pointLights: lightSettings.pointLights.map((item, itemIndex) =>
+                    itemIndex === index ? pointLight : item,
+                  ),
+                })
+              }
+            />
+          </div>
+        )}
       </div>
     </div>
   );
