@@ -49,9 +49,9 @@ Mostra o cabeçalho do painel com:
 
 Cuida das configurações dos prédios:
 
-- cor
-- roughness
-- metalness
+- **Tint global** — cor multiplicada sobre a paleta de cinzas por instância
+- **Rugosidade** — `roughness` do material
+- **Metalness** — `metalness` do material
 
 Se quiser alterar a interface de personalização dos prédios, comece por aqui.
 

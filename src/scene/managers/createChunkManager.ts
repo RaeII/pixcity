@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createBuildingGeometry } from "../builders/createBuildingGeometries";
 import { CITY_SCENE_CONFIG } from "../config/citySceneConfig";
 import type {
   BuildingSettings,
@@ -28,18 +29,26 @@ export type ChunkManager = {
 export function createChunkManager({
   scene,
   camera,
-  buildingSettings,
   renderDirectionSettings,
   onStatsChange,
 }: ChunkManagerOptions): ChunkManager {
   const cityGroup = new THREE.Group();
   scene.add(cityGroup);
 
-  const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
+  // Skyline gray palette — same tones used in @skyline/buildingMaterials
+  const GRAY_PALETTE = [
+    0x2d2d2d, 0x404040, 0x555555, 0x6b6b6b,
+    0x808080, 0x999999, 0xb3b3b3,
+  ];
+
+  const buildingGeometry = createBuildingGeometry();
+
+  // Matte finish matching Skyline's gray palette style.
+  // Base color white so per-instance gray colors render correctly.
   const buildingMaterial = new THREE.MeshStandardMaterial({
-    color: buildingSettings.color,
-    roughness: buildingSettings.roughness,
-    metalness: buildingSettings.metalness,
+    color: 0xffffff,
+    roughness: 0.95,
+    metalness: 0.05,
   });
 
   const chunkMap = new Map<string, ChunkData>();
@@ -117,6 +126,10 @@ export function createChunkManager({
         dummy.updateMatrix();
         mesh.setMatrixAt(placed, dummy.matrix);
 
+        // Per-instance gray shade from the Skyline palette
+        const colorIdx = Math.floor(seeded(worldX, worldZ, 8) * GRAY_PALETTE.length);
+        mesh.setColorAt(placed, new THREE.Color(GRAY_PALETTE[colorIdx]));
+
         centers[placed * 3] = finalX;
         centers[placed * 3 + 1] = height / 2;
         centers[placed * 3 + 2] = finalZ;
@@ -129,6 +142,7 @@ export function createChunkManager({
 
     mesh.count = placed;
     mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     chunkMap.set(key, { key, mesh, count: placed, centers, heights, scales });
   };
 

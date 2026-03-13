@@ -2,9 +2,9 @@ import type { BuildingSettings } from "../types";
 
 //Edificio config
 export const DEFAULT_BUILDING_SETTINGS: BuildingSettings = {
-  color: "#575757",
-  roughness: 0.84,
-  metalness: 0.37,
+  color: "#ffffff",  // neutral tint — Skyline gray palette shows through
+  roughness: 0.95,   // Skyline matte finish
+  metalness: 0.05,   // Skyline matte finish
 };
 
 export function createDefaultBuildingSettings(): BuildingSettings {

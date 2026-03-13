@@ -35,6 +35,7 @@ export type ShadowSettings = {
 };
 
 export type BuildingSettings = {
+  /** Global tint — white = neutral, instance gray palette shows through */
   color: string;
   roughness: number;
   metalness: number;
