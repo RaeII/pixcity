@@ -70,13 +70,7 @@ export function createChunkManager({
 
   const allTextures = [colorMap, normalMap, roughnessMap, metalnessMap, displacementMap];
 
-  const applyTiling = (scale: number) => {
-    for (const tex of allTextures) {
-      tex.repeat.set(scale, scale);
-    }
-  };
-
-  applyTiling(textureSettings.tilingScale);
+  const tilingUniform = { value: textureSettings.tilingScale };
 
   const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
   const buildingMaterial = new THREE.MeshStandardMaterial({
@@ -84,6 +78,62 @@ export function createChunkManager({
     roughness: buildingSettings.roughness,
     metalness: buildingSettings.metalness,
   });
+
+  buildingMaterial.customProgramCacheKey = () => "building-triplanar-uv";
+  buildingMaterial.onBeforeCompile = (shader) => {
+    shader.uniforms.uTiling = tilingUniform;
+
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <common>",
+      `#include <common>
+      uniform float uTiling;
+      varying vec3 vTriplanarWorldPos;
+      varying vec3 vTriplanarObjNormal;`,
+    );
+
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <fog_vertex>",
+      `#include <fog_vertex>
+      #ifdef USE_INSTANCING
+        vec4 triWp = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
+      #else
+        vec4 triWp = modelMatrix * vec4(transformed, 1.0);
+      #endif
+      vTriplanarWorldPos = triWp.xyz;
+      vTriplanarObjNormal = objectNormal;
+
+      vec3 triAbsN = abs(objectNormal);
+      vec2 triUV;
+      if (triAbsN.y >= triAbsN.x && triAbsN.y >= triAbsN.z) {
+        triUV = triWp.xz;
+      } else if (triAbsN.x >= triAbsN.z) {
+        triUV = triWp.zy;
+      } else {
+        triUV = triWp.xy;
+      }
+      triUV *= uTiling;
+
+      #ifdef USE_MAP
+        vMapUv = triUV;
+      #endif
+      #ifdef USE_NORMALMAP
+        vNormalMapUv = triUV;
+      #endif
+      #ifdef USE_ROUGHNESSMAP
+        vRoughnessMapUv = triUV;
+      #endif
+      #ifdef USE_METALNESSMAP
+        vMetalnessMapUv = triUV;
+      #endif`,
+    );
+
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <common>",
+      `#include <common>
+      varying vec3 vTriplanarWorldPos;
+      varying vec3 vTriplanarObjNormal;`,
+    );
+  };
 
   let currentTextureSettings = { ...textureSettings };
 
@@ -335,7 +385,7 @@ export function createChunkManager({
     },
     updateTextureSettings(settings) {
       currentTextureSettings = { ...settings };
-      applyTiling(settings.tilingScale);
+      tilingUniform.value = settings.tilingScale;
       applyTextureToMaterial(settings);
     },
     updateRenderDirectionSettings(settings) {
