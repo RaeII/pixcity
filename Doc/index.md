@@ -69,6 +69,7 @@ Doc/
 - `src/components/CitySceneEditor.tsx` é o componente mais importante do lado React.
 - Ele guarda os estados principais:
   - `buildingSettings`
+  - `textureSettings`
   - `groundSettings`
   - `lightSettings`
   - `shadowSettings`
@@ -97,6 +98,7 @@ Doc/
 - Ele cria o runtime da cena uma vez.
 - Depois sincroniza mudanças de estado usando métodos como:
   - `updateBuildingSettings`
+  - `updateTextureSettings`
   - `updateGroundSettings`
   - `updateLightSettings`
   - `updateShadowSettings`

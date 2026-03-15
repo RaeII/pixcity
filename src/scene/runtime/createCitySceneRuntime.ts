@@ -14,6 +14,7 @@ import type {
   RenderDirectionSettings,
   SceneStats,
   ShadowSettings,
+  TextureSettings,
 } from "../types";
 import { runDevAssertionsOnce } from "../utils/devAssertions";
 import { clamp } from "../utils/math";
@@ -21,6 +22,7 @@ import { clamp } from "../utils/math";
 type CitySceneRuntimeOptions = {
   mount: HTMLDivElement;
   buildingSettings: BuildingSettings;
+  textureSettings: TextureSettings;
   groundSettings: GroundSettings;
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
@@ -30,6 +32,7 @@ type CitySceneRuntimeOptions = {
 
 export type CitySceneRuntime = {
   updateBuildingSettings: (settings: BuildingSettings) => void;
+  updateTextureSettings: (settings: TextureSettings) => void;
   updateGroundSettings: (settings: GroundSettings) => void;
   updateLightSettings: (settings: LightSettings) => void;
   updateShadowSettings: (settings: ShadowSettings) => void;
@@ -43,6 +46,7 @@ export type CitySceneRuntime = {
 export function createCitySceneRuntime({
   mount,
   buildingSettings,
+  textureSettings,
   groundSettings,
   lightSettings,
   shadowSettings,
@@ -116,6 +120,7 @@ export function createCitySceneRuntime({
     scene,
     camera,
     buildingSettings,
+    textureSettings,
     renderDirectionSettings,
     onStatsChange: (stats) => emitStatsPatch(stats),
   });
@@ -275,6 +280,9 @@ export function createCitySceneRuntime({
   return {
     updateBuildingSettings(settings) {
       chunkManager.updateBuildingSettings(settings);
+    },
+    updateTextureSettings(settings) {
+      chunkManager.updateTextureSettings(settings);
     },
     updateGroundSettings(settings) {
       groundPlane.update(settings);

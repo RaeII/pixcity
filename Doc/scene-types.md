@@ -17,6 +17,18 @@ Isso evita duplicação e ajuda o TypeScript a proteger a comunicação entre:
 
 ## Tipos principais
 
+### `TextureSettings`
+
+Representa as configurações de textura PBR dos edifícios:
+
+- `enabled` — ativa ou desativa as texturas
+- `normalScale` — intensidade do mapa de normais
+- `displacementScale` — intensidade do mapa de displacement
+- `tilingScale` — repetição da textura (UV repeat)
+- `roughnessIntensity` — intensidade do mapa de roughness
+- `metalnessIntensity` — intensidade do mapa de metalness
+- `clayRender` — quando ativo, desabilita todas as texturas e usa material sólido
+
 ### `BuildingSettings`
 
 Representa as configurações dos prédios:

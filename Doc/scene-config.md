@@ -27,6 +27,23 @@ Funções importantes:
 
 Use `createDefaultBuildingSettings()` quando quiser criar um novo estado inicial sem compartilhar a mesma referência de objeto.
 
+### `src/scene/config/textureConfig.ts`
+
+Guarda os valores padrão das texturas PBR dos edifícios:
+
+- textura ativada por padrão
+- normal scale
+- displacement scale
+- tiling scale
+- roughness intensity
+- metalness intensity
+- clay render desativado
+
+Funções importantes:
+
+- `DEFAULT_TEXTURE_SETTINGS`
+- `createDefaultTextureSettings()`
+
 ### `src/scene/config/groundConfig.ts`
 
 Guarda os valores padrão do chão:

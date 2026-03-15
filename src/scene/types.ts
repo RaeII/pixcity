@@ -34,6 +34,16 @@ export type ShadowSettings = {
   buildingCountWithShadow: number;
 };
 
+export type TextureSettings = {
+  enabled: boolean;
+  normalScale: number;
+  displacementScale: number;
+  tilingScale: number;
+  roughnessIntensity: number;
+  metalnessIntensity: number;
+  clayRender: boolean;
+};
+
 export type BuildingSettings = {
   color: string;
   roughness: number;

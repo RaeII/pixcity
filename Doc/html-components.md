@@ -28,9 +28,10 @@ Responsabilidades:
 - organizar as seções em abas
 - repassar callbacks para cada seção
 
-O painel tem duas abas:
+O painel tem três abas:
 
 - **Geral**: intro, prédios, sombras, direção de renderização e chão
+- **Texturas**: configurações PBR das texturas dos edifícios
 - **Luz**: luzes da cena (ambient, hemisphere, directional)
 
 Pense nele como um "compositor" do painel.
@@ -79,6 +80,20 @@ Cuida das configurações do chão:
 
 - cor
 - tipo de material
+
+### `src/components/html/TextureControls.tsx`
+
+Cuida das configurações de textura PBR dos edifícios:
+
+- ativar ou desativar texturas
+- clay render (desativa texturas para testar só geometria)
+- normal scale
+- displacement scale
+- tiling scale (repetição da textura)
+- roughness intensity (intensidade do mapa de roughness)
+- metalness intensity (intensidade do mapa de metalness)
+
+As texturas são carregadas da pasta `src/assets/texture/Facade006_1K-mirrored-PNG/` e incluem mapas de cor, normal, roughness, metalness e displacement.
 
 ### `src/components/html/SceneLightControls.tsx`
 

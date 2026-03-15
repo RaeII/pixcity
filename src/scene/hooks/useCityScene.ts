@@ -7,11 +7,13 @@ import type {
   RenderDirectionSettings,
   SceneStats,
   ShadowSettings,
+  TextureSettings,
 } from "../types";
 
 type UseCitySceneOptions = {
   mountRef: RefObject<HTMLDivElement | null>;
   buildingSettings: BuildingSettings;
+  textureSettings: TextureSettings;
   groundSettings: GroundSettings;
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
@@ -22,6 +24,7 @@ type UseCitySceneOptions = {
 export function useCityScene({
   mountRef,
   buildingSettings,
+  textureSettings,
   groundSettings,
   lightSettings,
   shadowSettings,
@@ -31,6 +34,7 @@ export function useCityScene({
   const runtimeRef = useRef<CitySceneRuntime | null>(null);
   const initialSettingsRef = useRef<Omit<UseCitySceneOptions, "mountRef" | "onStatsChange">>({
     buildingSettings,
+    textureSettings,
     groundSettings,
     lightSettings,
     shadowSettings,
@@ -63,6 +67,10 @@ export function useCityScene({
   useEffect(() => {
     runtimeRef.current?.updateBuildingSettings(buildingSettings);
   }, [buildingSettings]);
+
+  useEffect(() => {
+    runtimeRef.current?.updateTextureSettings(textureSettings);
+  }, [textureSettings]);
 
   useEffect(() => {
     runtimeRef.current?.updateGroundSettings(groundSettings);

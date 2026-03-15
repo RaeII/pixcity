@@ -6,6 +6,7 @@ import type {
   RenderDirectionSettings,
   SceneStats,
   ShadowSettings,
+  TextureSettings,
 } from "../../scene/types";
 import { BuildingControls } from "./BuildingControls";
 import { GroundControls } from "./GroundControls";
@@ -13,11 +14,13 @@ import { PanelIntro } from "./PanelIntro";
 import { RenderDirectionControls } from "./RenderDirectionControls";
 import { SceneLightControls } from "./SceneLightControls";
 import { ShadowControls } from "./ShadowControls";
+import { TextureControls } from "./TextureControls";
 
-type Tab = "geral" | "luz";
+type Tab = "geral" | "texturas" | "luz";
 
 export type CityControlPanelProps = {
   buildingSettings: BuildingSettings;
+  textureSettings: TextureSettings;
   groundSettings: GroundSettings;
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
@@ -29,6 +32,7 @@ export type CityControlPanelProps = {
     solarIntensity: number;
   };
   onBuildingSettingsChange: (settings: BuildingSettings) => void;
+  onTextureSettingsChange: (settings: TextureSettings) => void;
   onGroundSettingsChange: (settings: GroundSettings) => void;
   onLightSettingsChange: (settings: LightSettings) => void;
   onShadowSettingsChange: (settings: ShadowSettings) => void;
@@ -37,6 +41,7 @@ export type CityControlPanelProps = {
 
 export function CityControlPanel({
   buildingSettings,
+  textureSettings,
   groundSettings,
   lightSettings,
   shadowSettings,
@@ -44,6 +49,7 @@ export function CityControlPanel({
   sceneStats,
   lightMetrics,
   onBuildingSettingsChange,
+  onTextureSettingsChange,
   onGroundSettingsChange,
   onLightSettingsChange,
   onShadowSettingsChange,
@@ -54,7 +60,7 @@ export function CityControlPanel({
   return (
     <div className="absolute right-0 top-0 z-20 flex h-screen w-full max-w-[360px] flex-col border-l border-white/10 bg-black/55 text-white shadow-2xl backdrop-blur-md">
       <div className="flex border-b border-white/10">
-        {(["geral", "luz"] as Tab[]).map((tab) => (
+        {(["geral", "texturas", "luz"] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -80,6 +86,12 @@ export function CityControlPanel({
               onChange={onRenderDirectionSettingsChange}
             />
             <GroundControls value={groundSettings} onChange={onGroundSettingsChange} />
+          </div>
+        )}
+
+        {activeTab === "texturas" && (
+          <div className="space-y-6 pb-8 pt-2">
+            <TextureControls value={textureSettings} onChange={onTextureSettingsChange} />
           </div>
         )}
 

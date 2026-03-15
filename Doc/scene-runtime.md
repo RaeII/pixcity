@@ -69,6 +69,7 @@ No `animate`:
 O runtime expõe métodos públicos:
 
 - `updateBuildingSettings`
+- `updateTextureSettings`
 - `updateGroundSettings`
 - `updateLightSettings`
 - `updateShadowSettings`

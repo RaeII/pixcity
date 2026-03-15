@@ -5,14 +5,22 @@ import type {
   ChunkData,
   RenderDirectionSettings,
   SceneStats,
+  TextureSettings,
 } from "../types";
 import { clamp, getSearchRadius } from "../utils/math";
 import { seeded } from "../utils/random";
+
+import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
+import normalTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_NormalGL.png";
+import roughnessTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Roughness.png";
+import metalnessTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Metalness.png";
+import displacementTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Displacement.png";
 
 type ChunkManagerOptions = {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   buildingSettings: BuildingSettings;
+  textureSettings: TextureSettings;
   renderDirectionSettings: RenderDirectionSettings;
   onStatsChange: (stats: Pick<SceneStats, "buildings" | "chunks" | "fpsMode">) => void;
 };
@@ -21,19 +29,54 @@ export type ChunkManager = {
   getChunks: () => IterableIterator<ChunkData>;
   sync: (forceRefresh?: boolean) => void;
   updateBuildingSettings: (settings: BuildingSettings) => void;
+  updateTextureSettings: (settings: TextureSettings) => void;
   updateRenderDirectionSettings: (settings: RenderDirectionSettings) => void;
   dispose: () => void;
 };
+
+function loadTexture(src: string): THREE.Texture {
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load(src);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+function loadDataTexture(src: string): THREE.Texture {
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load(src);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
 
 export function createChunkManager({
   scene,
   camera,
   buildingSettings,
+  textureSettings,
   renderDirectionSettings,
   onStatsChange,
 }: ChunkManagerOptions): ChunkManager {
   const cityGroup = new THREE.Group();
   scene.add(cityGroup);
+
+  const colorMap = loadTexture(colorTextureSrc);
+  const normalMap = loadDataTexture(normalTextureSrc);
+  const roughnessMap = loadDataTexture(roughnessTextureSrc);
+  const metalnessMap = loadDataTexture(metalnessTextureSrc);
+  const displacementMap = loadDataTexture(displacementTextureSrc);
+
+  const allTextures = [colorMap, normalMap, roughnessMap, metalnessMap, displacementMap];
+
+  const applyTiling = (scale: number) => {
+    for (const tex of allTextures) {
+      tex.repeat.set(scale, scale);
+    }
+  };
+
+  applyTiling(textureSettings.tilingScale);
 
   const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
   const buildingMaterial = new THREE.MeshStandardMaterial({
@@ -41,6 +84,32 @@ export function createChunkManager({
     roughness: buildingSettings.roughness,
     metalness: buildingSettings.metalness,
   });
+
+  let currentTextureSettings = { ...textureSettings };
+
+  const applyTextureToMaterial = (settings: TextureSettings) => {
+    if (settings.enabled && !settings.clayRender) {
+      buildingMaterial.map = colorMap;
+      buildingMaterial.normalMap = normalMap;
+      buildingMaterial.normalScale.set(settings.normalScale, settings.normalScale);
+      buildingMaterial.roughnessMap = roughnessMap;
+      buildingMaterial.metalnessMap = metalnessMap;
+      buildingMaterial.displacementMap = displacementMap;
+      buildingMaterial.displacementScale = settings.displacementScale;
+      buildingMaterial.roughness = settings.roughnessIntensity;
+      buildingMaterial.metalness = settings.metalnessIntensity;
+    } else {
+      buildingMaterial.map = null;
+      buildingMaterial.normalMap = null;
+      buildingMaterial.roughnessMap = null;
+      buildingMaterial.metalnessMap = null;
+      buildingMaterial.displacementMap = null;
+      buildingMaterial.displacementScale = 0;
+    }
+    buildingMaterial.needsUpdate = true;
+  };
+
+  applyTextureToMaterial(textureSettings);
 
   const chunkMap = new Map<string, ChunkData>();
   const dummy = new THREE.Object3D();
@@ -258,9 +327,16 @@ export function createChunkManager({
     },
     updateBuildingSettings(settings) {
       buildingMaterial.color.set(settings.color);
-      buildingMaterial.roughness = clamp(settings.roughness, 0, 1);
-      buildingMaterial.metalness = clamp(settings.metalness, 0, 1);
+      if (currentTextureSettings.clayRender || !currentTextureSettings.enabled) {
+        buildingMaterial.roughness = clamp(settings.roughness, 0, 1);
+        buildingMaterial.metalness = clamp(settings.metalness, 0, 1);
+      }
       buildingMaterial.needsUpdate = true;
+    },
+    updateTextureSettings(settings) {
+      currentTextureSettings = { ...settings };
+      applyTiling(settings.tilingScale);
+      applyTextureToMaterial(settings);
     },
     updateRenderDirectionSettings(settings) {
       currentRenderDirectionSettings = { ...settings };
@@ -270,6 +346,9 @@ export function createChunkManager({
       scene.remove(cityGroup);
       buildingGeometry.dispose();
       buildingMaterial.dispose();
+      for (const tex of allTextures) {
+        tex.dispose();
+      }
     },
   };
 }

@@ -7,10 +7,12 @@ import type {
   RenderDirectionSettings,
   SceneStats,
   ShadowSettings,
+  TextureSettings,
 } from "../../scene/types";
 
 export type CitySceneCanvasProps = {
   buildingSettings: BuildingSettings;
+  textureSettings: TextureSettings;
   groundSettings: GroundSettings;
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
@@ -20,6 +22,7 @@ export type CitySceneCanvasProps = {
 
 export function CitySceneCanvas({
   buildingSettings,
+  textureSettings,
   groundSettings,
   lightSettings,
   shadowSettings,
@@ -31,6 +34,7 @@ export function CitySceneCanvas({
   useCityScene({
     mountRef,
     buildingSettings,
+    textureSettings,
     groundSettings,
     lightSettings,
     shadowSettings,

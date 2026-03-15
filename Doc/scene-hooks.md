@@ -30,6 +30,7 @@ Quando o componente do canvas monta:
 Depois disso, cada `useEffect` é responsável por uma área:
 
 - prédio
+- texturas
 - chão
 - luz
 - sombra
