@@ -86,14 +86,14 @@ Cuida das configurações do chão:
 Cuida das configurações de textura PBR dos edifícios:
 
 - ativar ou desativar texturas
-- clay render (desativa texturas para testar só geometria)
+- clay render (ativa efeito de espelhamento nas superfícies)
 - normal scale
-- displacement scale
+- displacementScale (relevo visual via displacementScale map, 0–5)
 - tiling scale (repetição da textura)
-- roughness intensity (intensidade do mapa de roughness)
-- metalness intensity (intensidade do mapa de metalness)
+- roughness intensity (multiplicador do mapa de roughness, 0–2)
+- metalness intensity (multiplicador do mapa de metalness, 0–3, padrão 2)
 
-As texturas são carregadas da pasta `src/assets/texture/Facade006_1K-mirrored-PNG/` e incluem mapas de cor, normal, roughness, metalness e displacement.
+As texturas são carregadas da pasta `src/assets/texture/Facade006_1K-mirrored-PNG/` e incluem mapas de cor, normal, roughness, metalness e displacement (displacement usado como displacement map).
 
 ### `src/components/html/SceneLightControls.tsx`
 

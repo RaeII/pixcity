@@ -124,6 +124,9 @@ export function createChunkManager({
       #endif
       #ifdef USE_METALNESSMAP
         vMetalnessMapUv = triUV;
+      #endif
+      #ifdef USE_BUMPMAP
+        vBumpMapUv = triUV;
       #endif`,
     );
 
@@ -138,16 +141,17 @@ export function createChunkManager({
   let currentTextureSettings = { ...textureSettings };
 
   const applyTextureToMaterial = (settings: TextureSettings) => {
-    if (settings.enabled && !settings.clayRender) {
+    if (settings.enabled) {
       buildingMaterial.map = colorMap;
       buildingMaterial.normalMap = normalMap;
       buildingMaterial.normalScale.set(settings.normalScale, settings.normalScale);
       buildingMaterial.roughnessMap = roughnessMap;
       buildingMaterial.metalnessMap = metalnessMap;
-      buildingMaterial.displacementMap = displacementMap;
-      buildingMaterial.displacementScale = settings.displacementScale;
       buildingMaterial.roughness = settings.roughnessIntensity;
       buildingMaterial.metalness = settings.metalnessIntensity;
+      buildingMaterial.displacementMap = displacementMap;
+      buildingMaterial.displacementScale = settings.displacementScale;
+
     } else {
       buildingMaterial.map = null;
       buildingMaterial.normalMap = null;
@@ -377,7 +381,7 @@ export function createChunkManager({
     },
     updateBuildingSettings(settings) {
       buildingMaterial.color.set(settings.color);
-      if (currentTextureSettings.clayRender || !currentTextureSettings.enabled) {
+      if (!currentTextureSettings.enabled) {
         buildingMaterial.roughness = clamp(settings.roughness, 0, 1);
         buildingMaterial.metalness = clamp(settings.metalness, 0, 1);
       }

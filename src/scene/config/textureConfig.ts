@@ -6,7 +6,7 @@ export const DEFAULT_TEXTURE_SETTINGS: TextureSettings = {
   displacementScale: 0.0,
   tilingScale: 1.0,
   roughnessIntensity: 1.0,
-  metalnessIntensity: 1.0,
+  metalnessIntensity: 2.0,
   clayRender: false,
 };
 

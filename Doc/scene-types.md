@@ -23,11 +23,11 @@ Representa as configurações de textura PBR dos edifícios:
 
 - `enabled` — ativa ou desativa as texturas
 - `normalScale` — intensidade do mapa de normais
-- `displacementScale` — intensidade do mapa de displacement
+- `displacementScale` — intensidade do displacement map (simula relevo via perturbação de normais, sem mover vértices)
 - `tilingScale` — repetição da textura (UV repeat)
 - `roughnessIntensity` — intensidade do mapa de roughness
 - `metalnessIntensity` — intensidade do mapa de metalness
-- `clayRender` — quando ativo, desabilita todas as texturas e usa material sólido
+- `clayRender` — quando ativo, cria efeito de espelhamento nas superfícies (roughness baixo + metalness alto)
 
 ### `BuildingSettings`
 

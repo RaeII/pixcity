@@ -12,7 +12,7 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
   return (
     <PanelSection
       title="Texturas dos edifícios"
-      description="Controla as texturas PBR aplicadas nos prédios. Use Clay Render para desativar texturas e testar só a geometria."
+      description="Controla as texturas PBR aplicadas nos prédios. Clay Render ativa o efeito de espelhamento nas superfícies."
     >
       <CheckboxField
         label="Texturas ativadas"
@@ -30,7 +30,7 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         label="Normal Scale"
         value={value.normalScale}
         min={0}
-        max={5}
+        max={20}
         step={0.1}
         valueLabel={value.normalScale.toFixed(1)}
         onChange={(normalScale) => onChange({ ...value, normalScale })}
@@ -40,8 +40,8 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         label="Displacement Scale"
         value={value.displacementScale}
         min={0}
-        max={1}
-        step={0.01}
+        max={1000}
+        step={0.05}
         valueLabel={value.displacementScale.toFixed(2)}
         onChange={(displacementScale) => onChange({ ...value, displacementScale })}
       />
@@ -70,7 +70,7 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         label="Metalness Intensity"
         value={value.metalnessIntensity}
         min={0}
-        max={2}
+        max={3}
         step={0.01}
         valueLabel={value.metalnessIntensity.toFixed(2)}
         onChange={(metalnessIntensity) => onChange({ ...value, metalnessIntensity })}

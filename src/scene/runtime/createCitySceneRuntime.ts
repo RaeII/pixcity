@@ -113,6 +113,14 @@ export function createCitySceneRuntime({
   );
   controls.update();
 
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  pmremGenerator.compileEquirectangularShader();
+  const envScene = new THREE.Scene();
+  envScene.background = new THREE.Color(CITY_SCENE_CONFIG.sceneBackground);
+  const envRT = pmremGenerator.fromScene(envScene, 0.04);
+  scene.environment = envRT.texture;
+  pmremGenerator.dispose();
+
   const lightingRig = createLightingRig(scene, lightSettings);
   const groundPlane = createGroundPlane(scene, groundSettings, shadowSettings.enabled);
   const gridHelper = createGridHelper(scene);
@@ -307,6 +315,7 @@ export function createCitySceneRuntime({
       groundPlane.dispose();
       gridHelper.dispose();
       lightingRig.dispose();
+      envRT.dispose();
       renderer.dispose();
 
       if (mount.contains(renderer.domElement)) {
