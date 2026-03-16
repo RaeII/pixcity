@@ -114,12 +114,28 @@ export function createCitySceneRuntime({
   controls.update();
 
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  pmremGenerator.compileEquirectangularShader();
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(CITY_SCENE_CONFIG.sceneBackground);
+  const envSkyGeo = new THREE.SphereGeometry(10, 16, 12);
+  const skyColor = new THREE.Color(lightSettings.hemisphereSkyColor);
+  const groundColor = new THREE.Color(CITY_SCENE_CONFIG.sceneBackground);
+  const envPositions = envSkyGeo.attributes.position as THREE.BufferAttribute;
+  const envColorData = new Float32Array(envPositions.count * 3);
+  const envTempColor = new THREE.Color();
+  for (let i = 0; i < envPositions.count; i++) {
+    const t = Math.max(0, Math.min(1, (envPositions.getY(i) / 10 + 1) / 2));
+    envTempColor.lerpColors(groundColor, skyColor, t);
+    envColorData[i * 3] = envTempColor.r;
+    envColorData[i * 3 + 1] = envTempColor.g;
+    envColorData[i * 3 + 2] = envTempColor.b;
+  }
+  envSkyGeo.setAttribute("color", new THREE.BufferAttribute(envColorData, 3));
+  const envSkyMat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
+  envScene.add(new THREE.Mesh(envSkyGeo, envSkyMat));
   const envRT = pmremGenerator.fromScene(envScene, 0.04);
   scene.environment = envRT.texture;
   pmremGenerator.dispose();
+  envSkyGeo.dispose();
+  envSkyMat.dispose();
 
   const lightingRig = createLightingRig(scene, lightSettings);
   const groundPlane = createGroundPlane(scene, groundSettings, shadowSettings.enabled);

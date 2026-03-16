@@ -31,7 +31,7 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         value={value.normalScale}
         min={0}
         max={20}
-        step={0.1}
+        step={1}
         valueLabel={value.normalScale.toFixed(1)}
         onChange={(normalScale) => onChange({ ...value, normalScale })}
       />
@@ -61,7 +61,7 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         value={value.tilingScale}
         min={0.1}
         max={10}
-        step={0.1}
+        step={0.4}
         valueLabel={value.tilingScale.toFixed(1)}
         onChange={(tilingScale) => onChange({ ...value, tilingScale })}
       />
@@ -70,8 +70,8 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         label="Roughness Intensity"
         value={value.roughnessIntensity}
         min={0}
-        max={2}
-        step={0.01}
+        max={100}
+        step={1}
         valueLabel={value.roughnessIntensity.toFixed(2)}
         onChange={(roughnessIntensity) => onChange({ ...value, roughnessIntensity })}
       />
@@ -81,7 +81,7 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         value={value.metalnessIntensity}
         min={0}
         max={3}
-        step={0.01}
+        step={1}
         valueLabel={value.metalnessIntensity.toFixed(2)}
         onChange={(metalnessIntensity) => onChange({ ...value, metalnessIntensity })}
       />
