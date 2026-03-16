@@ -37,12 +37,22 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
       />
 
       <RangeField
+        label="Bump Scale"
+        value={value.bumpScale}
+        min={0}
+        max={5}
+        step={0.01}
+        valueLabel={value.bumpScale.toFixed(2)}
+        onChange={(bumpScale) => onChange({ ...value, bumpScale })}
+      />
+
+      <RangeField
         label="Displacement Scale"
         value={value.displacementScale}
         min={0}
-        max={1000}
-        step={0.05}
-        valueLabel={value.displacementScale.toFixed(2)}
+        max={0.5}
+        step={0.001}
+        valueLabel={value.displacementScale.toFixed(3)}
         onChange={(displacementScale) => onChange({ ...value, displacementScale })}
       />
 

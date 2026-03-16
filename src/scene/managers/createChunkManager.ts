@@ -72,11 +72,15 @@ export function createChunkManager({
 
   const tilingUniform = { value: textureSettings.tilingScale };
 
-  const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const buildingGeometry = new THREE.BoxGeometry(1, 1, 1, 4, 8, 4);
   const buildingMaterial = new THREE.MeshStandardMaterial({
     color: buildingSettings.color,
     roughness: buildingSettings.roughness,
     metalness: buildingSettings.metalness,
+    bumpMap: displacementMap,
+    bumpScale: 0,
+    displacementMap: displacementMap,
+    displacementScale: 0,
   });
 
   buildingMaterial.customProgramCacheKey = () => "building-triplanar-uv";
@@ -127,6 +131,9 @@ export function createChunkManager({
       #endif
       #ifdef USE_BUMPMAP
         vBumpMapUv = triUV;
+      #endif
+      #ifdef USE_DISPLACEMENTMAP
+        vDisplacementMapUv = triUV;
       #endif`,
     );
 
@@ -149,15 +156,18 @@ export function createChunkManager({
       buildingMaterial.metalnessMap = metalnessMap;
       buildingMaterial.roughness = settings.roughnessIntensity;
       buildingMaterial.metalness = settings.metalnessIntensity;
+      buildingMaterial.bumpMap = displacementMap;
+      buildingMaterial.bumpScale = settings.bumpScale;
       buildingMaterial.displacementMap = displacementMap;
       buildingMaterial.displacementScale = settings.displacementScale;
-
     } else {
       buildingMaterial.map = null;
       buildingMaterial.normalMap = null;
       buildingMaterial.roughnessMap = null;
       buildingMaterial.metalnessMap = null;
-      buildingMaterial.displacementMap = null;
+      buildingMaterial.bumpMap = displacementMap;
+      buildingMaterial.bumpScale = 0;
+      buildingMaterial.displacementMap = displacementMap;
       buildingMaterial.displacementScale = 0;
     }
     buildingMaterial.needsUpdate = true;
