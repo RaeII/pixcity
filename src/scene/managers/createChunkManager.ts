@@ -31,6 +31,7 @@ export type ChunkManager = {
   updateBuildingSettings: (settings: BuildingSettings) => void;
   updateTextureSettings: (settings: TextureSettings) => void;
   updateRenderDirectionSettings: (settings: RenderDirectionSettings) => void;
+  setEnvMap: (envMap: THREE.Texture | null) => void;
   dispose: () => void;
 };
 
@@ -73,7 +74,7 @@ export function createChunkManager({
   const tilingUniform = { value: textureSettings.tilingScale };
 
   const buildingGeometry = new THREE.BoxGeometry(1, 1, 1, 4, 8, 4);
-  const buildingMaterial = new THREE.MeshStandardMaterial({
+  const buildingMaterial = new THREE.MeshPhysicalMaterial({
     color: buildingSettings.color,
     roughness: buildingSettings.roughness,
     metalness: buildingSettings.metalness,
@@ -81,6 +82,9 @@ export function createChunkManager({
     bumpScale: 0,
     displacementMap: displacementMap,
     displacementScale: 0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.02,
+    envMapIntensity: 1.8,
   });
 
   buildingMaterial.customProgramCacheKey = () => "building-triplanar-uv";
@@ -170,6 +174,7 @@ export function createChunkManager({
       buildingMaterial.displacementMap = displacementMap;
       buildingMaterial.displacementScale = 0;
     }
+    buildingMaterial.envMapIntensity = settings.envMapIntensity;
     buildingMaterial.needsUpdate = true;
   };
 
@@ -404,6 +409,10 @@ export function createChunkManager({
     },
     updateRenderDirectionSettings(settings) {
       currentRenderDirectionSettings = { ...settings };
+    },
+    setEnvMap(envMap) {
+      buildingMaterial.envMap = envMap;
+      buildingMaterial.needsUpdate = true;
     },
     dispose() {
       clear();

@@ -80,10 +80,20 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         label="Metalness Intensity"
         value={value.metalnessIntensity}
         min={0}
-        max={3}
-        step={1}
+        max={10}
+        step={0.001}
         valueLabel={value.metalnessIntensity.toFixed(2)}
         onChange={(metalnessIntensity) => onChange({ ...value, metalnessIntensity })}
+      />
+
+      <RangeField
+        label="Env Map Intensity"
+        value={value.envMapIntensity}
+        min={0}
+        max={5}
+        step={0.1}
+        valueLabel={value.envMapIntensity.toFixed(1)}
+        onChange={(envMapIntensity) => onChange({ ...value, envMapIntensity })}
       />
     </PanelSection>
   );

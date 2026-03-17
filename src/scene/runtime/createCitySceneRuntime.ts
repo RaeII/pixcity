@@ -140,6 +140,14 @@ export function createCitySceneRuntime({
   const lightingRig = createLightingRig(scene, lightSettings);
   const groundPlane = createGroundPlane(scene, groundSettings, shadowSettings.enabled);
   const gridHelper = createGridHelper(scene);
+  const buildingCubeTarget = new THREE.WebGLCubeRenderTarget(256, {
+    type: THREE.HalfFloatType,
+    generateMipmaps: true,
+    minFilter: THREE.LinearMipmapLinearFilter,
+  });
+  const buildingCubeCamera = new THREE.CubeCamera(0.1, CITY_SCENE_CONFIG.far, buildingCubeTarget);
+  scene.add(buildingCubeCamera);
+
   const chunkManager = createChunkManager({
     scene,
     camera,
@@ -148,6 +156,7 @@ export function createCitySceneRuntime({
     renderDirectionSettings,
     onStatsChange: (stats) => emitStatsPatch(stats),
   });
+  chunkManager.setEnvMap(buildingCubeTarget.texture);
   const shadowManager = createShadowManager({
     scene,
     camera,
@@ -172,6 +181,7 @@ export function createCitySceneRuntime({
   let frames = 0;
   let smoothedFps = 60;
   let lastShadowSyncTime = 0;
+  let cubeFrameCounter = 0;
 
   const syncWorld = (forceRefresh = false) => {
     chunkManager.sync(forceRefresh);
@@ -287,6 +297,12 @@ export function createCitySceneRuntime({
       frames = 0;
     }
 
+    cubeFrameCounter = (cubeFrameCounter + 1) % 4;
+    if (cubeFrameCounter === 0) {
+      buildingCubeCamera.position.copy(camera.position);
+      buildingCubeCamera.update(renderer, scene);
+    }
+
     renderer.render(scene, camera);
   };
 
@@ -332,6 +348,8 @@ export function createCitySceneRuntime({
       gridHelper.dispose();
       lightingRig.dispose();
       envRT.dispose();
+      scene.remove(buildingCubeCamera);
+      buildingCubeTarget.dispose();
       renderer.dispose();
 
       if (mount.contains(renderer.domElement)) {

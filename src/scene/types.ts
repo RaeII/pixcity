@@ -42,6 +42,7 @@ export type TextureSettings = {
   tilingScale: number;
   roughnessIntensity: number;
   metalnessIntensity: number;
+  envMapIntensity: number;
   clayRender: boolean;
 };
 
