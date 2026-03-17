@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { createCitySceneRuntime, type CitySceneRuntime } from "../runtime/createCitySceneRuntime";
 import type {
   BuildingSettings,
+  EnvironmentSettings,
   GroundSettings,
   LightSettings,
   RenderDirectionSettings,
@@ -18,6 +19,7 @@ type UseCitySceneOptions = {
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
+  environmentSettings: EnvironmentSettings;
   onStatsChange: (stats: SceneStats) => void;
 };
 
@@ -29,6 +31,7 @@ export function useCityScene({
   lightSettings,
   shadowSettings,
   renderDirectionSettings,
+  environmentSettings,
   onStatsChange,
 }: UseCitySceneOptions) {
   const runtimeRef = useRef<CitySceneRuntime | null>(null);
@@ -39,6 +42,7 @@ export function useCityScene({
     lightSettings,
     shadowSettings,
     renderDirectionSettings,
+    environmentSettings,
   });
 
   const handleStatsChange = useEffectEvent((stats: SceneStats) => {
@@ -87,4 +91,8 @@ export function useCityScene({
   useEffect(() => {
     runtimeRef.current?.updateRenderDirectionSettings(renderDirectionSettings, true);
   }, [renderDirectionSettings]);
+
+  useEffect(() => {
+    runtimeRef.current?.updateEnvironmentSettings(environmentSettings);
+  }, [environmentSettings]);
 }

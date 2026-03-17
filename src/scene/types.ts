@@ -74,6 +74,12 @@ export type LightSettings = {
   directionalTargetZ: number;
 };
 
+export type EnvironmentSettings = {
+  offsetX: number;
+  offsetY: number;
+  offsetZ: number;
+};
+
 export type SceneStats = {
   buildings: number;
   fpsMode: string;

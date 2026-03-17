@@ -10,6 +10,7 @@ import { createShadowManager } from "../managers/createShadowManager";
 import type {
   BuildingSettings,
   CameraVisibilityState,
+  EnvironmentSettings,
   GroundSettings,
   LightSettings,
   RenderDirectionSettings,
@@ -28,6 +29,7 @@ type CitySceneRuntimeOptions = {
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
+  environmentSettings: EnvironmentSettings;
   onStatsChange: (stats: SceneStats) => void;
 };
 
@@ -41,6 +43,7 @@ export type CitySceneRuntime = {
     settings: RenderDirectionSettings,
     forceRefresh?: boolean,
   ) => void;
+  updateEnvironmentSettings: (settings: EnvironmentSettings) => void;
   dispose: () => void;
 };
 
@@ -52,6 +55,7 @@ export function createCitySceneRuntime({
   lightSettings,
   shadowSettings,
   renderDirectionSettings,
+  environmentSettings,
   onStatsChange,
 }: CitySceneRuntimeOptions): CitySceneRuntime {
   runDevAssertionsOnce();
@@ -118,9 +122,10 @@ export function createCitySceneRuntime({
   let loadedBgTexture: THREE.Texture | null = null;
   let isDisposed = false;
 
-  loadEnvironment(
+  const environmentUpdater = loadEnvironment(
     scene,
     renderer,
+    environmentSettings,
     (envMap, bgTexture) => {
       loadedEnvMap = envMap;
       loadedBgTexture = bgTexture;
@@ -254,6 +259,7 @@ export function createCitySceneRuntime({
 
     groundPlane.setPosition(camera.position.x, camera.position.z);
     gridHelper.setPosition(camera.position.x, camera.position.z);
+    environmentUpdater.updatePosition(camera.position.x, camera.position.y, camera.position.z);
 
     fpsAccumulator += delta;
     frames += 1;
@@ -305,6 +311,9 @@ export function createCitySceneRuntime({
       chunkManager.updateRenderDirectionSettings(settings);
       syncWorld(forceRefresh);
     },
+    updateEnvironmentSettings(settings) {
+      environmentUpdater.updateSettings(settings);
+    },
     dispose() {
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
@@ -315,6 +324,7 @@ export function createCitySceneRuntime({
       gridHelper.dispose();
       lightingRig.dispose();
       isDisposed = true;
+      environmentUpdater.dispose();
       loadedEnvMap?.dispose();
       loadedBgTexture?.dispose();
       scene.remove(buildingCubeCamera);

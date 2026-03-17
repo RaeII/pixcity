@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type {
   BuildingSettings,
+  EnvironmentSettings,
   GroundSettings,
   LightSettings,
   RenderDirectionSettings,
@@ -9,6 +10,7 @@ import type {
   TextureSettings,
 } from "../../scene/types";
 import { BuildingControls } from "./BuildingControls";
+import { EnvironmentControls } from "./EnvironmentControls";
 import { GroundControls } from "./GroundControls";
 import { PanelIntro } from "./PanelIntro";
 import { RenderDirectionControls } from "./RenderDirectionControls";
@@ -25,6 +27,7 @@ export type CityControlPanelProps = {
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
+  environmentSettings: EnvironmentSettings;
   sceneStats: SceneStats;
   lightMetrics: {
     ambientDynamic: number;
@@ -37,6 +40,7 @@ export type CityControlPanelProps = {
   onLightSettingsChange: (settings: LightSettings) => void;
   onShadowSettingsChange: (settings: ShadowSettings) => void;
   onRenderDirectionSettingsChange: (settings: RenderDirectionSettings) => void;
+  onEnvironmentSettingsChange: (settings: EnvironmentSettings) => void;
 };
 
 export function CityControlPanel({
@@ -46,6 +50,7 @@ export function CityControlPanel({
   lightSettings,
   shadowSettings,
   renderDirectionSettings,
+  environmentSettings,
   sceneStats,
   lightMetrics,
   onBuildingSettingsChange,
@@ -54,6 +59,7 @@ export function CityControlPanel({
   onLightSettingsChange,
   onShadowSettingsChange,
   onRenderDirectionSettingsChange,
+  onEnvironmentSettingsChange,
 }: CityControlPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("geral");
 
@@ -86,6 +92,7 @@ export function CityControlPanel({
               onChange={onRenderDirectionSettingsChange}
             />
             <GroundControls value={groundSettings} onChange={onGroundSettingsChange} />
+            <EnvironmentControls value={environmentSettings} onChange={onEnvironmentSettingsChange} />
           </div>
         )}
 

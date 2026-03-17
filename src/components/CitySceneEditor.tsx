@@ -3,6 +3,7 @@ import { CitySceneCanvas } from "./three/CitySceneCanvas";
 import { CityControlPanel } from "./html/CityControlPanel";
 import { DEFAULT_SCENE_STATS } from "../scene/config/citySceneConfig";
 import { createDefaultBuildingSettings } from "../scene/config/buildingConfig";
+import { createDefaultEnvironmentSettings } from "../scene/config/environmentConfig";
 import { createDefaultGroundSettings } from "../scene/config/groundConfig";
 import { createDefaultLightSettings } from "../scene/config/lightConfig";
 import { createDefaultRenderDirectionSettings } from "../scene/config/renderDirectionConfig";
@@ -20,6 +21,7 @@ export function CitySceneEditor() {
   const [renderDirectionSettings, setRenderDirectionSettings] = useState(
     createDefaultRenderDirectionSettings,
   );
+  const [environmentSettings, setEnvironmentSettings] = useState(createDefaultEnvironmentSettings);
   const [sceneStats, setSceneStats] = useState<SceneStats>({ ...DEFAULT_SCENE_STATS });
 
   const lightMetrics = getLightMetrics(lightSettings);
@@ -33,6 +35,7 @@ export function CitySceneEditor() {
         lightSettings={lightSettings}
         shadowSettings={shadowSettings}
         renderDirectionSettings={renderDirectionSettings}
+        environmentSettings={environmentSettings}
         onStatsChange={setSceneStats}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/35 to-transparent" />
@@ -51,6 +54,8 @@ export function CitySceneEditor() {
         onLightSettingsChange={setLightSettings}
         onShadowSettingsChange={setShadowSettings}
         onRenderDirectionSettingsChange={setRenderDirectionSettings}
+        environmentSettings={environmentSettings}
+        onEnvironmentSettingsChange={setEnvironmentSettings}
       />
     </div>
   );

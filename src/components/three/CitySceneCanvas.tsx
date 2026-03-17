@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { useCityScene } from "../../scene/hooks/useCityScene";
 import type {
   BuildingSettings,
+  EnvironmentSettings,
   GroundSettings,
   LightSettings,
   RenderDirectionSettings,
@@ -17,6 +18,7 @@ export type CitySceneCanvasProps = {
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
+  environmentSettings: EnvironmentSettings;
   onStatsChange: (stats: SceneStats) => void;
 };
 
@@ -27,6 +29,7 @@ export function CitySceneCanvas({
   lightSettings,
   shadowSettings,
   renderDirectionSettings,
+  environmentSettings,
   onStatsChange,
 }: CitySceneCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -39,6 +42,7 @@ export function CitySceneCanvas({
     lightSettings,
     shadowSettings,
     renderDirectionSettings,
+    environmentSettings,
     onStatsChange,
   });
 
