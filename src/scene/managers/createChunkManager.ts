@@ -19,6 +19,7 @@ import displacementTextureSrc from "../../assets/texture/Facade006_1K-mirrored-P
 type ChunkManagerOptions = {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  renderer: THREE.WebGLRenderer;
   buildingSettings: BuildingSettings;
   textureSettings: TextureSettings;
   renderDirectionSettings: RenderDirectionSettings;
@@ -55,6 +56,7 @@ function loadDataTexture(src: string): THREE.Texture {
 export function createChunkManager({
   scene,
   camera,
+  renderer,
   buildingSettings,
   textureSettings,
   renderDirectionSettings,
@@ -71,9 +73,22 @@ export function createChunkManager({
 
   const allTextures = [colorMap, normalMap, roughnessMap, metalnessMap, displacementMap];
 
+  // Filtragem anisotrópica: preserva nitidez das texturas de fachada em ângulos
+  // oblíquos e à distância — crítico numa cena de cidade vista de cima/longe.
+  // O valor máximo suportado pela GPU é consultado diretamente nas capabilities.
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+  for (const tex of allTextures) {
+    tex.anisotropy = maxAniso;
+  }
+
   const tilingUniform = { value: textureSettings.tilingScale };
 
-  const buildingGeometry = new THREE.BoxGeometry(1, 1, 1, 4, 8, 4);
+  // 1×1×1 segmentos: 12 triângulos por instância.
+  // A cena instancia potencialmente milhares de prédios — subdivivisões extras
+  // multiplicam diretamente o custo de vertex shader. Com displacementScale: 0
+  // padrão e prédios vistos à distância, segmentos adicionais não trazem
+  // ganho visual. Aumente apenas se usar displacementScale alto e de perto.
+  const buildingGeometry = new THREE.BoxGeometry(1, 1, 1, 1, 1, 1);
   const buildingMaterial = new THREE.MeshPhysicalMaterial({
     color: buildingSettings.color,
     roughness: buildingSettings.roughness,

@@ -12,7 +12,7 @@ type ShadowManagerOptions = {
 };
 
 export type ShadowManager = {
-  sync: (directionalLight: THREE.DirectionalLight) => void;
+  sync: () => void;
   updateSettings: (settings: ShadowSettings) => void;
   dispose: () => void;
 };
@@ -45,12 +45,11 @@ export function createShadowManager({
   };
 
   return {
-    sync(directionalLight) {
+    sync() {
       clear();
 
       if (!currentShadowSettings.enabled) {
         onBuildingsWithShadowChange(0);
-        directionalLight.shadow.needsUpdate = true;
         return;
       }
 
@@ -112,7 +111,6 @@ export function createShadowManager({
       }
 
       onBuildingsWithShadowChange(limit);
-      directionalLight.shadow.needsUpdate = true;
     },
     updateSettings(settings) {
       currentShadowSettings = { ...settings };

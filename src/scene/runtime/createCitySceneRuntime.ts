@@ -17,7 +17,7 @@ import type {
   TextureSettings,
 } from "../types";
 import { runDevAssertionsOnce } from "../utils/devAssertions";
-import { clamp } from "../utils/math";
+
 
 type CitySceneRuntimeOptions = {
   mount: HTMLDivElement;
@@ -151,6 +151,7 @@ export function createCitySceneRuntime({
   const chunkManager = createChunkManager({
     scene,
     camera,
+    renderer,
     buildingSettings,
     textureSettings,
     renderDirectionSettings,
@@ -185,40 +186,16 @@ export function createCitySceneRuntime({
 
   const syncWorld = (forceRefresh = false) => {
     chunkManager.sync(forceRefresh);
-    shadowManager.sync(lightingRig.directional);
+    shadowManager.sync();
   };
 
   const applyShadowSettings = (settings: ShadowSettings, shouldSync = true) => {
     renderer.shadowMap.enabled = settings.enabled;
-    lightingRig.directional.castShadow = settings.enabled;
-    lightingRig.directional.shadow.bias = settings.bias;
-    lightingRig.directional.shadow.normalBias = settings.normalBias;
-    lightingRig.directional.shadow.radius = settings.radius;
-    lightingRig.directional.shadow.blurSamples = Math.round(clamp(settings.blurSamples, 1, 16));
-
-    const mapSize = Math.round(clamp(settings.mapSize, 256, 4096));
-    if (
-      lightingRig.directional.shadow.mapSize.x !== mapSize ||
-      lightingRig.directional.shadow.mapSize.y !== mapSize
-    ) {
-      lightingRig.directional.shadow.mapSize.set(mapSize, mapSize);
-      lightingRig.directional.shadow.dispose();
-    }
-
-    lightingRig.directional.shadow.camera.near = clamp(settings.cameraNear, 0.1, 50);
-    lightingRig.directional.shadow.camera.far = clamp(settings.cameraFar, 10, 300);
-    lightingRig.directional.shadow.camera.left = settings.cameraLeft;
-    lightingRig.directional.shadow.camera.right = settings.cameraRight;
-    lightingRig.directional.shadow.camera.top = settings.cameraTop;
-    lightingRig.directional.shadow.camera.bottom = settings.cameraBottom;
-    lightingRig.directional.shadow.camera.updateProjectionMatrix();
-    lightingRig.directional.shadow.needsUpdate = true;
-
     groundPlane.setShadowEnabled(settings.enabled);
     shadowManager.updateSettings(settings);
 
     if (shouldSync) {
-      shadowManager.sync(lightingRig.directional);
+      shadowManager.sync();
     }
   };
 
@@ -280,7 +257,7 @@ export function createCitySceneRuntime({
     }
 
     if (time - lastShadowSyncTime > 180) {
-      shadowManager.sync(lightingRig.directional);
+      shadowManager.sync();
       lastShadowSyncTime = time;
     }
 
@@ -329,7 +306,6 @@ export function createCitySceneRuntime({
     },
     updateLightSettings(settings) {
       lightingRig.update(settings);
-      lightingRig.directional.shadow.needsUpdate = true;
     },
     updateShadowSettings(settings) {
       applyShadowSettings(settings, true);
