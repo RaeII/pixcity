@@ -213,64 +213,101 @@ export function createChunkManager({
   });
   applyTriplanarShader(topMaterial, "top-triplanar-uv", topTilingUniform);
 
+  // Materiais far: mesmas texturas, sem envMap dinâmico (usa scene.environment HDRI).
+  // Chunks além de envMapNearDistance usam este par para evitar amostragem da
+  // cube render target em prédios distantes onde o ganho visual é imperceptível.
+  const buildingMaterialFar = new THREE.MeshPhysicalMaterial({
+    color: buildingSettings.color,
+    roughness: buildingSettings.roughness,
+    metalness: buildingSettings.metalness,
+    bumpMap: displacementMap,
+    displacementMap: displacementMap,
+    displacementScale: 0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.02,
+    envMapIntensity: 1.8,
+    emissive: new THREE.Color(0xffffff),
+    emissiveIntensity: 0,
+  });
+  applyTriplanarShader(buildingMaterialFar, "building-triplanar-uv-far", tilingUniform);
+
+  const topMaterialFar = new THREE.MeshPhysicalMaterial({
+    color: buildingSettings.color,
+    roughness: buildingSettings.roughness,
+    metalness: buildingSettings.metalness,
+    bumpMap: concreteDisplacementMap,
+    displacementMap: concreteDisplacementMap,
+    displacementScale: 0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.02,
+    envMapIntensity: 1.8,
+  });
+  applyTriplanarShader(topMaterialFar, "top-triplanar-uv-far", topTilingUniform);
+
   let currentTextureSettings = { ...textureSettings };
 
   const applyTextureToMaterial = (settings: TextureSettings) => {
-    if (settings.enabled) {
-      buildingMaterial.map = colorMap;
-      buildingMaterial.normalMap = normalMap;
-      buildingMaterial.normalScale.set(settings.normalScale, settings.normalScale);
-      buildingMaterial.roughnessMap = roughnessMap;
-      buildingMaterial.metalnessMap = metalnessMap;
-      buildingMaterial.roughness = settings.roughnessIntensity;
-      buildingMaterial.metalness = settings.metalnessIntensity;
-      buildingMaterial.bumpMap = displacementMap;
-      buildingMaterial.displacementMap = displacementMap;
-      buildingMaterial.displacementScale = settings.displacementScale;
-      buildingMaterial.emissiveMap = emissiveMap;
-    } else {
-      buildingMaterial.map = null;
-      buildingMaterial.normalMap = null;
-      buildingMaterial.roughnessMap = null;
-      buildingMaterial.metalnessMap = null;
-      buildingMaterial.bumpMap = displacementMap;
-      buildingMaterial.displacementMap = displacementMap;
-      buildingMaterial.displacementScale = 0;
-      buildingMaterial.emissiveMap = null;
-    }
-    buildingMaterial.emissiveIntensity = settings.emissiveIntensity;
-    buildingMaterial.envMapIntensity = settings.envMapIntensity;
-    buildingMaterial.needsUpdate = true;
+    const applyToFacade = (mat: THREE.MeshPhysicalMaterial) => {
+      if (settings.enabled) {
+        mat.map = colorMap;
+        mat.normalMap = normalMap;
+        mat.normalScale.set(settings.normalScale, settings.normalScale);
+        mat.roughnessMap = roughnessMap;
+        mat.metalnessMap = metalnessMap;
+        mat.roughness = settings.roughnessIntensity;
+        mat.metalness = settings.metalnessIntensity;
+        mat.bumpMap = displacementMap;
+        mat.displacementMap = displacementMap;
+        mat.displacementScale = settings.displacementScale;
+        mat.emissiveMap = emissiveMap;
+      } else {
+        mat.map = null;
+        mat.normalMap = null;
+        mat.roughnessMap = null;
+        mat.metalnessMap = null;
+        mat.bumpMap = displacementMap;
+        mat.displacementMap = displacementMap;
+        mat.displacementScale = 0;
+        mat.emissiveMap = null;
+      }
+      mat.emissiveIntensity = settings.emissiveIntensity;
+      mat.envMapIntensity = settings.envMapIntensity;
+      mat.needsUpdate = true;
+    };
+    applyToFacade(buildingMaterial);
+    applyToFacade(buildingMaterialFar);
   };
 
   const applyTextureToTopMaterial = (settings: TextureSettings) => {
     const top = settings.top;
-    if (settings.enabled) {
-      topMaterial.map = concreteColorMap;
-      topMaterial.normalMap = concreteNormalMap;
-      topMaterial.normalScale.set(top.normalScale, top.normalScale);
-      topMaterial.roughnessMap = concreteRoughnessMap;
-      topMaterial.roughness = top.roughnessIntensity;
-      topMaterial.metalness = top.metalnessIntensity;
-      topMaterial.bumpMap = concreteDisplacementMap;
-      topMaterial.displacementMap = concreteDisplacementMap;
-      topMaterial.displacementScale = top.displacementScale;
-    } else {
-      topMaterial.map = null;
-      topMaterial.normalMap = null;
-      topMaterial.roughnessMap = null;
-      topMaterial.bumpMap = concreteDisplacementMap;
-      topMaterial.displacementMap = concreteDisplacementMap;
-      topMaterial.displacementScale = 0;
-    }
-    topMaterial.envMapIntensity = top.envMapIntensity;
-    topMaterial.needsUpdate = true;
+    const applyToTop = (mat: THREE.MeshPhysicalMaterial) => {
+      if (settings.enabled) {
+        mat.map = concreteColorMap;
+        mat.normalMap = concreteNormalMap;
+        mat.normalScale.set(top.normalScale, top.normalScale);
+        mat.roughnessMap = concreteRoughnessMap;
+        mat.roughness = top.roughnessIntensity;
+        mat.metalness = top.metalnessIntensity;
+        mat.bumpMap = concreteDisplacementMap;
+        mat.displacementMap = concreteDisplacementMap;
+        mat.displacementScale = top.displacementScale;
+      } else {
+        mat.map = null;
+        mat.normalMap = null;
+        mat.roughnessMap = null;
+        mat.bumpMap = concreteDisplacementMap;
+        mat.displacementMap = concreteDisplacementMap;
+        mat.displacementScale = 0;
+      }
+      mat.envMapIntensity = top.envMapIntensity;
+      mat.needsUpdate = true;
+    };
+    applyToTop(topMaterial);
+    applyToTop(topMaterialFar);
   };
 
   applyTextureToMaterial(textureSettings);
   applyTextureToTopMaterial(textureSettings);
-
-  let cachedEnvMap: THREE.Texture | null = null;
 
   const chunkMap = new Map<string, ChunkData>();
   const dummy = new THREE.Object3D();
@@ -488,15 +525,23 @@ export function createChunkManager({
     },
     updateBuildingSettings(settings) {
       buildingMaterial.color.set(settings.color);
+      buildingMaterialFar.color.set(settings.color);
       topMaterial.color.set(settings.color);
+      topMaterialFar.color.set(settings.color);
       if (!currentTextureSettings.enabled) {
         buildingMaterial.roughness = clamp(settings.roughness, 0, 1);
         buildingMaterial.metalness = clamp(settings.metalness, 0, 1);
+        buildingMaterialFar.roughness = clamp(settings.roughness, 0, 1);
+        buildingMaterialFar.metalness = clamp(settings.metalness, 0, 1);
         topMaterial.roughness = clamp(settings.roughness, 0, 1);
         topMaterial.metalness = clamp(settings.metalness, 0, 1);
+        topMaterialFar.roughness = clamp(settings.roughness, 0, 1);
+        topMaterialFar.metalness = clamp(settings.metalness, 0, 1);
       }
       buildingMaterial.needsUpdate = true;
+      buildingMaterialFar.needsUpdate = true;
       topMaterial.needsUpdate = true;
+      topMaterialFar.needsUpdate = true;
     },
     updateTextureSettings(settings) {
       currentTextureSettings = { ...settings };
@@ -509,7 +554,8 @@ export function createChunkManager({
       currentRenderDirectionSettings = { ...settings };
     },
     setEnvMap(envMap) {
-      cachedEnvMap = envMap;
+      // Apenas materiais near recebem o cube envMap dinâmico.
+      // Materiais far usam scene.environment (HDRI) automaticamente via envMap=null.
       buildingMaterial.envMap = envMap;
       topMaterial.envMap = envMap;
       buildingMaterial.needsUpdate = true;
@@ -519,20 +565,15 @@ export function createChunkManager({
       cityGroup.visible = visible;
     },
     beginEnvCapture() {
-      buildingMaterial.envMap = null;
-      buildingMaterial.clearcoat = 0;
-      buildingMaterial.needsUpdate = true;
-      topMaterial.envMap = null;
-      topMaterial.clearcoat = 0;
-      topMaterial.needsUpdate = true;
+      // Zeramos envMapIntensity em vez de anular envMap/clearcoat.
+      // envMapIntensity é um uniform (float) — não altera defines do shader,
+      // portanto não dispara recompilação. Isso elimina o serrilhado a cada 4 frames.
+      buildingMaterial.envMapIntensity = 0;
+      topMaterial.envMapIntensity = 0;
     },
     endEnvCapture() {
-      buildingMaterial.envMap = cachedEnvMap;
-      buildingMaterial.clearcoat = 1.0;
-      buildingMaterial.needsUpdate = true;
-      topMaterial.envMap = cachedEnvMap;
-      topMaterial.clearcoat = 1.0;
-      topMaterial.needsUpdate = true;
+      buildingMaterial.envMapIntensity = currentTextureSettings.envMapIntensity;
+      topMaterial.envMapIntensity = currentTextureSettings.top.envMapIntensity;
     },
     dispose() {
       clear();

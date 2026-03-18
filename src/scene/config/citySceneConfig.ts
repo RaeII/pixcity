@@ -45,6 +45,9 @@ export const CITY_SCENE_CONFIG: CitySceneConfig = {
     maxDistance: 70,
     maxPolarAngle: Math.PI * 0.48,
   },
+  cubeUpdateIntervalMoving: 4,
+  cubeUpdateIntervalStatic: 48,
+  envMapNearDistance: 78,
 };
 
 export const DEFAULT_SCENE_STATS: SceneStats = {

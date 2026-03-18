@@ -149,4 +149,7 @@ export type CitySceneConfig = {
     maxDistance: number;
     maxPolarAngle: number;
   };
+  cubeUpdateIntervalMoving: number;
+  cubeUpdateIntervalStatic: number;
+  envMapNearDistance: number;
 };
