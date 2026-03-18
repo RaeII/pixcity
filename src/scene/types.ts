@@ -38,11 +38,11 @@ export type TextureSettings = {
   enabled: boolean;
   normalScale: number;
   displacementScale: number;
-  bumpScale: number;
   tilingScale: number;
   roughnessIntensity: number;
   metalnessIntensity: number;
   envMapIntensity: number;
+  emissiveIntensity: number;
   clayRender: boolean;
 };
 

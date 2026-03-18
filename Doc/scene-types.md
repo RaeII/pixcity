@@ -27,6 +27,8 @@ Representa as configurações de textura PBR dos edifícios:
 - `tilingScale` — repetição da textura (UV repeat)
 - `roughnessIntensity` — intensidade do mapa de roughness
 - `metalnessIntensity` — intensidade do mapa de metalness
+- `envMapIntensity` — intensidade do mapa de ambiente (reflexos)
+- `emissiveIntensity` — intensidade do efeito emissivo; usa o colorMap como emissiveMap, criando um efeito de brilho/glow nas fachadas
 - `clayRender` — quando ativo, cria efeito de espelhamento nas superfícies (roughness baixo + metalness alto)
 
 ### `BuildingSettings`

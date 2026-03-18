@@ -18,7 +18,7 @@ export function BuildingControls({ value, onChange }: BuildingControlsProps) {
         label="Cor dos edifícios"
         value={value.color}
         onChange={(color) => onChange({ ...value, color })}
-        placeholder="#fffdf8"
+        placeholder="#9c9c9c"
       />
 
       <RangeField

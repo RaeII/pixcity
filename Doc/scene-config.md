@@ -37,6 +37,7 @@ Guarda os valores padrão das texturas PBR dos edifícios:
 - tiling scale
 - roughness intensity
 - metalness intensity
+- emissive intensity (padrão: 0)
 - clay render desativado
 
 Funções importantes:

@@ -24,8 +24,8 @@ Responsabilidades:
 - remover chunks distantes
 - atualizar estatísticas de prédios e chunks
 - atualizar o material dos prédios quando o estado muda
-- carregar e aplicar texturas PBR (cor, normal, roughness, metalness, displacement)
-- atualizar configurações de textura em tempo real (tiling, normal scale, displacement, clay render)
+- carregar e aplicar texturas PBR (cor, normal, roughness, metalness, displacement, emissive)
+- atualizar configurações de textura em tempo real (tiling, normal scale, displacement, emissive intensity, clay render)
 
 ## Como os chunks funcionam
 

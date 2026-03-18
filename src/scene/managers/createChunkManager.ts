@@ -15,6 +15,7 @@ import normalTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Fac
 import roughnessTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Roughness.png";
 import metalnessTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Metalness.png";
 import displacementTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Displacement.png";
+import emissiveTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
 
 type ChunkManagerOptions = {
   scene: THREE.Scene;
@@ -71,8 +72,9 @@ export function createChunkManager({
   const roughnessMap = loadDataTexture(roughnessTextureSrc);
   const metalnessMap = loadDataTexture(metalnessTextureSrc);
   const displacementMap = loadDataTexture(displacementTextureSrc);
+  const emissiveMap = loadTexture(emissiveTextureSrc);
 
-  const allTextures = [colorMap, normalMap, roughnessMap, metalnessMap, displacementMap];
+  const allTextures = [colorMap, normalMap, roughnessMap, metalnessMap, displacementMap, emissiveMap];
 
   // Filtragem anisotrópica: preserva nitidez das texturas de fachada em ângulos
   // oblíquos e à distância — crítico numa cena de cidade vista de cima/longe.
@@ -95,12 +97,13 @@ export function createChunkManager({
     roughness: buildingSettings.roughness,
     metalness: buildingSettings.metalness,
     bumpMap: displacementMap,
-    bumpScale: 0,
     displacementMap: displacementMap,
     displacementScale: 0,
     clearcoat: 1.0,
     clearcoatRoughness: 0.02,
     envMapIntensity: 1.8,
+    emissive: new THREE.Color(0xffffff),
+    emissiveIntensity: 0,
   });
 
   buildingMaterial.customProgramCacheKey = () => "building-triplanar-uv";
@@ -154,6 +157,9 @@ export function createChunkManager({
       #endif
       #ifdef USE_DISPLACEMENTMAP
         vDisplacementMapUv = triUV;
+      #endif
+      #ifdef USE_EMISSIVEMAP
+        vEmissiveMapUv = triUV;
       #endif`,
     );
 
@@ -177,19 +183,20 @@ export function createChunkManager({
       buildingMaterial.roughness = settings.roughnessIntensity;
       buildingMaterial.metalness = settings.metalnessIntensity;
       buildingMaterial.bumpMap = displacementMap;
-      buildingMaterial.bumpScale = settings.bumpScale;
       buildingMaterial.displacementMap = displacementMap;
       buildingMaterial.displacementScale = settings.displacementScale;
+      buildingMaterial.emissiveMap = emissiveMap;
     } else {
       buildingMaterial.map = null;
       buildingMaterial.normalMap = null;
       buildingMaterial.roughnessMap = null;
       buildingMaterial.metalnessMap = null;
       buildingMaterial.bumpMap = displacementMap;
-      buildingMaterial.bumpScale = 0;
       buildingMaterial.displacementMap = displacementMap;
       buildingMaterial.displacementScale = 0;
+      buildingMaterial.emissiveMap = null;
     }
+    buildingMaterial.emissiveIntensity = settings.emissiveIntensity;
     buildingMaterial.envMapIntensity = settings.envMapIntensity;
     buildingMaterial.needsUpdate = true;
   };

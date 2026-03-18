@@ -2,13 +2,13 @@ import type { TextureSettings } from "../types";
 
 export const DEFAULT_TEXTURE_SETTINGS: TextureSettings = {
   enabled: true,
-  normalScale: 1.0,
+  normalScale: 20,
   displacementScale: 0.0,
-  bumpScale: 0.0,
-  tilingScale: 1.0,
-  roughnessIntensity: 1.0,
-  metalnessIntensity: 2.0,
-  envMapIntensity: 1.8,
+  tilingScale: 0.9,
+  roughnessIntensity: 0,  
+  metalnessIntensity: 1.44,
+  envMapIntensity: 3.5,
+  emissiveIntensity: 0,
   clayRender: false,
 };
 

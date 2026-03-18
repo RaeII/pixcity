@@ -37,16 +37,6 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
       />
 
       <RangeField
-        label="Bump Scale"
-        value={value.bumpScale}
-        min={0}
-        max={5}
-        step={0.01}
-        valueLabel={value.bumpScale.toFixed(2)}
-        onChange={(bumpScale) => onChange({ ...value, bumpScale })}
-      />
-
-      <RangeField
         label="Displacement Scale"
         value={value.displacementScale}
         min={0}
@@ -94,6 +84,16 @@ export function TextureControls({ value, onChange }: TextureControlsProps) {
         step={0.1}
         valueLabel={value.envMapIntensity.toFixed(1)}
         onChange={(envMapIntensity) => onChange({ ...value, envMapIntensity })}
+      />
+
+      <RangeField
+        label="Emissive Intensity"
+        value={value.emissiveIntensity}
+        min={0}
+        max={3}
+        step={0.01}
+        valueLabel={value.emissiveIntensity.toFixed(2)}
+        onChange={(emissiveIntensity) => onChange({ ...value, emissiveIntensity })}
       />
     </PanelSection>
   );
