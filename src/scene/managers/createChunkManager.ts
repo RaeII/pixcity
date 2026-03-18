@@ -17,6 +17,11 @@ import metalnessTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/
 import displacementTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Displacement.png";
 import emissiveTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
 
+import concreteColorSrc from "../../assets/texture/Concrete024_1K-JPG/Concrete024_1K-JPG_Color.jpg";
+import concreteNormalSrc from "../../assets/texture/Concrete024_1K-JPG/Concrete024_1K-JPG_NormalGL.jpg";
+import concreteRoughnessSrc from "../../assets/texture/Concrete024_1K-JPG/Concrete024_1K-JPG_Roughness.jpg";
+import concreteDisplacementSrc from "../../assets/texture/Concrete024_1K-JPG/Concrete024_1K-JPG_Displacement.jpg";
+
 type ChunkManagerOptions = {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
@@ -76,7 +81,15 @@ export function createChunkManager({
   const displacementMap = loadDataTexture(displacementTextureSrc);
   const emissiveMap = loadTexture(emissiveTextureSrc);
 
-  const allTextures = [colorMap, normalMap, roughnessMap, metalnessMap, displacementMap, emissiveMap];
+  const concreteColorMap = loadTexture(concreteColorSrc);
+  const concreteNormalMap = loadDataTexture(concreteNormalSrc);
+  const concreteRoughnessMap = loadDataTexture(concreteRoughnessSrc);
+  const concreteDisplacementMap = loadDataTexture(concreteDisplacementSrc);
+
+  const allTextures = [
+    colorMap, normalMap, roughnessMap, metalnessMap, displacementMap, emissiveMap,
+    concreteColorMap, concreteNormalMap, concreteRoughnessMap, concreteDisplacementMap,
+  ];
 
   // Filtragem anisotrópica: preserva nitidez das texturas de fachada em ângulos
   // oblíquos e à distância — crítico numa cena de cidade vista de cima/longe.
@@ -87,6 +100,7 @@ export function createChunkManager({
   }
 
   const tilingUniform = { value: textureSettings.tilingScale };
+  const topTilingUniform = { value: textureSettings.top.tilingScale };
 
   // 1×1×1 segmentos: 12 triângulos por instância.
   // A cena instancia potencialmente milhares de prédios — subdivivisões extras
@@ -94,6 +108,83 @@ export function createChunkManager({
   // padrão e prédios vistos à distância, segmentos adicionais não trazem
   // ganho visual. Aumente apenas se usar displacementScale alto e de perto.
   const buildingGeometry = new THREE.BoxGeometry(1, 1, 1, 1, 1, 1);
+
+  // Atribui material index 1 à face de cima (+Y) para usar textura de concreto
+  for (const group of buildingGeometry.groups) {
+    group.materialIndex = group.materialIndex === 2 ? 1 : 0;
+  }
+
+  const applyTriplanarShader = (
+    material: THREE.MeshPhysicalMaterial,
+    cacheKey: string,
+    tiling: { value: number },
+  ) => {
+    material.customProgramCacheKey = () => cacheKey;
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.uTiling = tiling;
+
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <common>",
+        `#include <common>
+        uniform float uTiling;
+        varying vec3 vTriplanarWorldPos;
+        varying vec3 vTriplanarObjNormal;`,
+      );
+
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <fog_vertex>",
+        `#include <fog_vertex>
+        #ifdef USE_INSTANCING
+          vec4 triWp = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
+        #else
+          vec4 triWp = modelMatrix * vec4(transformed, 1.0);
+        #endif
+        vTriplanarWorldPos = triWp.xyz;
+        vTriplanarObjNormal = objectNormal;
+
+        vec3 triAbsN = abs(objectNormal);
+        vec2 triUV;
+        if (triAbsN.y >= triAbsN.x && triAbsN.y >= triAbsN.z) {
+          triUV = triWp.xz;
+        } else if (triAbsN.x >= triAbsN.z) {
+          triUV = triWp.zy;
+        } else {
+          triUV = triWp.xy;
+        }
+        triUV *= uTiling;
+
+        #ifdef USE_MAP
+          vMapUv = triUV;
+        #endif
+        #ifdef USE_NORMALMAP
+          vNormalMapUv = triUV;
+        #endif
+        #ifdef USE_ROUGHNESSMAP
+          vRoughnessMapUv = triUV;
+        #endif
+        #ifdef USE_METALNESSMAP
+          vMetalnessMapUv = triUV;
+        #endif
+        #ifdef USE_BUMPMAP
+          vBumpMapUv = triUV;
+        #endif
+        #ifdef USE_DISPLACEMENTMAP
+          vDisplacementMapUv = triUV;
+        #endif
+        #ifdef USE_EMISSIVEMAP
+          vEmissiveMapUv = triUV;
+        #endif`,
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <common>",
+        `#include <common>
+        varying vec3 vTriplanarWorldPos;
+        varying vec3 vTriplanarObjNormal;`,
+      );
+    };
+  };
+
   const buildingMaterial = new THREE.MeshPhysicalMaterial({
     color: buildingSettings.color,
     roughness: buildingSettings.roughness,
@@ -107,71 +198,20 @@ export function createChunkManager({
     emissive: new THREE.Color(0xffffff),
     emissiveIntensity: 0,
   });
+  applyTriplanarShader(buildingMaterial, "building-triplanar-uv", tilingUniform);
 
-  buildingMaterial.customProgramCacheKey = () => "building-triplanar-uv";
-  buildingMaterial.onBeforeCompile = (shader) => {
-    shader.uniforms.uTiling = tilingUniform;
-
-    shader.vertexShader = shader.vertexShader.replace(
-      "#include <common>",
-      `#include <common>
-      uniform float uTiling;
-      varying vec3 vTriplanarWorldPos;
-      varying vec3 vTriplanarObjNormal;`,
-    );
-
-    shader.vertexShader = shader.vertexShader.replace(
-      "#include <fog_vertex>",
-      `#include <fog_vertex>
-      #ifdef USE_INSTANCING
-        vec4 triWp = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
-      #else
-        vec4 triWp = modelMatrix * vec4(transformed, 1.0);
-      #endif
-      vTriplanarWorldPos = triWp.xyz;
-      vTriplanarObjNormal = objectNormal;
-
-      vec3 triAbsN = abs(objectNormal);
-      vec2 triUV;
-      if (triAbsN.y >= triAbsN.x && triAbsN.y >= triAbsN.z) {
-        triUV = triWp.xz;
-      } else if (triAbsN.x >= triAbsN.z) {
-        triUV = triWp.zy;
-      } else {
-        triUV = triWp.xy;
-      }
-      triUV *= uTiling;
-
-      #ifdef USE_MAP
-        vMapUv = triUV;
-      #endif
-      #ifdef USE_NORMALMAP
-        vNormalMapUv = triUV;
-      #endif
-      #ifdef USE_ROUGHNESSMAP
-        vRoughnessMapUv = triUV;
-      #endif
-      #ifdef USE_METALNESSMAP
-        vMetalnessMapUv = triUV;
-      #endif
-      #ifdef USE_BUMPMAP
-        vBumpMapUv = triUV;
-      #endif
-      #ifdef USE_DISPLACEMENTMAP
-        vDisplacementMapUv = triUV;
-      #endif
-      #ifdef USE_EMISSIVEMAP
-        vEmissiveMapUv = triUV;
-      #endif`,
-    );
-
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <common>",
-      `#include <common>
-      varying vec3 vTriplanarWorldPos;
-      varying vec3 vTriplanarObjNormal;`,
-    );
-  };
+  const topMaterial = new THREE.MeshPhysicalMaterial({
+    color: buildingSettings.color,
+    roughness: buildingSettings.roughness,
+    metalness: buildingSettings.metalness,
+    bumpMap: concreteDisplacementMap,
+    displacementMap: concreteDisplacementMap,
+    displacementScale: 0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.02,
+    envMapIntensity: 1.8,
+  });
+  applyTriplanarShader(topMaterial, "top-triplanar-uv", topTilingUniform);
 
   let currentTextureSettings = { ...textureSettings };
 
@@ -203,7 +243,32 @@ export function createChunkManager({
     buildingMaterial.needsUpdate = true;
   };
 
+  const applyTextureToTopMaterial = (settings: TextureSettings) => {
+    const top = settings.top;
+    if (settings.enabled) {
+      topMaterial.map = concreteColorMap;
+      topMaterial.normalMap = concreteNormalMap;
+      topMaterial.normalScale.set(top.normalScale, top.normalScale);
+      topMaterial.roughnessMap = concreteRoughnessMap;
+      topMaterial.roughness = top.roughnessIntensity;
+      topMaterial.metalness = top.metalnessIntensity;
+      topMaterial.bumpMap = concreteDisplacementMap;
+      topMaterial.displacementMap = concreteDisplacementMap;
+      topMaterial.displacementScale = top.displacementScale;
+    } else {
+      topMaterial.map = null;
+      topMaterial.normalMap = null;
+      topMaterial.roughnessMap = null;
+      topMaterial.bumpMap = concreteDisplacementMap;
+      topMaterial.displacementMap = concreteDisplacementMap;
+      topMaterial.displacementScale = 0;
+    }
+    topMaterial.envMapIntensity = top.envMapIntensity;
+    topMaterial.needsUpdate = true;
+  };
+
   applyTextureToMaterial(textureSettings);
+  applyTextureToTopMaterial(textureSettings);
 
   let cachedEnvMap: THREE.Texture | null = null;
 
@@ -221,7 +286,7 @@ export function createChunkManager({
 
     const mesh = new THREE.InstancedMesh(
       buildingGeometry,
-      buildingMaterial,
+      [buildingMaterial, topMaterial],
       CITY_SCENE_CONFIG.maxBuildingsPerChunk,
     );
     mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
@@ -423,16 +488,22 @@ export function createChunkManager({
     },
     updateBuildingSettings(settings) {
       buildingMaterial.color.set(settings.color);
+      topMaterial.color.set(settings.color);
       if (!currentTextureSettings.enabled) {
         buildingMaterial.roughness = clamp(settings.roughness, 0, 1);
         buildingMaterial.metalness = clamp(settings.metalness, 0, 1);
+        topMaterial.roughness = clamp(settings.roughness, 0, 1);
+        topMaterial.metalness = clamp(settings.metalness, 0, 1);
       }
       buildingMaterial.needsUpdate = true;
+      topMaterial.needsUpdate = true;
     },
     updateTextureSettings(settings) {
       currentTextureSettings = { ...settings };
       tilingUniform.value = settings.tilingScale;
+      topTilingUniform.value = settings.top.tilingScale;
       applyTextureToMaterial(settings);
+      applyTextureToTopMaterial(settings);
     },
     updateRenderDirectionSettings(settings) {
       currentRenderDirectionSettings = { ...settings };
@@ -440,7 +511,9 @@ export function createChunkManager({
     setEnvMap(envMap) {
       cachedEnvMap = envMap;
       buildingMaterial.envMap = envMap;
+      topMaterial.envMap = envMap;
       buildingMaterial.needsUpdate = true;
+      topMaterial.needsUpdate = true;
     },
     setCityVisible(visible) {
       cityGroup.visible = visible;
@@ -449,17 +522,24 @@ export function createChunkManager({
       buildingMaterial.envMap = null;
       buildingMaterial.clearcoat = 0;
       buildingMaterial.needsUpdate = true;
+      topMaterial.envMap = null;
+      topMaterial.clearcoat = 0;
+      topMaterial.needsUpdate = true;
     },
     endEnvCapture() {
       buildingMaterial.envMap = cachedEnvMap;
       buildingMaterial.clearcoat = 1.0;
       buildingMaterial.needsUpdate = true;
+      topMaterial.envMap = cachedEnvMap;
+      topMaterial.clearcoat = 1.0;
+      topMaterial.needsUpdate = true;
     },
     dispose() {
       clear();
       scene.remove(cityGroup);
       buildingGeometry.dispose();
       buildingMaterial.dispose();
+      topMaterial.dispose();
       for (const tex of allTextures) {
         tex.dispose();
       }

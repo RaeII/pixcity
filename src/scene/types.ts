@@ -34,6 +34,15 @@ export type ShadowSettings = {
   buildingCountWithShadow: number;
 };
 
+export type TopTextureSettings = {
+  normalScale: number;
+  displacementScale: number;
+  tilingScale: number;
+  roughnessIntensity: number;
+  metalnessIntensity: number;
+  envMapIntensity: number;
+};
+
 export type TextureSettings = {
   enabled: boolean;
   normalScale: number;
@@ -44,6 +53,7 @@ export type TextureSettings = {
   envMapIntensity: number;
   emissiveIntensity: number;
   clayRender: boolean;
+  top: TopTextureSettings;
 };
 
 export type BuildingSettings = {

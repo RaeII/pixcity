@@ -38,7 +38,7 @@ export function CitySceneEditor() {
         environmentSettings={environmentSettings}
         onStatsChange={setSceneStats}
       />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/35 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to from-black/35 to-transparent" />
       <CityControlPanel
         buildingSettings={buildingSettings}
         textureSettings={textureSettings}
