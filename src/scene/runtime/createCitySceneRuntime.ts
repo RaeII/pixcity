@@ -274,7 +274,9 @@ export function createCitySceneRuntime({
     cubeFrameCounter = (cubeFrameCounter + 1) % 4;
     if (cubeFrameCounter === 0) {
       buildingCubeCamera.position.copy(camera.position);
+      chunkManager.setCityVisible(false);
       buildingCubeCamera.update(renderer, scene);
+      chunkManager.setCityVisible(true);
     }
 
     renderer.render(scene, camera);

@@ -33,6 +33,7 @@ export type ChunkManager = {
   updateTextureSettings: (settings: TextureSettings) => void;
   updateRenderDirectionSettings: (settings: RenderDirectionSettings) => void;
   setEnvMap: (envMap: THREE.Texture | null) => void;
+  setCityVisible: (visible: boolean) => void;
   dispose: () => void;
 };
 
@@ -428,6 +429,9 @@ export function createChunkManager({
     setEnvMap(envMap) {
       buildingMaterial.envMap = envMap;
       buildingMaterial.needsUpdate = true;
+    },
+    setCityVisible(visible) {
+      cityGroup.visible = visible;
     },
     dispose() {
       clear();
