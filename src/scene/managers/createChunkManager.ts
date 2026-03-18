@@ -35,6 +35,8 @@ export type ChunkManager = {
   updateRenderDirectionSettings: (settings: RenderDirectionSettings) => void;
   setEnvMap: (envMap: THREE.Texture | null) => void;
   setCityVisible: (visible: boolean) => void;
+  beginEnvCapture: () => void;
+  endEnvCapture: () => void;
   dispose: () => void;
 };
 
@@ -202,6 +204,8 @@ export function createChunkManager({
   };
 
   applyTextureToMaterial(textureSettings);
+
+  let cachedEnvMap: THREE.Texture | null = null;
 
   const chunkMap = new Map<string, ChunkData>();
   const dummy = new THREE.Object3D();
@@ -434,11 +438,22 @@ export function createChunkManager({
       currentRenderDirectionSettings = { ...settings };
     },
     setEnvMap(envMap) {
+      cachedEnvMap = envMap;
       buildingMaterial.envMap = envMap;
       buildingMaterial.needsUpdate = true;
     },
     setCityVisible(visible) {
       cityGroup.visible = visible;
+    },
+    beginEnvCapture() {
+      buildingMaterial.envMap = null;
+      buildingMaterial.clearcoat = 0;
+      buildingMaterial.needsUpdate = true;
+    },
+    endEnvCapture() {
+      buildingMaterial.envMap = cachedEnvMap;
+      buildingMaterial.clearcoat = 1.0;
+      buildingMaterial.needsUpdate = true;
     },
     dispose() {
       clear();
