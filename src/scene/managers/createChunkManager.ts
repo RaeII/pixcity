@@ -213,9 +213,9 @@ export function createChunkManager({
   });
   applyTriplanarShader(topMaterial, "top-triplanar-uv", topTilingUniform);
 
-  // Materiais far: mesmas texturas, sem envMap dinâmico (usa scene.environment HDRI).
-  // Chunks além de envMapNearDistance usam este par para evitar amostragem da
-  // cube render target em prédios distantes onde o ganho visual é imperceptível.
+  // Materiais far: mesmas texturas e shader dos near, sem cube envMap dinâmico.
+  // Chunks além de envMapNearDistance usam este par. O único ganho é não amostrar
+  // o cube render target em prédios distantes onde o reflexo não é perceptível.
   const buildingMaterialFar = new THREE.MeshPhysicalMaterial({
     color: buildingSettings.color,
     roughness: buildingSettings.roughness,
@@ -599,7 +599,9 @@ export function createChunkManager({
       scene.remove(cityGroup);
       buildingGeometry.dispose();
       buildingMaterial.dispose();
+      buildingMaterialFar.dispose();
       topMaterial.dispose();
+      topMaterialFar.dispose();
       for (const tex of allTextures) {
         tex.dispose();
       }

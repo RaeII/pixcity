@@ -87,7 +87,7 @@ export function createCitySceneRuntime({
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
-    powerPreference: "high-performance",
+    //powerPreference: "high-performance",
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
