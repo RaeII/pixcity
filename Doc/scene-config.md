@@ -117,6 +117,7 @@ Ele guarda informações como:
 Também define:
 
 - `DEFAULT_SCENE_STATS`
+- `envMapNearDistance` — raio em unidades world dentro do qual os chunks usam o cube envMap dinâmico dos prédios. Chunks além desse raio usam apenas o HDRI do `scene.environment`. Padrão: 78 (≈ 3 chunks). Veja `createChunkManager` para o comportamento de troca.
 
 ## Diferença entre configs por domínio e config global
 

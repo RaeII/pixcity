@@ -47,7 +47,7 @@ export const CITY_SCENE_CONFIG: CitySceneConfig = {
   },
   cubeUpdateIntervalMoving: 4,
   cubeUpdateIntervalStatic: 48,
-  envMapNearDistance: 78,
+  envMapNearDistance: 26,
 };
 
 export const DEFAULT_SCENE_STATS: SceneStats = {

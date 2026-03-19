@@ -26,6 +26,18 @@ Responsabilidades:
 - atualizar o material dos prédios quando o estado muda
 - carregar e aplicar texturas PBR (cor, normal, roughness, metalness, displacement, emissive)
 - atualizar configurações de textura em tempo real (tiling, normal scale, displacement, emissive intensity, clay render)
+- alternar materiais near/far por chunk com base em `envMapNearDistance`
+
+## Materiais near e far
+
+O manager mantém dois pares de materiais:
+
+- **near** (`buildingMaterial` + `topMaterial`): recebem o cube envMap dinâmico capturado a cada 4 frames. Usado em chunks dentro do raio `envMapNearDistance` (padrão: 78 unidades world ≈ 3 chunks).
+- **far** (`buildingMaterialFar` + `topMaterialFar`): sem cube envMap dinâmico — usam o HDRI do `scene.environment`. Usado em chunks além desse raio.
+
+A troca é feita a cada `sync()` pela função `updateAllChunkMaterials`, que compara a distância Chebyshev de cada chunk ativo à câmera. Novos chunks já nascem com o material correto, determinado em `createChunk` no momento da criação.
+
+Para ajustar o raio da zona near, altere `envMapNearDistance` em `citySceneConfig.ts`.
 
 ## Como os chunks funcionam
 

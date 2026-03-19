@@ -315,15 +315,33 @@ export function createChunkManager({
   const tempDirectionToChunk = new THREE.Vector3();
   let currentRenderDirectionSettings = { ...renderDirectionSettings };
 
-  const createChunk = (chunkX: number, chunkZ: number) => {
+  const isChunkNear = (chunkX: number, chunkZ: number, cameraChunkX: number, cameraChunkZ: number) => {
+    const dist = Math.max(Math.abs(chunkX - cameraChunkX), Math.abs(chunkZ - cameraChunkZ));
+    return dist * CITY_SCENE_CONFIG.chunkSize <= CITY_SCENE_CONFIG.envMapNearDistance;
+  };
+
+  const updateAllChunkMaterials = (cameraChunkX: number, cameraChunkZ: number) => {
+    for (const [key, chunk] of chunkMap.entries()) {
+      const [x, z] = key.split(":").map(Number);
+      const near = isChunkNear(x, z, cameraChunkX, cameraChunkZ);
+      const expected = near ? [buildingMaterial, topMaterial] : [buildingMaterialFar, topMaterialFar];
+      const current = chunk.mesh.material as THREE.Material[];
+      if (!Array.isArray(current) || current[0] !== expected[0]) {
+        chunk.mesh.material = expected;
+      }
+    }
+  };
+
+  const createChunk = (chunkX: number, chunkZ: number, cameraChunkX: number, cameraChunkZ: number) => {
     const key = `${chunkX}:${chunkZ}`;
     if (chunkMap.has(key)) {
       return;
     }
 
+    const near = isChunkNear(chunkX, chunkZ, cameraChunkX, cameraChunkZ);
     const mesh = new THREE.InstancedMesh(
       buildingGeometry,
-      [buildingMaterial, topMaterial],
+      near ? [buildingMaterial, topMaterial] : [buildingMaterialFar, topMaterialFar],
       CITY_SCENE_CONFIG.maxBuildingsPerChunk,
     );
     mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
@@ -468,7 +486,7 @@ export function createChunkManager({
 
           tempDirectionToChunk.set(offsetX, 0, offsetZ);
           if (tempDirectionToChunk.lengthSq() === 0) {
-            createChunk(x, z);
+            createChunk(x, z, cameraChunkX, cameraChunkZ);
             continue;
           }
 
@@ -483,7 +501,7 @@ export function createChunkManager({
             if (distance > currentRenderDirectionSettings.forwardDistance + sideFactor * 0.5) {
               continue;
             }
-            createChunk(x, z);
+            createChunk(x, z, cameraChunkX, cameraChunkZ);
             continue;
           }
 
@@ -491,7 +509,7 @@ export function createChunkManager({
             if (distance > currentRenderDirectionSettings.sideDistance) {
               continue;
             }
-            createChunk(x, z);
+            createChunk(x, z, cameraChunkX, cameraChunkZ);
             continue;
           }
 
@@ -505,12 +523,13 @@ export function createChunkManager({
           }
 
           if (isBack) {
-            createChunk(x, z);
+            createChunk(x, z, cameraChunkX, cameraChunkZ);
           }
         }
       }
 
       removeFarChunks(cameraChunkX, cameraChunkZ);
+      updateAllChunkMaterials(cameraChunkX, cameraChunkZ);
 
       let totalBuildings = 0;
       chunkMap.forEach((chunk) => {
