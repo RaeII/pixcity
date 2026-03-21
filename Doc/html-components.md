@@ -18,6 +18,19 @@ Esses componentes:
 
 ## Arquivos principais
 
+### `src/components/html/BuildingHeightInput.tsx`
+
+Overlay fixo no centro superior da página. É o input de doação.
+
+Responsabilidades:
+
+- exibir um input numérico para o usuário digitar o valor da doação
+- ao clicar em "doar" (ou pressionar Enter), chamar o callback `onSubmit` com o valor
+- limpar o campo após cada envio bem-sucedido
+- não conhece Three.js nem o estado global — recebe apenas `onSubmit` por props
+
+Cada envio cria um novo prédio na cena via `canvasRef.addDonation(value)` em `CitySceneEditor`. O prédio de maior valor sempre ocupa o centro.
+
 ### `src/components/html/CityControlPanel.tsx`
 
 É o componente que monta o painel completo.

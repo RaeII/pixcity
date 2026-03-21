@@ -1,5 +1,10 @@
 import * as THREE from "three";
 
+export type DonationEntry = {
+  id: number;
+  value: number;
+};
+
 export type ChunkData = {
   key: string;
   mesh: THREE.InstancedMesh;
@@ -60,6 +65,7 @@ export type BuildingSettings = {
   color: string;
   roughness: number;
   metalness: number;
+  targetMaxHeight: number;
 };
 
 export type GroundSettings = {

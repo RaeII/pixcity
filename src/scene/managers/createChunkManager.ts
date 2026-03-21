@@ -244,6 +244,7 @@ export function createChunkManager({
   });
   applyTriplanarShader(topMaterialFar, "top-triplanar-uv-far", topTilingUniform);
 
+  let currentBuildingSettings = { ...buildingSettings };
   let currentTextureSettings = { ...textureSettings };
 
   const applyTextureToMaterial = (settings: TextureSettings) => {
@@ -356,8 +357,6 @@ export function createChunkManager({
     const scales = new Float32Array(CITY_SCENE_CONFIG.maxBuildingsPerChunk * 2);
     const startX = chunkX * CITY_SCENE_CONFIG.chunkSize;
     const startZ = chunkZ * CITY_SCENE_CONFIG.chunkSize;
-    const centerX = startX + CITY_SCENE_CONFIG.chunkSize * 0.5;
-    const centerZ = startZ + CITY_SCENE_CONFIG.chunkSize * 0.5;
 
     for (let localX = 0; localX < CITY_SCENE_CONFIG.chunkSize; localX += CITY_SCENE_CONFIG.blockSize) {
       for (let localZ = 0; localZ < CITY_SCENE_CONFIG.chunkSize; localZ += CITY_SCENE_CONFIG.blockSize) {
@@ -382,15 +381,20 @@ export function createChunkManager({
           continue;
         }
 
-        const cityDistance = Math.sqrt(centerX * centerX + centerZ * centerZ) * 0.018;
+        const buildingDist = Math.sqrt(worldX * worldX + worldZ * worldZ) * 0.018;
         const heightNoise = seeded(worldX, worldZ, 2);
         const shapeNoise = seeded(worldX, worldZ, 3);
         const offsetX = (seeded(worldX, worldZ, 5) - 0.5) * 0.18;
         const offsetZ = (seeded(worldX, worldZ, 6) - 0.5) * 0.18;
-        const skylineBias = 1.2 / (1 + cityDistance);
-        const height =
-          CITY_SCENE_CONFIG.minHeight +
-          (0.35 + skylineBias) * (2 + heightNoise * CITY_SCENE_CONFIG.maxHeight);
+        // Distribuição quadrática: maioria dos prédios curtos, minoria bem alta.
+        // Isso cria contraste visual — os prédios altos se destacam entre os menores.
+        // O skylineBias garante que os prédios mais altos fiquem sempre no centro.
+        const skylineBias = 1.2 / (1 + buildingDist);
+        const heightFactor = 0.15 + 0.85 * (heightNoise * heightNoise);
+        const height = Math.min(
+          CITY_SCENE_CONFIG.minHeight + skylineBias * currentBuildingSettings.targetMaxHeight * heightFactor,
+          CITY_SCENE_CONFIG.maxHeight,
+        );
 
         const width = 0.85 + shapeNoise * 0.9;
         const depth = 0.85 + seeded(worldX, worldZ, 7) * 0.9;
@@ -543,6 +547,7 @@ export function createChunkManager({
       });
     },
     updateBuildingSettings(settings) {
+      currentBuildingSettings = { ...settings };
       buildingMaterial.color.set(settings.color);
       buildingMaterialFar.color.set(settings.color);
       topMaterial.color.set(settings.color);

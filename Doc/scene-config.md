@@ -19,6 +19,7 @@ Guarda os valores padrão dos prédios:
 - cor inicial
 - roughness inicial
 - metalness inicial
+- `targetMaxHeight` — altura alvo do prédio mais alto (padrão: 15). Esse valor é definido pelo usuário via input no topo da página. O prédio mais alto nunca ultrapassa `maxHeight` de `citySceneConfig.ts` (visual cap da cena).
 
 Funções importantes:
 
@@ -104,7 +105,8 @@ Ele guarda informações como:
 - tamanho do chunk
 - tamanho dos blocos
 - largura da rua
-- altura mínima e máxima dos prédios
+- `minHeight` — altura mínima dos prédios
+- `maxHeight` — cap visual máximo de altura na cena (teto absoluto; prédios nunca ultrapassam esse valor independente do `targetMaxHeight`)
 - limite de prédios por chunk
 - distância do plano da câmera
 - limite de resolução dinâmica

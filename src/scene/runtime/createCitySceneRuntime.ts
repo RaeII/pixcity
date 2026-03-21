@@ -5,11 +5,9 @@ import { createGroundPlane } from "../builders/createGroundPlane";
 import { createLightingRig } from "../builders/createLightingRig";
 import { loadEnvironment } from "../builders/loadEnvironment";
 import { CITY_SCENE_CONFIG, DEFAULT_SCENE_STATS } from "../config/citySceneConfig";
-import { createChunkManager } from "../managers/createChunkManager";
-import { createShadowManager } from "../managers/createShadowManager";
+import { createDonationManager } from "../managers/createDonationManager";
 import type {
   BuildingSettings,
-  CameraVisibilityState,
   EnvironmentSettings,
   GroundSettings,
   LightSettings,
@@ -19,7 +17,6 @@ import type {
   TextureSettings,
 } from "../types";
 import { runDevAssertionsOnce } from "../utils/devAssertions";
-
 
 type CitySceneRuntimeOptions = {
   mount: HTMLDivElement;
@@ -39,11 +36,9 @@ export type CitySceneRuntime = {
   updateGroundSettings: (settings: GroundSettings) => void;
   updateLightSettings: (settings: LightSettings) => void;
   updateShadowSettings: (settings: ShadowSettings) => void;
-  updateRenderDirectionSettings: (
-    settings: RenderDirectionSettings,
-    forceRefresh?: boolean,
-  ) => void;
+  updateRenderDirectionSettings: (settings: RenderDirectionSettings, forceRefresh?: boolean) => void;
   updateEnvironmentSettings: (settings: EnvironmentSettings) => void;
+  addDonation: (value: number) => void;
   dispose: () => void;
 };
 
@@ -54,7 +49,6 @@ export function createCitySceneRuntime({
   groundSettings,
   lightSettings,
   shadowSettings,
-  renderDirectionSettings,
   environmentSettings,
   onStatsChange,
 }: CitySceneRuntimeOptions): CitySceneRuntime {
@@ -85,13 +79,11 @@ export function createCitySceneRuntime({
     CITY_SCENE_CONFIG.initialCameraPosition.z,
   );
 
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    //powerPreference: "high-performance",
-  });
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.45;
+  renderer.shadowMap.enabled = shadowSettings.enabled;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   let renderScale = 1;
@@ -136,6 +128,7 @@ export function createCitySceneRuntime({
   const lightingRig = createLightingRig(scene, lightSettings);
   const groundPlane = createGroundPlane(scene, groundSettings, shadowSettings.enabled);
   const gridHelper = createGridHelper(scene);
+
   const buildingCubeTarget = new THREE.WebGLCubeRenderTarget(256, {
     type: THREE.HalfFloatType,
     generateMipmaps: true,
@@ -144,59 +137,21 @@ export function createCitySceneRuntime({
   const buildingCubeCamera = new THREE.CubeCamera(0.1, CITY_SCENE_CONFIG.far, buildingCubeTarget);
   scene.add(buildingCubeCamera);
 
-  const chunkManager = createChunkManager({
+  const donationManager = createDonationManager({
     scene,
-    camera,
     renderer,
     buildingSettings,
     textureSettings,
-    renderDirectionSettings,
-    onStatsChange: (stats) => emitStatsPatch(stats),
   });
-  chunkManager.setEnvMap(buildingCubeTarget.texture);
-  const shadowManager = createShadowManager({
-    scene,
-    camera,
-    shadowSettings,
-    getChunks: () => chunkManager.getChunks(),
-    onBuildingsWithShadowChange: (buildingsWithShadow) =>
-      emitStatsPatch({ buildingsWithShadow }),
-  });
+  donationManager.setEnvMap(buildingCubeTarget.texture);
+  donationManager.setShadowEnabled(shadowSettings.enabled);
 
-  const tempCameraForwardForVisibility = new THREE.Vector3();
-  let lastVisibilityState: CameraVisibilityState = {
-    x: Number.NaN,
-    z: Number.NaN,
-    forwardX: 0,
-    forwardZ: -1,
-  };
-  let lastChunkX = Number.NaN;
-  let lastChunkZ = Number.NaN;
   let animationId = 0;
   let lastTime = performance.now();
   let fpsAccumulator = 0;
   let frames = 0;
   let smoothedFps = 60;
-  let lastShadowSyncTime = 0;
   let cubeFrameCounter = 0;
-
-  const syncWorld = (forceRefresh = false) => {
-    chunkManager.sync(forceRefresh);
-    shadowManager.sync();
-  };
-
-  const applyShadowSettings = (settings: ShadowSettings, shouldSync = true) => {
-    renderer.shadowMap.enabled = settings.enabled;
-    groundPlane.setShadowEnabled(settings.enabled);
-    shadowManager.updateSettings(settings);
-
-    if (shouldSync) {
-      shadowManager.sync();
-    }
-  };
-
-  applyShadowSettings(shadowSettings, false);
-  syncWorld(true);
 
   const updateDynamicResolution = (fps: number) => {
     const previousScale = renderScale;
@@ -205,7 +160,6 @@ export function createCitySceneRuntime({
     } else if (fps > CITY_SCENE_CONFIG.targetFps + 5) {
       renderScale = Math.min(CITY_SCENE_CONFIG.maxRenderScale, renderScale + 0.025);
     }
-
     if (previousScale !== renderScale) {
       renderer.setPixelRatio(getPixelRatio());
       renderer.setSize(mount.clientWidth, mount.clientHeight, false);
@@ -219,44 +173,6 @@ export function createCitySceneRuntime({
 
     controls.update();
 
-    const currentChunkX = Math.floor(
-      (camera.position.x + CITY_SCENE_CONFIG.chunkSize * 0.5) / CITY_SCENE_CONFIG.chunkSize,
-    );
-    const currentChunkZ = Math.floor(
-      (camera.position.z + CITY_SCENE_CONFIG.chunkSize * 0.5) / CITY_SCENE_CONFIG.chunkSize,
-    );
-
-    camera.getWorldDirection(tempCameraForwardForVisibility);
-    tempCameraForwardForVisibility.y = 0;
-    if (tempCameraForwardForVisibility.lengthSq() === 0) {
-      tempCameraForwardForVisibility.set(0, 0, -1);
-    } else {
-      tempCameraForwardForVisibility.normalize();
-    }
-
-    const rotationDot =
-      tempCameraForwardForVisibility.x * lastVisibilityState.forwardX +
-      tempCameraForwardForVisibility.z * lastVisibilityState.forwardZ;
-    const rotatedEnough = Number.isNaN(lastVisibilityState.x) || rotationDot < 0.985;
-    const movedEnough = currentChunkX !== lastChunkX || currentChunkZ !== lastChunkZ;
-
-    if (movedEnough || rotatedEnough) {
-      syncWorld(false);
-      lastChunkX = currentChunkX;
-      lastChunkZ = currentChunkZ;
-      lastVisibilityState = {
-        x: camera.position.x,
-        z: camera.position.z,
-        forwardX: tempCameraForwardForVisibility.x,
-        forwardZ: tempCameraForwardForVisibility.z,
-      };
-    }
-
-    if (time - lastShadowSyncTime > 180) {
-      shadowManager.sync();
-      lastShadowSyncTime = time;
-    }
-
     groundPlane.setPosition(camera.position.x, camera.position.z);
     gridHelper.setPosition(camera.position.x, camera.position.z);
     environmentUpdater.updatePosition(camera.position.x, camera.position.y, camera.position.z);
@@ -267,6 +183,7 @@ export function createCitySceneRuntime({
       const currentFps = frames / fpsAccumulator;
       smoothedFps = smoothedFps * 0.72 + currentFps * 0.28;
       updateDynamicResolution(smoothedFps);
+      emitStatsPatch({ buildings: donationManager.getDonationCount() });
       fpsAccumulator = 0;
       frames = 0;
     }
@@ -274,9 +191,9 @@ export function createCitySceneRuntime({
     cubeFrameCounter = (cubeFrameCounter + 1) % 4;
     if (cubeFrameCounter === 0) {
       buildingCubeCamera.position.copy(camera.position);
-      chunkManager.beginEnvCapture();
+      donationManager.beginEnvCapture();
       buildingCubeCamera.update(renderer, scene);
-      chunkManager.endEnvCapture();
+      donationManager.endEnvCapture();
     }
 
     renderer.render(scene, camera);
@@ -295,10 +212,10 @@ export function createCitySceneRuntime({
 
   return {
     updateBuildingSettings(settings) {
-      chunkManager.updateBuildingSettings(settings);
+      donationManager.updateBuildingSettings(settings);
     },
     updateTextureSettings(settings) {
-      chunkManager.updateTextureSettings(settings);
+      donationManager.updateTextureSettings(settings);
     },
     updateGroundSettings(settings) {
       groundPlane.update(settings);
@@ -307,21 +224,24 @@ export function createCitySceneRuntime({
       lightingRig.update(settings);
     },
     updateShadowSettings(settings) {
-      applyShadowSettings(settings, true);
+      renderer.shadowMap.enabled = settings.enabled;
+      groundPlane.setShadowEnabled(settings.enabled);
+      donationManager.setShadowEnabled(settings.enabled);
     },
-    updateRenderDirectionSettings(settings, forceRefresh = true) {
-      chunkManager.updateRenderDirectionSettings(settings);
-      syncWorld(forceRefresh);
-    },
+    // Sem chunks direcionais — mantido na API para compatibilidade com hook/canvas
+    updateRenderDirectionSettings() {},
     updateEnvironmentSettings(settings) {
       environmentUpdater.updateSettings(settings);
+    },
+    addDonation(value) {
+      donationManager.addDonation(value);
+      emitStatsPatch({ buildings: donationManager.getDonationCount() });
     },
     dispose() {
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
       controls.dispose();
-      shadowManager.dispose();
-      chunkManager.dispose();
+      donationManager.dispose();
       groundPlane.dispose();
       gridHelper.dispose();
       lightingRig.dispose();
@@ -332,7 +252,6 @@ export function createCitySceneRuntime({
       scene.remove(buildingCubeCamera);
       buildingCubeTarget.dispose();
       renderer.dispose();
-
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement);
       }

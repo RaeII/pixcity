@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { useCityScene } from "../../scene/hooks/useCityScene";
 import type {
   BuildingSettings,
@@ -11,6 +11,10 @@ import type {
   TextureSettings,
 } from "../../scene/types";
 
+export type CitySceneCanvasHandle = {
+  addDonation: (value: number) => void;
+};
+
 export type CitySceneCanvasProps = {
   buildingSettings: BuildingSettings;
   textureSettings: TextureSettings;
@@ -22,29 +26,36 @@ export type CitySceneCanvasProps = {
   onStatsChange: (stats: SceneStats) => void;
 };
 
-export function CitySceneCanvas({
-  buildingSettings,
-  textureSettings,
-  groundSettings,
-  lightSettings,
-  shadowSettings,
-  renderDirectionSettings,
-  environmentSettings,
-  onStatsChange,
-}: CitySceneCanvasProps) {
-  const mountRef = useRef<HTMLDivElement | null>(null);
+export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvasProps>(
+  function CitySceneCanvas(
+    {
+      buildingSettings,
+      textureSettings,
+      groundSettings,
+      lightSettings,
+      shadowSettings,
+      renderDirectionSettings,
+      environmentSettings,
+      onStatsChange,
+    },
+    ref,
+  ) {
+    const mountRef = useRef<HTMLDivElement | null>(null);
 
-  useCityScene({
-    mountRef,
-    buildingSettings,
-    textureSettings,
-    groundSettings,
-    lightSettings,
-    shadowSettings,
-    renderDirectionSettings,
-    environmentSettings,
-    onStatsChange,
-  });
+    const { addDonation } = useCityScene({
+      mountRef,
+      buildingSettings,
+      textureSettings,
+      groundSettings,
+      lightSettings,
+      shadowSettings,
+      renderDirectionSettings,
+      environmentSettings,
+      onStatsChange,
+    });
 
-  return <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />;
-}
+    useImperativeHandle(ref, () => ({ addDonation }), [addDonation]);
+
+    return <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />;
+  },
+);

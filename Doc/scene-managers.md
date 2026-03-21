@@ -10,78 +10,73 @@ Em vez de colocar toda a lógica procedural dentro do runtime, o projeto separa 
 
 ## Arquivos
 
-### `src/scene/managers/createChunkManager.ts`
+### `src/scene/managers/createDonationManager.ts`
 
-Esse manager controla a cidade procedural.
-
-É uma das partes mais importantes do projeto.
+Esse é o manager principal da cena. Ele gerencia os prédios como representações visuais de doações.
 
 Responsabilidades:
 
+- manter a lista de doações (`DonationEntry[]`) ordenada por valor decrescente
+- criar e atualizar um único `InstancedMesh` com capacidade para até 500 prédios
+- posicionar prédios em espiral quadrada a partir do centro — doação de maior valor ocupa o centro
+- calcular altura de cada prédio proporcionalmente ao valor máximo atual
+- carregar e aplicar texturas PBR (cor, normal, roughness, metalness, displacement, emissive)
+- atualizar materiais em tempo real quando configurações mudam
+- gerenciar envMap dinâmico do cube camera
+
+### Layout dos prédios
+
+Os prédios são posicionados em espiral quadrada a partir da origem:
+
+- **Índice 0** (maior doação): posição `(0, 0)` — centro da cena
+- **Índice 1–8**: primeiro anel externo
+- **Índice 9–24**: segundo anel externo
+- E assim por diante...
+
+A cada nova doação, a lista é reordenada e todas as instâncias são reconstruídas. Isso garante que o maior valor sempre ocupe o centro, mesmo que uma nova doação maior chegue depois.
+
+### Fórmula de altura
+
+A altura de cada prédio é proporcional ao maior valor da lista:
+
+```
+height = minBuildingHeight + (valor / maxValor) * (maxSceneHeight - minBuildingHeight)
+```
+
+- `minBuildingHeight = 0.5` — mínimo visual para qualquer doação
+- `maxSceneHeight = 16` — cap visual; o prédio com maior doação sempre alcança esse valor
+- Todos os outros prédios são proporcionalmente menores
+
+Para ajustar esses limites, edite `DONATION_LAYOUT` em `createDonationManager.ts`.
+
+### Materiais
+
+O manager usa um único par de materiais (sem distinção near/far, pois todos os prédios ficam perto da câmera):
+
+- **facadeMaterial** (`MeshPhysicalMaterial`): textura de fachada com shader triplanar, cube envMap dinâmico
+- **topMaterial** (`MeshPhysicalMaterial`): textura de concreto para o topo dos prédios
+
+O shader triplanar é necessário para que a textura de fachada seja aplicada corretamente em prédios com alturas diferentes dentro do mesmo `InstancedMesh`.
+
+---
+
+### `src/scene/managers/createChunkManager.ts`
+
+Manager da cidade procedural infinita. **Não é mais usado pelo runtime principal** — mantido no repositório para referência arquitetural.
+
+Responsabilidades originais:
+
 - criar `InstancedMesh` por chunk
-- gerar prédios proceduralmente
+- gerar prédios proceduralmente com `seeded` random
 - decidir quais chunks devem existir perto da câmera
 - remover chunks distantes
-- atualizar estatísticas de prédios e chunks
-- atualizar o material dos prédios quando o estado muda
-- carregar e aplicar texturas PBR (cor, normal, roughness, metalness, displacement, emissive)
-- atualizar configurações de textura em tempo real (tiling, normal scale, displacement, emissive intensity, clay render)
 - alternar materiais near/far por chunk com base em `envMapNearDistance`
-
-## Materiais near e far
-
-O manager mantém dois pares de materiais:
-
-- **near** (`buildingMaterial` + `topMaterial`): recebem o cube envMap dinâmico capturado a cada 4 frames. Usado em chunks dentro do raio `envMapNearDistance` (padrão: 78 unidades world ≈ 3 chunks).
-- **far** (`buildingMaterialFar` + `topMaterialFar`): sem cube envMap dinâmico — usam o HDRI do `scene.environment`. Usado em chunks além desse raio.
-
-A troca é feita a cada `sync()` pela função `updateAllChunkMaterials`, que compara a distância Chebyshev de cada chunk ativo à câmera. Novos chunks já nascem com o material correto, determinado em `createChunk` no momento da criação.
-
-Para ajustar o raio da zona near, altere `envMapNearDistance` em `citySceneConfig.ts`.
-
-## Como os chunks funcionam
-
-O fluxo básico é:
-
-1. descobrir em qual chunk a câmera está
-2. calcular o raio de busca com base em `RenderDirectionSettings`
-3. descobrir direção atual da câmera
-4. priorizar frente, depois lateral, depois trás
-5. criar ou remover chunks conforme necessário
-
-## Como os prédios são gerados
-
-Cada chunk:
-
-- percorre uma grade local
-- pula áreas de rua
-- usa ruído pseudoaleatório com `seeded`
-- calcula altura, largura, profundidade e offsets
-- escreve isso em um `InstancedMesh`
-
-Isso permite desenhar muitos prédios com boa performance.
 
 ### `src/scene/managers/createShadowManager.ts`
 
-Esse manager controla os objetos usados no passe de sombra.
+Manager de sombras por seleção de candidatos. **Não é mais usado pelo runtime principal** — mantido no repositório para referência.
 
-Responsabilidades:
-
-- escolher quais prédios mais próximos vão gerar sombra
-- criar meshes auxiliares invisíveis para `castShadow`
-- limpar e recriar esse grupo quando necessário
-- atualizar a contagem de prédios com sombra
-
-## Ideia importante sobre sombras
-
-Nem todos os prédios da cidade geram sombra ao mesmo tempo.
-
-Isso é uma decisão de performance.
-
-O `ShadowManager` pega os candidatos mais próximos da câmera e limita a quantidade usando:
-
-- `buildingCountWithShadow`
-- `shadowBuildingCap`
+Responsabilidade original: escolher os prédios mais próximos da câmera para gerar sombra, limitando o custo do shadow map.
 
 ## Quando mexer em managers
 
@@ -89,10 +84,9 @@ Mexa em `managers` quando o problema for comportamental.
 
 Exemplos:
 
-- "os chunks carregam cedo demais"
-- "a câmera deveria enxergar mais para frente"
-- "quero outra regra de geração de prédios"
-- "a seleção de prédios com sombra precisa mudar"
+- "quero mudar o layout dos prédios de doação"
+- "quero alterar a fórmula de altura proporcional"
+- "quero aumentar o limite máximo de doações"
 
-Se o problema for só valor padrão, veja `config`.
-Se for fórmula pequena, veja `utils`.
+Se o problema for só valor padrão (altura máxima, tamanho do slot), edite `DONATION_LAYOUT` em `createDonationManager.ts`.
+Se for fórmula matemática pequena, veja `utils`.

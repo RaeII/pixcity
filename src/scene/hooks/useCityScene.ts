@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { createCitySceneRuntime, type CitySceneRuntime } from "../runtime/createCitySceneRuntime";
 import type {
   BuildingSettings,
@@ -95,4 +95,11 @@ export function useCityScene({
   useEffect(() => {
     runtimeRef.current?.updateEnvironmentSettings(environmentSettings);
   }, [environmentSettings]);
+
+  // Referência estável: delega ao runtime atual sem recriar a função
+  const addDonation = useCallback((value: number) => {
+    runtimeRef.current?.addDonation(value);
+  }, []);
+
+  return { addDonation };
 }
