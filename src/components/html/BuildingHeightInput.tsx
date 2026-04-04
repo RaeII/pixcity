@@ -25,6 +25,8 @@ export function BuildingHeightInput({ onSubmit, onBulkSubmit }: DonationInputPro
     const qty = parseInt(quantity, 10);
     if (isNaN(min) || isNaN(max) || isNaN(qty) || min <= 0 || max <= min || qty <= 0) return;
 
+    console.log("Quantidade", qty);
+
     const values = Array.from({ length: qty }, () => min + Math.random() * (max - min));
     onBulkSubmit(values);
   };
@@ -81,11 +83,11 @@ export function BuildingHeightInput({ onSubmit, onBulkSubmit }: DonationInputPro
         <input
           type="number"
           min={1}
-          max={500}
           step={1}
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           className={`w-16 ${inputClass}`}
+          style={{ width: "100px" }}  
         />
         <button
           onClick={handleBulkGenerate}

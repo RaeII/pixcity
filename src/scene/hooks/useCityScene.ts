@@ -101,5 +101,9 @@ export function useCityScene({
     runtimeRef.current?.addDonation(value);
   }, []);
 
-  return { addDonation };
+  const addDonations = useCallback((values: number[]) => {
+    runtimeRef.current?.addDonations(values);
+  }, []);
+
+  return { addDonation, addDonations };
 }

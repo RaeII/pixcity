@@ -14,7 +14,6 @@ import concreteDisplacementSrc from "../../assets/texture/Concrete024_1K-JPG/Con
 
 // Configuração de layout do visualizador de doações
 export const DONATION_LAYOUT = {
-  maxBuildings: 500,
   maxSceneHeight: 16,     // Altura máxima visual na cena
   minBuildingHeight: 0.5, // Mínimo visual para qualquer doação
   buildingWidth: 2.0,
@@ -46,7 +45,7 @@ function generateSpiralPositions(count: number): ReadonlyArray<[number, number]>
   return positions;
 }
 
-const SPIRAL_POSITIONS = generateSpiralPositions(DONATION_LAYOUT.maxBuildings);
+let spiralPositions = generateSpiralPositions(512);
 
 type DonationManagerOptions = {
   scene: THREE.Scene;
@@ -57,6 +56,7 @@ type DonationManagerOptions = {
 
 export type DonationManager = {
   addDonation: (value: number) => void;
+  addDonations: (values: number[]) => void;
   updateBuildingSettings: (settings: BuildingSettings) => void;
   updateTextureSettings: (settings: TextureSettings) => void;
   setShadowEnabled: (enabled: boolean) => void;
@@ -217,11 +217,11 @@ export function createDonationManager({
   });
   applyTriplanarShader(topMaterial, "donation-top-triplanar", topTilingUniform);
 
-  // InstancedMesh com capacidade máxima — count é zero até a primeira doação
-  const mesh = new THREE.InstancedMesh(
+  let capacity = 512;
+  let mesh = new THREE.InstancedMesh(
     buildingGeometry,
     [facadeMaterial, topMaterial],
-    DONATION_LAYOUT.maxBuildings,
+    capacity,
   );
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.count = 0;
@@ -229,6 +229,7 @@ export function createDonationManager({
   mesh.receiveShadow = true;
   scene.add(mesh);
 
+  let shadowEnabled = true;
   const donations: DonationEntry[] = [];
   let nextId = 0;
   let currentTextureSettings = { ...textureSettings };
@@ -289,6 +290,22 @@ export function createDonationManager({
   applyTextureToFacade(textureSettings);
   applyTextureToTop(textureSettings);
 
+  // Expande o InstancedMesh e as posições de espiral quando o total excede a capacidade atual.
+  const growIfNeeded = (needed: number) => {
+    if (needed <= capacity) return;
+    while (capacity < needed) capacity = Math.ceil(capacity * 1.5);
+    if (spiralPositions.length < capacity) {
+      spiralPositions = generateSpiralPositions(capacity);
+    }
+    scene.remove(mesh);
+    mesh.dispose();
+    mesh = new THREE.InstancedMesh(buildingGeometry, [facadeMaterial, topMaterial], capacity);
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.castShadow = shadowEnabled;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+  };
+
   // Reconstrói todas as instâncias com base no array de doações ordenado.
   // Doação no índice 0 (maior valor) → posição central; as demais vão para
   // anéis externos em ordem decrescente de valor.
@@ -302,7 +319,7 @@ export function createDonationManager({
     const maxValue = donations[0].value; // array ordenado descendente
 
     for (let i = 0; i < donations.length; i++) {
-      const [slotX, slotZ] = SPIRAL_POSITIONS[i];
+      const [slotX, slotZ] = spiralPositions[i];
       const x = slotX * DONATION_LAYOUT.slotSize;
       const z = slotZ * DONATION_LAYOUT.slotSize;
       const height =
@@ -322,10 +339,18 @@ export function createDonationManager({
 
   return {
     addDonation(value) {
-      if (donations.length >= DONATION_LAYOUT.maxBuildings) return;
       donations.push({ id: nextId++, value });
-      // Ordena decrescente: maior valor = índice 0 = posição central
       donations.sort((a, b) => b.value - a.value);
+      growIfNeeded(donations.length);
+      rebuildInstances();
+    },
+    addDonations(values) {
+      for (const value of values) {
+        donations.push({ id: nextId++, value });
+      }
+      // Ordena uma vez e reconstrói uma vez para todo o lote
+      donations.sort((a, b) => b.value - a.value);
+      growIfNeeded(donations.length);
       rebuildInstances();
     },
     updateBuildingSettings(settings) {
@@ -348,6 +373,7 @@ export function createDonationManager({
       applyTextureToTop(settings);
     },
     setShadowEnabled(enabled) {
+      shadowEnabled = enabled;
       mesh.castShadow = enabled;
     },
     setEnvMap(envMap) {

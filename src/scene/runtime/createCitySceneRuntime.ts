@@ -39,6 +39,7 @@ export type CitySceneRuntime = {
   updateRenderDirectionSettings: (settings: RenderDirectionSettings, forceRefresh?: boolean) => void;
   updateEnvironmentSettings: (settings: EnvironmentSettings) => void;
   addDonation: (value: number) => void;
+  addDonations: (values: number[]) => void;
   dispose: () => void;
 };
 
@@ -235,6 +236,10 @@ export function createCitySceneRuntime({
     },
     addDonation(value) {
       donationManager.addDonation(value);
+      emitStatsPatch({ buildings: donationManager.getDonationCount() });
+    },
+    addDonations(values) {
+      donationManager.addDonations(values);
       emitStatsPatch({ buildings: donationManager.getDonationCount() });
     },
     dispose() {

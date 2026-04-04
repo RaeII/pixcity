@@ -34,11 +34,7 @@ export function CitySceneEditor() {
   };
 
   const handleBulkDonation = (values: number[]) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    for (const value of values) {
-      canvas.addDonation(value);
-    }
+    canvasRef.current?.addDonations(values);
   };
 
   return (

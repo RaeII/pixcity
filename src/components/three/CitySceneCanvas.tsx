@@ -13,6 +13,7 @@ import type {
 
 export type CitySceneCanvasHandle = {
   addDonation: (value: number) => void;
+  addDonations: (values: number[]) => void;
 };
 
 export type CitySceneCanvasProps = {
@@ -42,7 +43,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
   ) {
     const mountRef = useRef<HTMLDivElement | null>(null);
 
-    const { addDonation } = useCityScene({
+    const { addDonation, addDonations } = useCityScene({
       mountRef,
       buildingSettings,
       textureSettings,
@@ -54,7 +55,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       onStatsChange,
     });
 
-    useImperativeHandle(ref, () => ({ addDonation }), [addDonation]);
+    useImperativeHandle(ref, () => ({ addDonation, addDonations }), [addDonation, addDonations]);
 
     return <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />;
   },
