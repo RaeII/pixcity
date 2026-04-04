@@ -20,6 +20,21 @@ Contratos TypeScript centralizados em `src/scene/types.ts`.
 
 ## Tipos de Configuração (Settings)
 
+### `BlockLayoutSettings`
+
+Configurações de layout das quadras de prédios:
+
+```typescript
+type BlockLayoutSettings = {
+  blockSize: number;   // prédios por lado da quadra (ex: 3 → 3×3 = 9 slots)
+  streetWidth: number; // espaço entre quadras em unidades world (ex: 6.0)
+}
+```
+
+Editável em tempo real via inputs no overlay superior. Padrões em `blockLayoutConfig.ts`.
+
+---
+
 ### `BuildingSettings`
 
 Configurações visuais dos prédios:

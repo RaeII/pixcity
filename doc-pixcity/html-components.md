@@ -37,12 +37,21 @@ Overlay fixo no centro superior da página — é o input de doação.
 **Responsabilidades:**
 - Exibir input numérico para o valor da doação
 - Ao clicar em "Doar" (ou pressionar Enter), chamar `onSubmit(value)`
-- Suporte a `onBulkSubmit(values[])` para envio de múltiplas doações
+- Suporte a `onBulkSubmit(values[])` para envio de múltiplas doações em lote
+- Exibir inputs de layout de quadra: `bloco` (blockSize) e `rua` (streetWidth)
 - Limpar o campo após cada envio bem-sucedido
 - Não conhece Three.js nem estado global
 
+**Props:**
+| Prop | Tipo | Descrição |
+|---|---|---|
+| `onSubmit` | `(value: number) => void` | Doação individual |
+| `onBulkSubmit` | `(values: number[]) => void` | Lote de doações |
+| `blockLayoutSettings` | `BlockLayoutSettings` | Tamanho de quadra e largura de rua |
+| `onBlockLayoutChange` | `(s: BlockLayoutSettings) => void` | Atualiza layout em tempo real |
+
 > [!note] Fluxo de doação
-> Cada envio chama `canvasRef.addDonation(value)` em `CitySceneEditor`. O prédio de maior valor sempre ocupa o centro da espiral.
+> Cada envio chama `canvasRef.addDonation(value)` em `CitySceneEditor`. O prédio de maior valor sempre ocupa o centro da quadra central.
 
 ---
 

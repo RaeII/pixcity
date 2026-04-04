@@ -7,6 +7,7 @@ import { loadEnvironment } from "../builders/loadEnvironment";
 import { CITY_SCENE_CONFIG, DEFAULT_SCENE_STATS } from "../config/citySceneConfig";
 import { createDonationManager } from "../managers/createDonationManager";
 import type {
+  BlockLayoutSettings,
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
@@ -27,6 +28,7 @@ type CitySceneRuntimeOptions = {
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
   environmentSettings: EnvironmentSettings;
+  blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
 };
 
@@ -38,6 +40,7 @@ export type CitySceneRuntime = {
   updateShadowSettings: (settings: ShadowSettings) => void;
   updateRenderDirectionSettings: (settings: RenderDirectionSettings, forceRefresh?: boolean) => void;
   updateEnvironmentSettings: (settings: EnvironmentSettings) => void;
+  updateBlockLayout: (settings: BlockLayoutSettings) => void;
   addDonation: (value: number) => void;
   addDonations: (values: number[]) => void;
   dispose: () => void;
@@ -51,6 +54,7 @@ export function createCitySceneRuntime({
   lightSettings,
   shadowSettings,
   environmentSettings,
+  blockLayoutSettings,
   onStatsChange,
 }: CitySceneRuntimeOptions): CitySceneRuntime {
   runDevAssertionsOnce();
@@ -143,6 +147,7 @@ export function createCitySceneRuntime({
     renderer,
     buildingSettings,
     textureSettings,
+    blockLayoutSettings,
   });
   donationManager.setEnvMap(buildingCubeTarget.texture);
   donationManager.setShadowEnabled(shadowSettings.enabled);
@@ -231,6 +236,9 @@ export function createCitySceneRuntime({
     },
     // Sem chunks direcionais — mantido na API para compatibilidade com hook/canvas
     updateRenderDirectionSettings() {},
+    updateBlockLayout(settings) {
+      donationManager.updateBlockLayout(settings);
+    },
     updateEnvironmentSettings(settings) {
       environmentUpdater.updateSettings(settings);
     },

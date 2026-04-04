@@ -125,6 +125,23 @@ Valores padrão dos limites de carregamento de chunks por direção da câmera:
 
 ---
 
+### `blockLayoutConfig.ts`
+
+Valores padrão do layout de quadras:
+
+| Campo | Padrão | Descrição |
+|---|---|---|
+| `blockSize` | `3` | Prédios por lado (3×3 = 9 slots por quadra) |
+| `streetWidth` | `6.0` | Largura das ruas entre quadras em unidades world |
+
+**Funções exportadas:**
+- `createDefaultBlockLayoutSettings()`
+
+> [!note]
+> Esses valores são editáveis em tempo real via inputs no overlay. Ver [[html-components#BuildingHeightInput.tsx]].
+
+---
+
 ### `environmentConfig.ts`
 
 Valores padrão do ambiente HDRI:

@@ -35,18 +35,35 @@ Manager principal da cena atual. Gerencia os prédios como representações visu
 - Atualizar materiais em tempo real
 - Gerenciar envMap dinâmico via cube camera
 
-#### Layout dos Prédios
+#### Layout dos Prédios (Quadras)
 
-Os prédios são posicionados em espiral quadrada a partir da origem:
+Os prédios são agrupados em **quadras dispostas em espiral** a partir do centro.
 
-| Índice | Posição |
-|---|---|
-| **0** (maior doação) | `(0, 0)` — centro |
-| 1–8 | Primeiro anel externo |
-| 9–24 | Segundo anel externo |
-| … | E assim por diante |
+**Hierarquia de posicionamento:**
 
-A cada nova doação, a lista é reordenada e **todas as instâncias são reconstruídas**. Isso garante que o maior valor sempre ocupe o centro, mesmo que uma nova doação maior chegue depois.
+1. As quadras são ordenadas em espiral — a quadra mais próxima do centro recebe as maiores doações
+2. Dentro de cada quadra, o maior prédio ocupa o **slot central** (mais próximo do centro da quadra)
+3. Os demais prédios da quadra são distribuídos nos slots restantes com shuffle determinístico via `seeded(blockIndex, i)`
+
+**Geometria de uma quadra (blockSize=3):**
+
+```
+[ ][ ][ ]
+[ ][★][ ]   ★ = maior doação da quadra
+[ ][ ][ ]   demais = ordem aleatória por seeded random
+```
+
+**Cálculo de espaçamento:**
+```
+blockFootprint = (blockSize - 1) × slotSize
+blockSpacing   = blockFootprint + streetWidth
+```
+
+**Configurado por [[scene-types#BlockLayoutSettings]] (editável em tempo real):**
+- `blockSize` — prédios por lado (padrão: 3 → 9 slots/quadra)
+- `streetWidth` — espaço entre quadras (padrão: 6.0)
+
+A cada nova doação ou mudança de layout, a lista é reordenada e **todas as instâncias são reconstruídas**. Isso garante que o maior valor sempre ocupe o centro, mesmo que uma nova doação maior chegue depois.
 
 #### Fórmula de Altura
 
@@ -85,6 +102,7 @@ beginEnvCapture(): void  // oculta prédios durante captura do CubeCamera
 endEnvCapture(): void    // reexibe prédios após captura
 updateBuildingSettings(settings: BuildingSettings): void
 updateTextureSettings(settings: TextureSettings): void
+updateBlockLayout(settings: BlockLayoutSettings): void  // recalcula posições de todas as quadras
 dispose(): void
 ```
 

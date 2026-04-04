@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { useCityScene } from "../../scene/hooks/useCityScene";
 import type {
+  BlockLayoutSettings,
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
@@ -24,6 +25,7 @@ export type CitySceneCanvasProps = {
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
   environmentSettings: EnvironmentSettings;
+  blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
 };
 
@@ -37,6 +39,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       shadowSettings,
       renderDirectionSettings,
       environmentSettings,
+      blockLayoutSettings,
       onStatsChange,
     },
     ref,
@@ -52,6 +55,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       shadowSettings,
       renderDirectionSettings,
       environmentSettings,
+      blockLayoutSettings,
       onStatsChange,
     });
 

@@ -68,6 +68,10 @@ useEffect(() => {
 useEffect(() => {
   runtimeRef.current?.updateEnvironmentSettings(environmentSettings);
 }, [environmentSettings]);
+
+useEffect(() => {
+  runtimeRef.current?.updateBlockLayout(blockLayoutSettings);
+}, [blockLayoutSettings]);
 ```
 
 Isso é importante para evitar um efeito gigante tentando fazer tudo.

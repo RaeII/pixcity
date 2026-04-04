@@ -67,6 +67,7 @@ src/
       shadowConfig.ts
       renderDirectionConfig.ts
       environmentConfig.ts
+      blockLayoutConfig.ts
     builders/
       createLightingRig.ts
       createGroundPlane.ts

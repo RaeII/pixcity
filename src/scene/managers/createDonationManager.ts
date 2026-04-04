@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import type { BuildingSettings, DonationEntry, TextureSettings } from "../types";
+import type { BlockLayoutSettings, BuildingSettings, DonationEntry, TextureSettings } from "../types";
+import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
 import normalTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_NormalGL.png";
@@ -47,11 +48,44 @@ function generateSpiralPositions(count: number): ReadonlyArray<[number, number]>
 
 let spiralPositions = generateSpiralPositions(512);
 
+// Retorna os offsets de slot dentro de um bloco, ordenados do centro para fora.
+// O índice 0 é sempre o slot mais próximo do centro do bloco (para o prédio mais alto).
+function getBlockSlotOffsets(blockSize: number): ReadonlyArray<[number, number]> {
+  const offsets: Array<[number, number]> = [];
+  const half = (blockSize - 1) / 2;
+  for (let row = 0; row < blockSize; row++) {
+    for (let col = 0; col < blockSize; col++) {
+      offsets.push([
+        (col - half) * DONATION_LAYOUT.slotSize,
+        (row - half) * DONATION_LAYOUT.slotSize,
+      ]);
+    }
+  }
+  offsets.sort((a, b) => a[0] ** 2 + a[1] ** 2 - (b[0] ** 2 + b[1] ** 2));
+  return offsets;
+}
+
+// Fisher-Yates determinístico usando seeded random com blockIndex como semente.
+function shuffleBlockSlots(
+  slots: ReadonlyArray<[number, number]>,
+  blockIndex: number,
+): Array<[number, number]> {
+  const result: Array<[number, number]> = slots.map((s) => [s[0], s[1]]);
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(seeded(blockIndex, i) * (i + 1));
+    const tmp = result[i];
+    result[i] = result[j];
+    result[j] = tmp;
+  }
+  return result;
+}
+
 type DonationManagerOptions = {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   buildingSettings: BuildingSettings;
   textureSettings: TextureSettings;
+  blockLayoutSettings: BlockLayoutSettings;
 };
 
 export type DonationManager = {
@@ -59,6 +93,7 @@ export type DonationManager = {
   addDonations: (values: number[]) => void;
   updateBuildingSettings: (settings: BuildingSettings) => void;
   updateTextureSettings: (settings: TextureSettings) => void;
+  updateBlockLayout: (settings: BlockLayoutSettings) => void;
   setShadowEnabled: (enabled: boolean) => void;
   setEnvMap: (envMap: THREE.Texture | null) => void;
   beginEnvCapture: () => void;
@@ -89,6 +124,7 @@ export function createDonationManager({
   renderer,
   buildingSettings,
   textureSettings,
+  blockLayoutSettings,
 }: DonationManagerOptions): DonationManager {
   const colorMap = loadTexture(colorTextureSrc);
   const normalMap = loadDataTexture(normalTextureSrc);
@@ -233,6 +269,7 @@ export function createDonationManager({
   const donations: DonationEntry[] = [];
   let nextId = 0;
   let currentTextureSettings = { ...textureSettings };
+  let currentBlockLayout = { ...blockLayoutSettings };
   const dummy = new THREE.Object3D();
 
   const applyTextureToFacade = (settings: TextureSettings) => {
@@ -307,8 +344,9 @@ export function createDonationManager({
   };
 
   // Reconstrói todas as instâncias com base no array de doações ordenado.
-  // Doação no índice 0 (maior valor) → posição central; as demais vão para
-  // anéis externos em ordem decrescente de valor.
+  // Doações são agrupadas em quadras dispostas em espiral.
+  // Dentro de cada quadra: índice 0 (maior da quadra) vai para o slot central;
+  // os demais são embaralhados deterministicamente por seeded random.
   const rebuildInstances = () => {
     if (donations.length === 0) {
       mesh.count = 0;
@@ -316,12 +354,41 @@ export function createDonationManager({
       return;
     }
 
+    const { blockSize, streetWidth } = currentBlockLayout;
+    const buildingsPerBlock = blockSize * blockSize;
+    const blockFootprint = (blockSize - 1) * DONATION_LAYOUT.slotSize;
+    const blockSpacing = blockFootprint + streetWidth;
+    const slotOffsets = getBlockSlotOffsets(blockSize);
+
+    // Cache de slots embaralhados por quadra (determinístico por blockIndex)
+    const shuffledSlotsCache = new Map<number, Array<[number, number]>>();
+
     const maxValue = donations[0].value; // array ordenado descendente
 
     for (let i = 0; i < donations.length; i++) {
-      const [slotX, slotZ] = spiralPositions[i];
-      const x = slotX * DONATION_LAYOUT.slotSize;
-      const z = slotZ * DONATION_LAYOUT.slotSize;
+      const blockIndex = Math.floor(i / buildingsPerBlock);
+      const posInBlock = i % buildingsPerBlock;
+
+      const [bx, bz] = spiralPositions[blockIndex];
+      const blockCenterX = bx * blockSpacing;
+      const blockCenterZ = bz * blockSpacing;
+
+      let slotOffset: [number, number];
+      if (posInBlock === 0) {
+        // Maior da quadra → slot central (mais próximo do centro da quadra)
+        slotOffset = slotOffsets[0];
+      } else {
+        if (!shuffledSlotsCache.has(blockIndex)) {
+          shuffledSlotsCache.set(
+            blockIndex,
+            shuffleBlockSlots(slotOffsets.slice(1), blockIndex),
+          );
+        }
+        slotOffset = shuffledSlotsCache.get(blockIndex)![posInBlock - 1];
+      }
+
+      const x = blockCenterX + slotOffset[0];
+      const z = blockCenterZ + slotOffset[1];
       const height =
         DONATION_LAYOUT.minBuildingHeight +
         (donations[i].value / maxValue) *
@@ -371,6 +438,10 @@ export function createDonationManager({
       topTilingUniform.value = settings.top.tilingScale;
       applyTextureToFacade(settings);
       applyTextureToTop(settings);
+    },
+    updateBlockLayout(settings) {
+      currentBlockLayout = { ...settings };
+      rebuildInstances();
     },
     setShadowEnabled(enabled) {
       shadowEnabled = enabled;

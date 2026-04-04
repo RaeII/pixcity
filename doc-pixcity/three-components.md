@@ -44,6 +44,7 @@ Componente pequeno por design. Faz três coisas:
 | `shadowSettings` | `ShadowSettings` | Configurações de sombra |
 | `renderDirectionSettings` | `RenderDirectionSettings` | Distâncias de chunk por direção |
 | `environmentSettings` | `EnvironmentSettings` | HDRI / skybox |
+| `blockLayoutSettings` | `BlockLayoutSettings` | Tamanho de quadra e largura de rua |
 | `onStatsChange` | `(stats: SceneStats) => void` | Callback de métricas |
 
 > [!note] Estado próprio

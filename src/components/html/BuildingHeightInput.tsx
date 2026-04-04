@@ -1,11 +1,19 @@
 import { useState } from "react";
+import type { BlockLayoutSettings } from "../../scene/types";
 
 type DonationInputProps = {
   onSubmit: (value: number) => void;
   onBulkSubmit: (values: number[]) => void;
+  blockLayoutSettings: BlockLayoutSettings;
+  onBlockLayoutChange: (settings: BlockLayoutSettings) => void;
 };
 
-export function BuildingHeightInput({ onSubmit, onBulkSubmit }: DonationInputProps) {
+export function BuildingHeightInput({
+  onSubmit,
+  onBulkSubmit,
+  blockLayoutSettings,
+  onBlockLayoutChange,
+}: DonationInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [minValue, setMinValue] = useState("10");
   const [maxValue, setMaxValue] = useState("1000");
@@ -95,6 +103,39 @@ export function BuildingHeightInput({ onSubmit, onBulkSubmit }: DonationInputPro
         >
           gerar
         </button>
+      </div>
+
+      {/* Configuração de quadras */}
+      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/60 px-4 py-2.5 shadow-2xl backdrop-blur-md">
+        <label className="text-xs font-medium tracking-wide text-white/50">bloco</label>
+        <input
+          type="number"
+          min={1}
+          max={6}
+          step={1}
+          value={blockLayoutSettings.blockSize}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10);
+            if (!isNaN(v) && v >= 1) {
+              onBlockLayoutChange({ ...blockLayoutSettings, blockSize: v });
+            }
+          }}
+          className={`w-16 ${inputClass}`}
+        />
+        <label className="text-xs font-medium tracking-wide text-white/50">rua</label>
+        <input
+          type="number"
+          min={0}
+          step={0.5}
+          value={blockLayoutSettings.streetWidth}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v) && v >= 0) {
+              onBlockLayoutChange({ ...blockLayoutSettings, streetWidth: v });
+            }
+          }}
+          className={`w-20 ${inputClass}`}
+        />
       </div>
     </div>
   );

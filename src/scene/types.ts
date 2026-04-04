@@ -96,6 +96,11 @@ export type EnvironmentSettings = {
   offsetZ: number;
 };
 
+export type BlockLayoutSettings = {
+  blockSize: number;
+  streetWidth: number;
+};
+
 export type SceneStats = {
   buildings: number;
   fpsMode: string;

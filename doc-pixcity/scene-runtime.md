@@ -48,7 +48,7 @@ createCitySceneRuntime({mount, settings...})
   ├── createGridHelper()      ← builder do grid
   ├── WebGLCubeRenderTarget   ← envMap dinâmico dos prédios
   ├── CubeCamera              ← captura reflexos em tempo real
-  └── createDonationManager() ← manager principal
+  └── createDonationManager() ← manager principal (recebe blockLayoutSettings)
 ```
 
 ### 2. Loop de Animação (`animate`)
@@ -86,6 +86,7 @@ type CitySceneRuntime = {
   updateShadowSettings(settings: ShadowSettings): void
   updateRenderDirectionSettings(settings: RenderDirectionSettings): void
   updateEnvironmentSettings(settings: EnvironmentSettings): void
+  updateBlockLayout(settings: BlockLayoutSettings): void
   addDonation(value: number): void
   dispose(): void
 }

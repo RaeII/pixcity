@@ -3,6 +3,7 @@ import { CitySceneCanvas, type CitySceneCanvasHandle } from "./three/CitySceneCa
 import { BuildingHeightInput } from "./html/BuildingHeightInput";
 import { CityControlPanel } from "./html/CityControlPanel";
 import { DEFAULT_SCENE_STATS } from "../scene/config/citySceneConfig";
+import { createDefaultBlockLayoutSettings } from "../scene/config/blockLayoutConfig";
 import { createDefaultBuildingSettings } from "../scene/config/buildingConfig";
 import { createDefaultEnvironmentSettings } from "../scene/config/environmentConfig";
 import { createDefaultGroundSettings } from "../scene/config/groundConfig";
@@ -25,6 +26,7 @@ export function CitySceneEditor() {
     createDefaultRenderDirectionSettings,
   );
   const [environmentSettings, setEnvironmentSettings] = useState(createDefaultEnvironmentSettings);
+  const [blockLayoutSettings, setBlockLayoutSettings] = useState(createDefaultBlockLayoutSettings);
   const [sceneStats, setSceneStats] = useState<SceneStats>({ ...DEFAULT_SCENE_STATS });
 
   const lightMetrics = getLightMetrics(lightSettings);
@@ -48,10 +50,16 @@ export function CitySceneEditor() {
         shadowSettings={shadowSettings}
         renderDirectionSettings={renderDirectionSettings}
         environmentSettings={environmentSettings}
+        blockLayoutSettings={blockLayoutSettings}
         onStatsChange={setSceneStats}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to from-black/35 to-transparent" />
-      <BuildingHeightInput onSubmit={handleDonation} onBulkSubmit={handleBulkDonation} />
+      <BuildingHeightInput
+        onSubmit={handleDonation}
+        onBulkSubmit={handleBulkDonation}
+        blockLayoutSettings={blockLayoutSettings}
+        onBlockLayoutChange={setBlockLayoutSettings}
+      />
       <CityControlPanel
         buildingSettings={buildingSettings}
         textureSettings={textureSettings}

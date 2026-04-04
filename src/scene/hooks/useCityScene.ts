@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { createCitySceneRuntime, type CitySceneRuntime } from "../runtime/createCitySceneRuntime";
 import type {
+  BlockLayoutSettings,
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
@@ -20,6 +21,7 @@ type UseCitySceneOptions = {
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
   environmentSettings: EnvironmentSettings;
+  blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
 };
 
@@ -32,6 +34,7 @@ export function useCityScene({
   shadowSettings,
   renderDirectionSettings,
   environmentSettings,
+  blockLayoutSettings,
   onStatsChange,
 }: UseCitySceneOptions) {
   const runtimeRef = useRef<CitySceneRuntime | null>(null);
@@ -43,6 +46,7 @@ export function useCityScene({
     shadowSettings,
     renderDirectionSettings,
     environmentSettings,
+    blockLayoutSettings,
   });
 
   const handleStatsChange = useEffectEvent((stats: SceneStats) => {
@@ -95,6 +99,10 @@ export function useCityScene({
   useEffect(() => {
     runtimeRef.current?.updateEnvironmentSettings(environmentSettings);
   }, [environmentSettings]);
+
+  useEffect(() => {
+    runtimeRef.current?.updateBlockLayout(blockLayoutSettings);
+  }, [blockLayoutSettings]);
 
   // Referência estável: delega ao runtime atual sem recriar a função
   const addDonation = useCallback((value: number) => {
