@@ -27,6 +27,7 @@ export type CitySceneCanvasProps = {
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
+  onHoverChange?: (value: number | null, x: number, y: number) => void;
 };
 
 export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvasProps>(
@@ -41,6 +42,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       environmentSettings,
       blockLayoutSettings,
       onStatsChange,
+      onHoverChange,
     },
     ref,
   ) {
@@ -57,6 +59,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       environmentSettings,
       blockLayoutSettings,
       onStatsChange,
+      onHoverChange,
     });
 
     useImperativeHandle(ref, () => ({ addDonation, addDonations }), [addDonation, addDonations]);

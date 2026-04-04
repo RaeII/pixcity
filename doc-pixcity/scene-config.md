@@ -133,6 +133,8 @@ Valores padrão do layout de quadras:
 |---|---|---|
 | `blockSize` | `3` | Prédios por lado (3×3 = 9 slots por quadra) |
 | `streetWidth` | `6.0` | Largura das ruas entre quadras em unidades world |
+| `towerRatio` | `0.12` | Fração de doações que são torres (12%) |
+| `baseHeightCap` | `0.30` | Teto de altura da base urbana (30% de maxSceneHeight) |
 
 **Funções exportadas:**
 - `createDefaultBlockLayoutSettings()`

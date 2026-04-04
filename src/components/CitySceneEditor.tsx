@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { CitySceneCanvas, type CitySceneCanvasHandle } from "./three/CitySceneCanvas";
 import { BuildingHeightInput } from "./html/BuildingHeightInput";
 import { CityControlPanel } from "./html/CityControlPanel";
@@ -28,6 +28,7 @@ export function CitySceneEditor() {
   const [environmentSettings, setEnvironmentSettings] = useState(createDefaultEnvironmentSettings);
   const [blockLayoutSettings, setBlockLayoutSettings] = useState(createDefaultBlockLayoutSettings);
   const [sceneStats, setSceneStats] = useState<SceneStats>({ ...DEFAULT_SCENE_STATS });
+  const [hoverInfo, setHoverInfo] = useState<{ value: number; x: number; y: number } | null>(null);
 
   const lightMetrics = getLightMetrics(lightSettings);
 
@@ -38,6 +39,13 @@ export function CitySceneEditor() {
   const handleBulkDonation = (values: number[]) => {
     canvasRef.current?.addDonations(values);
   };
+
+  const handleHoverChange = useCallback(
+    (value: number | null, x: number, y: number) => {
+      setHoverInfo(value !== null ? { value, x, y } : null);
+    },
+    [],
+  );
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#05070a]">
@@ -52,8 +60,20 @@ export function CitySceneEditor() {
         environmentSettings={environmentSettings}
         blockLayoutSettings={blockLayoutSettings}
         onStatsChange={setSceneStats}
+        onHoverChange={handleHoverChange}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to from-black/35 to-transparent" />
+      {hoverInfo && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-lg border border-white/10 bg-black/80 px-3 py-1.5 text-sm text-white backdrop-blur-sm"
+          style={{ left: hoverInfo.x + 14, top: hoverInfo.y - 14 }}
+        >
+          {hoverInfo.value.toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </div>
+      )}
       <BuildingHeightInput
         onSubmit={handleDonation}
         onBulkSubmit={handleBulkDonation}

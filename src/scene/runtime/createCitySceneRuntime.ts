@@ -30,6 +30,7 @@ type CitySceneRuntimeOptions = {
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
+  onHoverChange?: (value: number | null, x: number, y: number) => void;
 };
 
 export type CitySceneRuntime = {
@@ -56,6 +57,7 @@ export function createCitySceneRuntime({
   environmentSettings,
   blockLayoutSettings,
   onStatsChange,
+  onHoverChange,
 }: CitySceneRuntimeOptions): CitySceneRuntime {
   runDevAssertionsOnce();
 
@@ -151,6 +153,30 @@ export function createCitySceneRuntime({
   });
   donationManager.setEnvMap(buildingCubeTarget.texture);
   donationManager.setShadowEnabled(shadowSettings.enabled);
+
+  // Hover: raycast com throttle por RAF para não impactar o loop de animação
+  let pendingHoverEvent: MouseEvent | null = null;
+  let hoverRafId: number | null = null;
+  const handleMouseMove = onHoverChange
+    ? (event: MouseEvent) => {
+        pendingHoverEvent = event;
+        if (hoverRafId === null) {
+          hoverRafId = requestAnimationFrame(() => {
+            if (pendingHoverEvent) {
+              const value = donationManager.getHoveredValue(
+                pendingHoverEvent,
+                camera,
+                renderer.domElement,
+              );
+              onHoverChange(value, pendingHoverEvent.clientX, pendingHoverEvent.clientY);
+              pendingHoverEvent = null;
+            }
+            hoverRafId = null;
+          });
+        }
+      }
+    : null;
+  if (handleMouseMove) renderer.domElement.addEventListener("mousemove", handleMouseMove);
 
   let animationId = 0;
   let lastTime = performance.now();
@@ -251,6 +277,8 @@ export function createCitySceneRuntime({
       emitStatsPatch({ buildings: donationManager.getDonationCount() });
     },
     dispose() {
+      if (handleMouseMove) renderer.domElement.removeEventListener("mousemove", handleMouseMove);
+      if (hoverRafId !== null) cancelAnimationFrame(hoverRafId);
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
       controls.dispose();

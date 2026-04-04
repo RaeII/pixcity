@@ -136,6 +136,51 @@ export function BuildingHeightInput({
           }}
           className={`w-20 ${inputClass}`}
         />
+        <label className="text-xs font-medium tracking-wide text-white/50">t/quadra</label>
+        <input
+          type="number"
+          min={1}
+          max={blockLayoutSettings.blockSize * blockLayoutSettings.blockSize}
+          step={1}
+          value={blockLayoutSettings.towersPerBlock}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10);
+            if (!isNaN(v) && v >= 1) {
+              onBlockLayoutChange({ ...blockLayoutSettings, towersPerBlock: v });
+            }
+          }}
+          className={`w-16 ${inputClass}`}
+        />
+        <label className="text-xs font-medium tracking-wide text-white/50">torres%</label>
+        <input
+          type="number"
+          min={0.01}
+          max={1}
+          step={0.01}
+          value={blockLayoutSettings.towerRatio}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v) && v > 0 && v <= 1) {
+              onBlockLayoutChange({ ...blockLayoutSettings, towerRatio: v });
+            }
+          }}
+          className={`w-16 ${inputClass}`}
+        />
+        <label className="text-xs font-medium tracking-wide text-white/50">base%</label>
+        <input
+          type="number"
+          min={0.05}
+          max={1}
+          step={0.05}
+          value={blockLayoutSettings.baseHeightCap}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v) && v > 0 && v <= 1) {
+              onBlockLayoutChange({ ...blockLayoutSettings, baseHeightCap: v });
+            }
+          }}
+          className={`w-16 ${inputClass}`}
+        />
       </div>
     </div>
   );

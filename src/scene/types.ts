@@ -99,6 +99,9 @@ export type EnvironmentSettings = {
 export type BlockLayoutSettings = {
   blockSize: number;
   streetWidth: number;
+  towerRatio: number;     // fração de doações tratadas como torres (0–1)
+  towersPerBlock: number; // quantas torres por quadra (ocupa os N slots mais centrais)
+  baseHeightCap: number;  // teto de altura da base urbana como fração de maxSceneHeight (0–1)
 };
 
 export type SceneStats = {

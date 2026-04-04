@@ -26,10 +26,14 @@ Configurações de layout das quadras de prédios:
 
 ```typescript
 type BlockLayoutSettings = {
-  blockSize: number;   // prédios por lado da quadra (ex: 3 → 3×3 = 9 slots)
-  streetWidth: number; // espaço entre quadras em unidades world (ex: 6.0)
+  blockSize: number;    // prédios por lado da quadra (ex: 3 → 3×3 = 9 slots)
+  streetWidth: number;  // espaço entre quadras em unidades world (ex: 6.0)
+  towerRatio: number;   // fração de doações tratadas como torres (0–1, padrão: 0.12)
+  baseHeightCap: number;// teto de altura da base urbana como fração de maxSceneHeight (0–1, padrão: 0.30)
 }
 ```
+
+O sistema de 2 camadas separa as doações em **torres** (top N%) que usam o range completo de altura e **base urbana** (restante) com teto reduzido. Isso cria contraste abrupto entre vizinhos — o efeito visual de uma cidade real.
 
 Editável em tempo real via inputs no overlay superior. Padrões em `blockLayoutConfig.ts`.
 

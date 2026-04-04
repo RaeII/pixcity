@@ -23,6 +23,7 @@ type UseCitySceneOptions = {
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
+  onHoverChange?: (value: number | null, x: number, y: number) => void;
 };
 
 export function useCityScene({
@@ -36,6 +37,7 @@ export function useCityScene({
   environmentSettings,
   blockLayoutSettings,
   onStatsChange,
+  onHoverChange,
 }: UseCitySceneOptions) {
   const runtimeRef = useRef<CitySceneRuntime | null>(null);
   const initialSettingsRef = useRef<Omit<UseCitySceneOptions, "mountRef" | "onStatsChange">>({
@@ -53,6 +55,12 @@ export function useCityScene({
     onStatsChange(stats);
   });
 
+  const handleHoverChange = useEffectEvent(
+    (value: number | null, x: number, y: number) => {
+      onHoverChange?.(value, x, y);
+    },
+  );
+
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) {
@@ -63,6 +71,7 @@ export function useCityScene({
       mount,
       ...initialSettingsRef.current,
       onStatsChange: (stats) => handleStatsChange(stats),
+      onHoverChange: (value, x, y) => handleHoverChange(value, x, y),
     });
     runtimeRef.current = runtime;
 

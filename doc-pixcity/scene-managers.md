@@ -35,22 +35,23 @@ Manager principal da cena atual. Gerencia os prédios como representações visu
 - Atualizar materiais em tempo real
 - Gerenciar envMap dinâmico via cube camera
 
-#### Layout dos Prédios (Quadras)
+#### Layout dos Prédios — Sistema de 2 Camadas
 
-Os prédios são agrupados em **quadras dispostas em espiral** a partir do centro.
+Os prédios são separados em **torres** e **base urbana**:
 
-**Hierarquia de posicionamento:**
+| Camada | Seleção | Range de altura | Posição |
+|---|---|---|---|
+| **Torres** | Top `towerRatio`% das doações | `minBuildingHeight` → `maxSceneHeight` (range completo) | Slot central de cada quadra, 1 torre por quadra, quadras em espiral |
+| **Base urbana** | Restante das doações | `minBuildingHeight` → `baseHeightCap × maxSceneHeight` (teto reduzido) | Shuffle determinístico nos slots restantes de todas as quadras |
 
-1. As quadras são ordenadas em espiral — a quadra mais próxima do centro recebe as maiores doações
-2. Dentro de cada quadra, o maior prédio ocupa o **slot central** (mais próximo do centro da quadra)
-3. Os demais prédios da quadra são distribuídos nos slots restantes com shuffle determinístico via `seeded(blockIndex, i)`
+Essa separação cria **contraste abrupto** entre torres e vizinhos — o efeito visual de skyline de cidade real, não pirâmide.
 
 **Geometria de uma quadra (blockSize=3):**
 
 ```
-[ ][ ][ ]
-[ ][★][ ]   ★ = maior doação da quadra
-[ ][ ][ ]   demais = ordem aleatória por seeded random
+[ ▪ ][ ▪ ][ ▪ ]
+[ ▪ ][ █ ][ ▪ ]   █ = torre (range completo, proporcional ao valor)
+[ ▪ ][ ▪ ][ ▪ ]   ▪ = base urbana (teto reduzido, shuffle aleatório)
 ```
 
 **Cálculo de espaçamento:**
@@ -62,8 +63,10 @@ blockSpacing   = blockFootprint + streetWidth
 **Configurado por [[scene-types#BlockLayoutSettings]] (editável em tempo real):**
 - `blockSize` — prédios por lado (padrão: 3 → 9 slots/quadra)
 - `streetWidth` — espaço entre quadras (padrão: 6.0)
+- `towerRatio` — fração de torres (padrão: 0.12 = 12%)
+- `baseHeightCap` — teto da base como fração de maxSceneHeight (padrão: 0.30 = 30%)
 
-A cada nova doação ou mudança de layout, a lista é reordenada e **todas as instâncias são reconstruídas**. Isso garante que o maior valor sempre ocupe o centro, mesmo que uma nova doação maior chegue depois.
+A cada nova doação ou mudança de layout, a lista é reordenada e **todas as instâncias são reconstruídas**.
 
 #### Fórmula de Altura
 

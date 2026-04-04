@@ -99,6 +99,7 @@ export type DonationManager = {
   beginEnvCapture: () => void;
   endEnvCapture: () => void;
   getDonationCount: () => number;
+  getHoveredValue: (event: MouseEvent, camera: THREE.Camera, domElement: HTMLElement) => number | null;
   dispose: () => void;
 };
 
@@ -271,6 +272,9 @@ export function createDonationManager({
   let currentTextureSettings = { ...textureSettings };
   let currentBlockLayout = { ...blockLayoutSettings };
   const dummy = new THREE.Object3D();
+  const raycaster = new THREE.Raycaster();
+  const mouseVec = new THREE.Vector2();
+  const instanceToValue: number[] = [];
 
   const applyTextureToFacade = (settings: TextureSettings) => {
     if (settings.enabled) {
@@ -343,65 +347,128 @@ export function createDonationManager({
     scene.add(mesh);
   };
 
-  // Reconstrói todas as instâncias com base no array de doações ordenado.
-  // Doações são agrupadas em quadras dispostas em espiral.
-  // Dentro de cada quadra: índice 0 (maior da quadra) vai para o slot central;
-  // os demais são embaralhados deterministicamente por seeded random.
+  // Sistema de 2 camadas: torres + base urbana.
+  //
+  // Torres (top towerRatio%) usam o range completo de altura e ocupam os N slots
+  // mais centrais de cada quadra (towersPerBlock por quadra), em espiral.
+  //
+  // Base urbana (restante) usa teto de altura reduzido (baseHeightCap × maxSceneHeight)
+  // e é embaralhada deterministicamente nos slots restantes de todas as quadras.
   const rebuildInstances = () => {
     if (donations.length === 0) {
       mesh.count = 0;
       mesh.instanceMatrix.needsUpdate = true;
+      instanceToValue.length = 0;
       return;
     }
 
-    const { blockSize, streetWidth } = currentBlockLayout;
+    const { blockSize, streetWidth, towerRatio, towersPerBlock, baseHeightCap } = currentBlockLayout;
+    const tpb = Math.max(1, Math.min(towersPerBlock, blockSize * blockSize));
     const buildingsPerBlock = blockSize * blockSize;
     const blockFootprint = (blockSize - 1) * DONATION_LAYOUT.slotSize;
     const blockSpacing = blockFootprint + streetWidth;
     const slotOffsets = getBlockSlotOffsets(blockSize);
 
-    // Cache de slots embaralhados por quadra (determinístico por blockIndex)
-    const shuffledSlotsCache = new Map<number, Array<[number, number]>>();
+    const maxValue = donations[0].value;
+    const towerCount = Math.max(1, Math.round(donations.length * towerRatio));
+    const baseMaxHeight = DONATION_LAYOUT.maxSceneHeight * baseHeightCap;
 
-    const maxValue = donations[0].value; // array ordenado descendente
+    // Quantas quadras são necessárias para alocar todas as torres (tpb por quadra)
+    const towerBlockCount = Math.ceil(towerCount / tpb);
+    const baseSlotsPerBlock = buildingsPerBlock - tpb;
+    const baseCount = donations.length - towerCount;
+    const baseBlocksNeeded = baseSlotsPerBlock > 0 ? Math.ceil(baseCount / baseSlotsPerBlock) : 0;
+    const totalBlocks = Math.max(towerBlockCount, baseBlocksNeeded);
 
-    for (let i = 0; i < donations.length; i++) {
-      const blockIndex = Math.floor(i / buildingsPerBlock);
-      const posInBlock = i % buildingsPerBlock;
+    const blocks: Array<{ towers: number[]; base: number[] }> = Array.from(
+      { length: totalBlocks },
+      () => ({ towers: [], base: [] }),
+    );
 
-      const [bx, bz] = spiralPositions[blockIndex];
+    // Distribuir torres: tpb por quadra, em ordem de espiral
+    for (let t = 0; t < towerCount; t++) {
+      const b = Math.floor(t / tpb);
+      if (b < blocks.length) blocks[b].towers.push(t);
+    }
+
+    // Shuffle determinístico da base (Fisher-Yates com seeded random)
+    const baseIndices: number[] = [];
+    for (let i = towerCount; i < donations.length; i++) baseIndices.push(i);
+    for (let i = baseIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(seeded(i, baseIndices.length, 42) * (i + 1));
+      const tmp = baseIndices[i]; baseIndices[i] = baseIndices[j]; baseIndices[j] = tmp;
+    }
+
+    // Distribuir base nas quadras (slots além dos tpb de torre)
+    let basePtr = 0;
+    for (let b = 0; b < totalBlocks && basePtr < baseIndices.length; b++) {
+      const slotsAvailable = buildingsPerBlock - blocks[b].towers.length;
+      for (let s = 0; s < slotsAvailable && basePtr < baseIndices.length; s++) {
+        blocks[b].base.push(baseIndices[basePtr++]);
+      }
+    }
+    // Quadras extras se sobraram prédios base
+    while (basePtr < baseIndices.length) {
+      const extra = { towers: [] as number[], base: [] as number[] };
+      for (let s = 0; s < buildingsPerBlock && basePtr < baseIndices.length; s++) {
+        extra.base.push(baseIndices[basePtr++]);
+      }
+      blocks.push(extra);
+    }
+
+    // --- Posicionar instâncias ---
+    instanceToValue.length = 0;
+    let instanceIdx = 0;
+    const maxBaseValue = donations[towerCount]?.value ?? maxValue;
+
+    for (let b = 0; b < blocks.length; b++) {
+      const block = blocks[b];
+      const [bx, bz] = spiralPositions[b];
       const blockCenterX = bx * blockSpacing;
       const blockCenterZ = bz * blockSpacing;
 
-      let slotOffset: [number, number];
-      if (posInBlock === 0) {
-        // Maior da quadra → slot central (mais próximo do centro da quadra)
-        slotOffset = slotOffsets[0];
-      } else {
-        if (!shuffledSlotsCache.has(blockIndex)) {
-          shuffledSlotsCache.set(
-            blockIndex,
-            shuffleBlockSlots(slotOffsets.slice(1), blockIndex),
-          );
-        }
-        slotOffset = shuffledSlotsCache.get(blockIndex)![posInBlock - 1];
+      // Slots de base = tudo após os slots efetivamente ocupados por torres, embaralhados.
+      // Usa block.towers.length (não tpb) para cobrir blocos com menos torres que o alvo.
+      const shuffledBaseSlots = shuffleBlockSlots(slotOffsets.slice(block.towers.length), b);
+
+      // Torres nos N slots mais centrais da quadra
+      for (let t = 0; t < block.towers.length; t++) {
+        const donIdx = block.towers[t];
+        const [ox, oz] = slotOffsets[t];
+        const height =
+          DONATION_LAYOUT.minBuildingHeight +
+          (donations[donIdx].value / maxValue) *
+            (DONATION_LAYOUT.maxSceneHeight - DONATION_LAYOUT.minBuildingHeight);
+        const id = donations[donIdx].id;
+        dummy.position.set(blockCenterX + ox, height / 2, blockCenterZ + oz);
+        dummy.scale.set(1.0 + seeded(id, 1) * 1.6, height, 1.0 + seeded(id, 2) * 1.6);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(instanceIdx, dummy.matrix);
+        instanceToValue[instanceIdx] = donations[donIdx].value;
+        instanceIdx++;
       }
 
-      const x = blockCenterX + slotOffset[0];
-      const z = blockCenterZ + slotOffset[1];
-      const height =
-        DONATION_LAYOUT.minBuildingHeight +
-        (donations[i].value / maxValue) *
-          (DONATION_LAYOUT.maxSceneHeight - DONATION_LAYOUT.minBuildingHeight);
-
-      dummy.position.set(x, height / 2, z);
-      dummy.scale.set(DONATION_LAYOUT.buildingWidth, height, DONATION_LAYOUT.buildingDepth);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
+      // Base urbana nos slots restantes
+      for (let s = 0; s < block.base.length; s++) {
+        const donIdx = block.base[s];
+        const [ox, oz] = shuffledBaseSlots[s];
+        const ratio = maxBaseValue > 0 ? donations[donIdx].value / maxBaseValue : 0;
+        const height =
+          DONATION_LAYOUT.minBuildingHeight +
+          Math.min(ratio, 1) * (baseMaxHeight - DONATION_LAYOUT.minBuildingHeight);
+        const id = donations[donIdx].id;
+        dummy.position.set(blockCenterX + ox, height / 2, blockCenterZ + oz);
+        dummy.scale.set(1.0 + seeded(id, 1) * 1.6, height, 1.0 + seeded(id, 2) * 1.6);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(instanceIdx, dummy.matrix);
+        instanceToValue[instanceIdx] = donations[donIdx].value;
+        instanceIdx++;
+      }
     }
 
-    mesh.count = donations.length;
+    mesh.count = instanceIdx;
     mesh.instanceMatrix.needsUpdate = true;
+    mesh.boundingSphere = null; // força recomputação na próxima chamada de raycast
   };
 
   return {
@@ -461,6 +528,17 @@ export function createDonationManager({
     },
     getDonationCount() {
       return donations.length;
+    },
+    getHoveredValue(event: MouseEvent, camera: THREE.Camera, domElement: HTMLElement) {
+      const rect = domElement.getBoundingClientRect();
+      mouseVec.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseVec.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouseVec, camera);
+      const hits = raycaster.intersectObject(mesh);
+      if (hits.length > 0 && hits[0].instanceId !== undefined) {
+        return instanceToValue[hits[0].instanceId] ?? null;
+      }
+      return null;
     },
     dispose() {
       scene.remove(mesh);
