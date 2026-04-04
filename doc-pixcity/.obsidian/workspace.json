@@ -1,0 +1,222 @@
+{
+  "main": {
+    "id": "5f6f441fe48f3f5c",
+    "type": "split",
+    "children": [
+      {
+        "id": "0df0394fc4337aff",
+        "type": "tabs",
+        "dimension": 44.16243654822335,
+        "children": [
+          {
+            "id": "cbfd1448c1037122",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "scene-config.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "scene-config"
+            }
+          }
+        ]
+      },
+      {
+        "id": "45737a4a56e496c1",
+        "type": "tabs",
+        "dimension": 55.83756345177665,
+        "children": [
+          {
+            "id": "e5070b006d7f107a",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Visualização em gráfico"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6524930ab51c31cc",
+    "type": "split",
+    "children": [
+      {
+        "id": "6e1cded58edb8914",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8f5499671b2a9904",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de arquivos"
+            }
+          },
+          {
+            "id": "8f847aa23e842c3f",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Procurar"
+            }
+          },
+          {
+            "id": "65829cfe827c49a3",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "0a47a3701b203a1c",
+    "type": "split",
+    "children": [
+      {
+        "id": "fdba231d8a677e16",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "221669b61d0ecde3",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Links inversos"
+            }
+          },
+          {
+            "id": "d4173974e17aedd7",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Links de saída"
+            }
+          },
+          {
+            "id": "07ae9c52ca418deb",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "e5541e0259c0f5d6",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas as propriedades"
+            }
+          },
+          {
+            "id": "f268374e1987aefc",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Sumário"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir a troca rápida": false,
+      "graph:Abrir visualização em gráfico": false,
+      "canvas:Criar novo canvas": false,
+      "daily-notes:Abrir a nota de hoje": false,
+      "templates:Inserir modelo": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Criar nova base": false
+    }
+  },
+  "active": "e5070b006d7f107a",
+  "lastOpenFiles": [
+    "scene-config.md",
+    "index.md",
+    "scene-hooks.md",
+    "scene-hooks.md.tmp.242476.1775177124882",
+    "scene-runtime.md",
+    "scene-runtime.md.tmp.242476.1775177106406",
+    "scene-managers.md",
+    "scene-managers.md.tmp.242476.1775177080505",
+    "scene-builders.md",
+    "scene-builders.md.tmp.242476.1775177049705",
+    "scene-utils.md",
+    "scene-utils.md.tmp.242476.1775177028823",
+    "scene-types.md",
+    "scene-types.md.tmp.242476.1775177010392",
+    "scene-config.md.tmp.242476.1775176984847",
+    "three-components.md",
+    "three-components.md.tmp.242476.1775176955826",
+    "html-components.md"
+  ]
+}
