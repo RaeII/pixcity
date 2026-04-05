@@ -373,22 +373,52 @@ export function createDonationManager({
     const towerCount = Math.max(1, Math.round(donations.length * towerRatio));
     const baseMaxHeight = DONATION_LAYOUT.maxSceneHeight * baseHeightCap;
 
-    // Quantas quadras são necessárias para alocar todas as torres (tpb por quadra)
+    // Mínimo de quadras necessárias para acomodar torres e base
     const towerBlockCount = Math.ceil(towerCount / tpb);
     const baseSlotsPerBlock = buildingsPerBlock - tpb;
     const baseCount = donations.length - towerCount;
     const baseBlocksNeeded = baseSlotsPerBlock > 0 ? Math.ceil(baseCount / baseSlotsPerBlock) : 0;
-    const totalBlocks = Math.max(towerBlockCount, baseBlocksNeeded);
+    const totalBlocksMin = Math.max(towerBlockCount, baseBlocksNeeded);
+
+    // Expandir para o próximo anel completo: (2R+1)² garante formato quadrado.
+    // Sem isso, blocos parcialmente preenchidos no anel externo criam assimetria visual.
+    let r = 0;
+    while ((2 * r + 1) ** 2 < totalBlocksMin) r++;
+    const expandedBlocks = (2 * r + 1) ** 2;
+    const innerBlocks = r === 0 ? 0 : (2 * (r - 1) + 1) ** 2;
+    const outerRingSize = expandedBlocks - innerBlocks; // 8R posições no anel externo
+
+    // Garantir que spiralPositions cobre todos os blocos expandidos
+    if (spiralPositions.length < expandedBlocks) {
+      spiralPositions = generateSpiralPositions(expandedBlocks + 64);
+    }
+
+    // Ordenar posições do anel externo por distância Manhattan decrescente da origem.
+    // Cantos têm |bx|+|bz| = 2R, meios das arestas têm |bx|+|bz| = R.
+    // Assim, ao preencher parcialmente o anel, os cantos ficam preenchidos primeiro,
+    // evitando o padrão [8,8,8]/[8,8,0] onde um canto fica vazio.
+    // Cantos têm |bx|+|bz| = 2R (maior Manhattan), meios das arestas têm |bx|+|bz| = R.
+    // Ordem decrescente → cantos preenchidos primeiro ao preencher o anel parcialmente.
+    const outerRingOrder = Array.from({ length: outerRingSize }, (_, i) => innerBlocks + i).sort(
+      (a, b) => {
+        const [ax, az] = spiralPositions[a];
+        const [bx, bz] = spiralPositions[b];
+        return (Math.abs(bx) + Math.abs(bz)) - (Math.abs(ax) + Math.abs(az));
+      },
+    ).reverse();
 
     const blocks: Array<{ towers: number[]; base: number[] }> = Array.from(
-      { length: totalBlocks },
+      { length: expandedBlocks },
       () => ({ towers: [], base: [] }),
     );
 
-    // Distribuir torres: tpb por quadra, em ordem de espiral
+    // Distribuir torres: tpb por quadra; anel interno em ordem espiral, externo por outerRingOrder
     for (let t = 0; t < towerCount; t++) {
-      const b = Math.floor(t / tpb);
-      if (b < blocks.length) blocks[b].towers.push(t);
+      const linearBlock = Math.floor(t / tpb);
+      const b = linearBlock < innerBlocks
+        ? linearBlock
+        : outerRingOrder[linearBlock - innerBlocks];
+      if (b !== undefined) blocks[b].towers.push(t);
     }
 
     // Shuffle determinístico da base (Fisher-Yates com seeded random)
@@ -399,21 +429,29 @@ export function createDonationManager({
       const tmp = baseIndices[i]; baseIndices[i] = baseIndices[j]; baseIndices[j] = tmp;
     }
 
-    // Distribuir base nas quadras (slots além dos tpb de torre)
+    // Etapa A: preencher anel interno até a capacidade normal
     let basePtr = 0;
-    for (let b = 0; b < totalBlocks && basePtr < baseIndices.length; b++) {
+    for (let b = 0; b < innerBlocks && basePtr < baseIndices.length; b++) {
       const slotsAvailable = buildingsPerBlock - blocks[b].towers.length;
       for (let s = 0; s < slotsAvailable && basePtr < baseIndices.length; s++) {
         blocks[b].base.push(baseIndices[basePtr++]);
       }
     }
-    // Quadras extras se sobraram prédios base
-    while (basePtr < baseIndices.length) {
-      const extra = { towers: [] as number[], base: [] as number[] };
-      for (let s = 0; s < buildingsPerBlock && basePtr < baseIndices.length; s++) {
-        extra.base.push(baseIndices[basePtr++]);
+
+    // Etapa B: distribuir base restante uniformemente pelo anel externo.
+    // Cada posição do anel recebe floor(remaining/outerRingSize) prédios,
+    // com o restante (remainder) distribuído às primeiras posições (+1 cada).
+    const baseForOuter = baseIndices.length - basePtr;
+    if (outerRingSize > 0 && baseForOuter > 0) {
+      const perBlock = Math.floor(baseForOuter / outerRingSize);
+      const remainder = baseForOuter % outerRingSize;
+      for (let i = 0; i < outerRingOrder.length && basePtr < baseIndices.length; i++) {
+        const b = outerRingOrder[i];
+        const count = perBlock + (i < remainder ? 1 : 0);
+        for (let s = 0; s < count && basePtr < baseIndices.length; s++) {
+          blocks[b].base.push(baseIndices[basePtr++]);
+        }
       }
-      blocks.push(extra);
     }
 
     // --- Posicionar instâncias ---
@@ -427,18 +465,27 @@ export function createDonationManager({
       const blockCenterX = bx * blockSpacing;
       const blockCenterZ = bz * blockSpacing;
 
-      // Ordenar slots por distância à origem da cena (world [0,0]).
-      // Para o bloco central isso é equivalente a ordenar pelo centro do bloco.
-      // Para blocos externos, as torres ficam no slot voltado para o centro da cena,
-      // evitando que prédios isolados apareçam flutuando no meio de um bloco vazio.
-      const slotsByOriginDist = [...slotOffsets].sort(
-        (a, b) =>
-          (blockCenterX + a[0]) ** 2 + (blockCenterZ + a[1]) ** 2 -
-          ((blockCenterX + b[0]) ** 2 + (blockCenterZ + b[1]) ** 2),
-      );
-      const towerSlots = slotsByOriginDist.slice(0, block.towers.length);
-      const baseSlots = slotsByOriginDist.slice(block.towers.length);
-      const shuffledBaseSlots = shuffleBlockSlots(baseSlots, b);
+      const isComplete = block.towers.length + block.base.length === buildingsPerBlock;
+
+      // Bloco completo: slots aleatórios (embaralhados).
+      // Bloco incompleto: torres no slot mais próximo ao centro da cena para evitar
+      // prédios isolados flutuando longe dos vizinhos.
+      let towerSlots: Array<[number, number]>;
+      let shuffledBaseSlots: Array<[number, number]>;
+
+      if (isComplete) {
+        const allSlots = shuffleBlockSlots(slotOffsets, b);
+        towerSlots = allSlots.slice(0, block.towers.length);
+        shuffledBaseSlots = allSlots.slice(block.towers.length);
+      } else {
+        const slotsByOriginDist = [...slotOffsets].sort(
+          (a, bSlot) =>
+            (blockCenterX + a[0]) ** 2 + (blockCenterZ + a[1]) ** 2 -
+            ((blockCenterX + bSlot[0]) ** 2 + (blockCenterZ + bSlot[1]) ** 2),
+        );
+        towerSlots = slotsByOriginDist.slice(0, block.towers.length);
+        shuffledBaseSlots = slotsByOriginDist.slice(block.towers.length);
+      }
 
       // Torres nos slots mais próximos da origem da cena
       for (let t = 0; t < block.towers.length; t++) {
