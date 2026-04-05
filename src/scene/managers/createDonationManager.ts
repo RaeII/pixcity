@@ -427,14 +427,23 @@ export function createDonationManager({
       const blockCenterX = bx * blockSpacing;
       const blockCenterZ = bz * blockSpacing;
 
-      // Slots de base = tudo após os slots efetivamente ocupados por torres, embaralhados.
-      // Usa block.towers.length (não tpb) para cobrir blocos com menos torres que o alvo.
-      const shuffledBaseSlots = shuffleBlockSlots(slotOffsets.slice(block.towers.length), b);
+      // Ordenar slots por distância à origem da cena (world [0,0]).
+      // Para o bloco central isso é equivalente a ordenar pelo centro do bloco.
+      // Para blocos externos, as torres ficam no slot voltado para o centro da cena,
+      // evitando que prédios isolados apareçam flutuando no meio de um bloco vazio.
+      const slotsByOriginDist = [...slotOffsets].sort(
+        (a, b) =>
+          (blockCenterX + a[0]) ** 2 + (blockCenterZ + a[1]) ** 2 -
+          ((blockCenterX + b[0]) ** 2 + (blockCenterZ + b[1]) ** 2),
+      );
+      const towerSlots = slotsByOriginDist.slice(0, block.towers.length);
+      const baseSlots = slotsByOriginDist.slice(block.towers.length);
+      const shuffledBaseSlots = shuffleBlockSlots(baseSlots, b);
 
-      // Torres nos N slots mais centrais da quadra
+      // Torres nos slots mais próximos da origem da cena
       for (let t = 0; t < block.towers.length; t++) {
         const donIdx = block.towers[t];
-        const [ox, oz] = slotOffsets[t];
+        const [ox, oz] = towerSlots[t];
         const height =
           DONATION_LAYOUT.minBuildingHeight +
           (donations[donIdx].value / maxValue) *
