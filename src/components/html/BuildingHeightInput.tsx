@@ -111,7 +111,7 @@ export function BuildingHeightInput({
         <input
           type="number"
           min={1}
-          max={6}
+          max={20}
           step={1}
           value={blockLayoutSettings.blockSize}
           onChange={(e) => {

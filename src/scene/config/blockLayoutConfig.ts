@@ -6,6 +6,6 @@ export function createDefaultBlockLayoutSettings(): BlockLayoutSettings {
     streetWidth: 6.0,
     towerRatio: 0.12,
     towersPerBlock: 1,
-    baseHeightCap: 0.30,
+    baseHeightCap: 0.7,
   };
 }
