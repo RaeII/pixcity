@@ -274,6 +274,34 @@ export function createDonationManager({
     roughness: 0.92,
     metalness: 0.01,
   });
+
+  // Shader de linhas pontilhadas centrais (divisória de pistas)
+  const dashVS = /* glsl */`
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+  const dashFS = /* glsl */`
+    varying vec2 vUv;
+    uniform float dashRepeat; // ciclos de tracejado ao longo da via
+    uniform float dashAlong;  // 1.0 = traceja em UV.y (longitudinal), 0.0 = UV.x (transversal)
+
+    void main() {
+      float dashCoord  = mix(vUv.x, vUv.y, dashAlong);
+      float stripCoord = mix(vUv.y, vUv.x, dashAlong);
+
+      // Faixa central estreita (10% da largura da pista)
+      if (abs(stripCoord - 0.5) > 0.01) discard;
+
+      // Padrão de tracejado: 45% cheio, 55% vazio
+      if (fract(dashCoord * dashRepeat) > 0.45) discard;
+
+      gl_FragColor = vec4(0.92, 0.88, 0.55, 0.7); // amarelo-creme
+    }
+  `;
+
   const roadMeshes: THREE.Mesh[] = [];
   let lastRoadR = -1;
   let lastRoadBlockSpacing = 0;
@@ -292,6 +320,7 @@ export function createDonationManager({
     for (const m of roadMeshes) {
       scene.remove(m);
       m.geometry.dispose();
+      if (m.material !== asphaltMaterial) (m.material as THREE.Material).dispose();
     }
     roadMeshes.length = 0;
 
@@ -302,34 +331,52 @@ export function createDonationManager({
     // portanto retiramos 3.0u de cada lado do total => roadWidth = streetWidth - 3.0.
     const roadWidth = Math.max(1.0, streetWidth - 3.0);
 
-    // Comprimento: de borda a borda da cidade (sem extrapolar além dos blocos externos).
-    // (2r+1)×blockSpacing cobre todos os centros de blocos + meia-rua de cada lado,
-    // mas a última meia-rua não existe (é borda do bloco), então subtraímos streetWidth.
-    const totalLen = (2 * r + 1) * blockSpacing - streetWidth;
+    // Comprimento: da primeira à última interseção transversal, com um pequeno stub
+    // de streetWidth em cada ponta para indicar que a via pode continuar.
+    // (2r-1)*blockSpacing cobre de (-r+0.5) até (r-0.5) entre blocos; +2*streetWidth = stubs.
+    const totalLen = (2 * r - 1) * blockSpacing + 2 * streetWidth;
     const roadY = -0.015;
+    const dashY = roadY + 0.005;
+    const dashSpacing = 2.5; // espaçamento físico (unidades) de cada ciclo traço+vão
 
-    // Faixas longitudinais (direção Z), entre colunas de blocos (separação em X)
-    for (let bx = -r; bx < r; bx++) {
-      const x = (bx + 0.5) * blockSpacing;
-      const geo = new THREE.PlaneGeometry(roadWidth, totalLen);
+    const addRoad = (w: number, h: number, x: number, z: number, dashAlong: number) => {
+      // Plano de asfalto
+      const geo = new THREE.PlaneGeometry(w, h);
       const m = new THREE.Mesh(geo, asphaltMaterial);
       m.rotation.x = -Math.PI / 2;
-      m.position.set(x, roadY, 0);
+      m.position.set(x, roadY, z);
       m.receiveShadow = shadowEnabled;
       scene.add(m);
       roadMeshes.push(m);
+
+      // Plano de tracejado central
+      const roadLen = dashAlong === 1.0 ? h : w;
+      const dashGeo = new THREE.PlaneGeometry(w, h);
+      const dashMat = new THREE.ShaderMaterial({
+        vertexShader: dashVS,
+        fragmentShader: dashFS,
+        uniforms: {
+          dashRepeat: { value: roadLen / dashSpacing },
+          dashAlong:  { value: dashAlong },
+        },
+        transparent: true,
+        depthWrite: false,
+      });
+      const dashMesh = new THREE.Mesh(dashGeo, dashMat);
+      dashMesh.rotation.x = -Math.PI / 2;
+      dashMesh.position.set(x, dashY, z);
+      scene.add(dashMesh);
+      roadMeshes.push(dashMesh);
+    };
+
+    // Faixas longitudinais (direção Z), entre colunas de blocos (separação em X)
+    for (let bx = -r; bx < r; bx++) {
+      addRoad(roadWidth, totalLen, (bx + 0.5) * blockSpacing, 0, 1.0);
     }
 
     // Faixas transversais (direção X), entre linhas de blocos (separação em Z)
     for (let bz = -r; bz < r; bz++) {
-      const z = (bz + 0.5) * blockSpacing;
-      const geo = new THREE.PlaneGeometry(totalLen, roadWidth);
-      const m = new THREE.Mesh(geo, asphaltMaterial);
-      m.rotation.x = -Math.PI / 2;
-      m.position.set(0, roadY, z);
-      m.receiveShadow = shadowEnabled;
-      scene.add(m);
-      roadMeshes.push(m);
+      addRoad(totalLen, roadWidth, 0, (bz + 0.5) * blockSpacing, 0.0);
     }
   };
 
@@ -679,6 +726,7 @@ export function createDonationManager({
       for (const m of roadMeshes) {
         scene.remove(m);
         m.geometry.dispose();
+        if (m.material !== asphaltMaterial) (m.material as THREE.Material).dispose();
       }
       roadMeshes.length = 0;
       asphaltMaterial.dispose();
