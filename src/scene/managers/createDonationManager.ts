@@ -295,41 +295,42 @@ export function createDonationManager({
     }
     roadMeshes.length = 0;
 
-    if (r === 0) return; // bloco único, sem estradas entre blocos
-
-    // Largura da pista: streetWidth menos o avanço máximo dos prédios de borda.
-    // Prédio de borda tem centro em streetWidth/2 da pista e largura de até 2.6u,
-    // portanto retiramos 3.0u de cada lado do total => roadWidth = streetWidth - 3.0.
+    // Largura de cada faixa de asfalto.
     const roadWidth = Math.max(1.0, streetWidth - 3.0);
-
-    // Comprimento: de borda a borda da cidade (sem extrapolar além dos blocos externos).
-    // (2r+1)×blockSpacing cobre todos os centros de blocos + meia-rua de cada lado,
-    // mas a última meia-rua não existe (é borda do bloco), então subtraímos streetWidth.
-    const totalLen = (2 * r + 1) * blockSpacing - streetWidth;
     const roadY = -0.015;
 
-    // Faixas longitudinais (direção Z), entre colunas de blocos (separação em X)
-    for (let bx = -r; bx < r; bx++) {
-      const x = (bx + 0.5) * blockSpacing;
-      const geo = new THREE.PlaneGeometry(roadWidth, totalLen);
-      const m = new THREE.Mesh(geo, asphaltMaterial);
-      m.rotation.x = -Math.PI / 2;
-      m.position.set(x, roadY, 0);
-      m.receiveShadow = shadowEnabled;
-      scene.add(m);
-      roadMeshes.push(m);
-    }
+    // Extensão total da grade: do centro do bloco mais externo ao centro oposto + meia rua.
+    // Cada faixa cobre toda essa extensão mais a largura das faixas perpendiculares (cantos).
+    const halfCitySpan = (r + 0.5) * blockSpacing;
+    const roadLen = 2 * halfCitySpan + roadWidth;
 
-    // Faixas transversais (direção X), entre linhas de blocos (separação em Z)
-    for (let bz = -r; bz < r; bz++) {
-      const z = (bz + 0.5) * blockSpacing;
-      const geo = new THREE.PlaneGeometry(totalLen, roadWidth);
-      const m = new THREE.Mesh(geo, asphaltMaterial);
-      m.rotation.x = -Math.PI / 2;
-      m.position.set(0, roadY, z);
-      m.receiveShadow = shadowEnabled;
-      scene.add(m);
-      roadMeshes.push(m);
+    // r = -1 significa nenhum bloco completo: sem faixas.
+    if (r < 0) return;
+
+    // Cria 2r+2 faixas em cada direção: perímetro + todas as ruas internas entre quadras.
+    // Posições das faixas: (i + 0.5) × blockSpacing para i de -(r+1) até r.
+    // i = -(r+1) → perímetro Sul/Oeste; i = r → perímetro Norte/Leste;
+    // valores intermediários → ruas internas entre quadras adjacentes.
+    for (let i = -r - 1; i <= r; i++) {
+      const pos = (i + 0.5) * blockSpacing;
+
+      // Faixa horizontal (corre na direção X, separa linhas de quadras em Z)
+      const geoH = new THREE.PlaneGeometry(roadLen, roadWidth);
+      const mH = new THREE.Mesh(geoH, asphaltMaterial);
+      mH.rotation.x = -Math.PI / 2;
+      mH.position.set(0, roadY, pos);
+      mH.receiveShadow = shadowEnabled;
+      scene.add(mH);
+      roadMeshes.push(mH);
+
+      // Faixa vertical (corre na direção Z, separa colunas de quadras em X)
+      const geoV = new THREE.PlaneGeometry(roadWidth, roadLen);
+      const mV = new THREE.Mesh(geoV, asphaltMaterial);
+      mV.rotation.x = -Math.PI / 2;
+      mV.position.set(pos, roadY, 0);
+      mV.receiveShadow = shadowEnabled;
+      scene.add(mV);
+      roadMeshes.push(mV);
     }
   };
 
@@ -592,7 +593,22 @@ export function createDonationManager({
     mesh.instanceMatrix.needsUpdate = true;
     mesh.boundingSphere = null; // força recomputação na próxima chamada de raycast
 
-    rebuildRoads(r, blockSpacing, streetWidth);
+    // Determina o maior r' tal que todos os (2r'+1)² blocos internos estão completamente
+    // preenchidos. Faixas de asfalto só aparecem ao redor de quadras 100% ocupadas.
+    let completedR = -1;
+    for (let rr = 0; (2 * rr + 1) ** 2 <= expandedBlocks; rr++) {
+      const squareSize = (2 * rr + 1) ** 2;
+      let allFull = true;
+      for (let b = 0; b < squareSize; b++) {
+        if (blocks[b].towers.length + blocks[b].base.length < buildingsPerBlock) {
+          allFull = false;
+          break;
+        }
+      }
+      if (allFull) completedR = rr;
+      else break;
+    }
+    rebuildRoads(completedR, blockSpacing, streetWidth);
   };
 
   return {
