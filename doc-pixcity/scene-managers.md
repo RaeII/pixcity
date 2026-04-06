@@ -84,12 +84,24 @@ height = minBuildingHeight + (valor / maxValor) × (maxSceneHeight - minBuilding
 
 #### Materiais
 
-O manager usa um único par de materiais (todos os prédios ficam perto da câmera):
+O manager usa um único par de materiais para prédios e um material de asfalto para as ruas:
 
 | Material | Tipo | Descrição |
 |---|---|---|
 | `facadeMaterial` | `MeshPhysicalMaterial` | Textura de fachada com shader triplanar + cube envMap dinâmico |
 | `topMaterial` | `MeshPhysicalMaterial` | Textura de concreto para o topo dos prédios |
+| `asphaltMaterial` | `MeshStandardMaterial` | Cor escura (#18191c), roughness 0.92 — usado nas faixas de asfalto entre quadras |
+
+#### Rede de Estradas (Asfalto)
+
+Quando há mais de um bloco (`r > 0`), `rebuildRoads(r, blockSpacing, streetWidth)` cria faixas de `Mesh` planas que preenchem o espaço entre as quadras:
+
+- **Faixas longitudinais** (correm na direção Z): posicionadas em `x = (bx + 0.5) × blockSpacing` para cada gap entre colunas de blocos
+- **Faixas transversais** (correm na direção X): posicionadas em `z = (bz + 0.5) × blockSpacing` para cada gap entre linhas de blocos
+- Largura de cada faixa = `streetWidth`; comprimento = `(2r+1) × blockSpacing + streetWidth`
+- Y = -0.015 (acima do ground plane em -0.03, abaixo dos prédios em 0)
+- Cache: se `r`, `blockSpacing` e `streetWidth` não mudaram, `rebuildRoads` retorna imediatamente
+- As faixas são recriadas toda vez que `rebuildInstances` muda o anel `r` ou os parâmetros de layout
 
 > [!note] Por que shader triplanar?
 > Prédios dentro do mesmo `InstancedMesh` têm alturas diferentes. O shader triplanar garante que a textura de fachada seja aplicada corretamente sem distorção, independente da escala de cada instância.
@@ -141,5 +153,6 @@ Mexa aqui quando o problema for **comportamental**:
 | Mudar layout dos prédios de doação | `createDonationManager.ts` → `DONATION_LAYOUT` |
 | Alterar fórmula de altura proporcional | `createDonationManager.ts` |
 | Aumentar limite máximo de doações | `createDonationManager.ts` → `DONATION_LAYOUT` |
+| Alterar cor/material do asfalto | `createDonationManager.ts` → `asphaltMaterial` |
 | Problema de valores padrão (altura máx, tamanho) | [[scene-config]] |
 | Fórmula matemática pequena | [[scene-utils]] |

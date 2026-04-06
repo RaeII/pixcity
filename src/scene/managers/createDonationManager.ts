@@ -267,6 +267,72 @@ export function createDonationManager({
   scene.add(mesh);
 
   let shadowEnabled = true;
+
+  // --- Rede de estradas (asfalto entre blocos) ---
+  const asphaltMaterial = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0x18191c),
+    roughness: 0.92,
+    metalness: 0.01,
+  });
+  const roadMeshes: THREE.Mesh[] = [];
+  let lastRoadR = -1;
+  let lastRoadBlockSpacing = 0;
+  let lastRoadStreetWidth = 0;
+
+  const rebuildRoads = (r: number, blockSpacing: number, streetWidth: number) => {
+    if (
+      r === lastRoadR &&
+      blockSpacing === lastRoadBlockSpacing &&
+      streetWidth === lastRoadStreetWidth
+    ) return;
+    lastRoadR = r;
+    lastRoadBlockSpacing = blockSpacing;
+    lastRoadStreetWidth = streetWidth;
+
+    for (const m of roadMeshes) {
+      scene.remove(m);
+      m.geometry.dispose();
+    }
+    roadMeshes.length = 0;
+
+    if (r === 0) return; // bloco único, sem estradas entre blocos
+
+    // Largura da pista: streetWidth menos o avanço máximo dos prédios de borda.
+    // Prédio de borda tem centro em streetWidth/2 da pista e largura de até 2.6u,
+    // portanto retiramos 3.0u de cada lado do total => roadWidth = streetWidth - 3.0.
+    const roadWidth = Math.max(1.0, streetWidth - 3.0);
+
+    // Comprimento: de borda a borda da cidade (sem extrapolar além dos blocos externos).
+    // (2r+1)×blockSpacing cobre todos os centros de blocos + meia-rua de cada lado,
+    // mas a última meia-rua não existe (é borda do bloco), então subtraímos streetWidth.
+    const totalLen = (2 * r + 1) * blockSpacing - streetWidth;
+    const roadY = -0.015;
+
+    // Faixas longitudinais (direção Z), entre colunas de blocos (separação em X)
+    for (let bx = -r; bx < r; bx++) {
+      const x = (bx + 0.5) * blockSpacing;
+      const geo = new THREE.PlaneGeometry(roadWidth, totalLen);
+      const m = new THREE.Mesh(geo, asphaltMaterial);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(x, roadY, 0);
+      m.receiveShadow = shadowEnabled;
+      scene.add(m);
+      roadMeshes.push(m);
+    }
+
+    // Faixas transversais (direção X), entre linhas de blocos (separação em Z)
+    for (let bz = -r; bz < r; bz++) {
+      const z = (bz + 0.5) * blockSpacing;
+      const geo = new THREE.PlaneGeometry(totalLen, roadWidth);
+      const m = new THREE.Mesh(geo, asphaltMaterial);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(0, roadY, z);
+      m.receiveShadow = shadowEnabled;
+      scene.add(m);
+      roadMeshes.push(m);
+    }
+  };
+
   const donations: DonationEntry[] = [];
   let nextId = 0;
   let currentTextureSettings = { ...textureSettings };
@@ -525,6 +591,8 @@ export function createDonationManager({
     mesh.count = instanceIdx;
     mesh.instanceMatrix.needsUpdate = true;
     mesh.boundingSphere = null; // força recomputação na próxima chamada de raycast
+
+    rebuildRoads(r, blockSpacing, streetWidth);
   };
 
   return {
@@ -569,6 +637,9 @@ export function createDonationManager({
     setShadowEnabled(enabled) {
       shadowEnabled = enabled;
       mesh.castShadow = enabled;
+      for (const m of roadMeshes) {
+        m.receiveShadow = enabled;
+      }
     },
     setEnvMap(envMap) {
       facadeMaterial.envMap = envMap;
@@ -605,6 +676,12 @@ export function createDonationManager({
       for (const tex of allTextures) {
         tex.dispose();
       }
+      for (const m of roadMeshes) {
+        scene.remove(m);
+        m.geometry.dispose();
+      }
+      roadMeshes.length = 0;
+      asphaltMaterial.dispose();
     },
   };
 }
