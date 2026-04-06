@@ -295,8 +295,8 @@ export function createDonationManager({
       // Faixa central estreita (10% da largura da pista)
       if (abs(stripCoord - 0.5) > 0.01) discard;
 
-      // Padrão de tracejado: 45% cheio, 55% vazio
-      if (fract(dashCoord * dashRepeat) > 0.45) discard;
+      // Padrão de tracejado: 15% cheio, 85% vazio
+      if (fract(dashCoord * dashRepeat) > 0.15) discard;
 
       gl_FragColor = vec4(0.92, 0.88, 0.55, 0.7); // amarelo-creme
     }
@@ -337,7 +337,7 @@ export function createDonationManager({
     const totalLen = (2 * r - 1) * blockSpacing + 2 * streetWidth;
     const roadY = -0.015;
     const dashY = roadY + 0.005;
-    const dashSpacing = 2.5; // espaçamento físico (unidades) de cada ciclo traço+vão
+    const dashSpacing = 1.0; // espaçamento físico (unidades) de cada ciclo traço+vão
 
     const addRoad = (w: number, h: number, x: number, z: number, dashAlong: number) => {
       // Plano de asfalto
