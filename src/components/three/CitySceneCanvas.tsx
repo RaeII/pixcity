@@ -5,6 +5,7 @@ import type {
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
+  HorizonSettings,
   LightSettings,
   RenderDirectionSettings,
   SceneStats,
@@ -25,6 +26,7 @@ export type CitySceneCanvasProps = {
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
   environmentSettings: EnvironmentSettings;
+  horizonSettings: HorizonSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
@@ -40,6 +42,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       shadowSettings,
       renderDirectionSettings,
       environmentSettings,
+      horizonSettings,
       blockLayoutSettings,
       onStatsChange,
       onHoverChange,
@@ -57,6 +60,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       shadowSettings,
       renderDirectionSettings,
       environmentSettings,
+      horizonSettings,
       blockLayoutSettings,
       onStatsChange,
       onHoverChange,

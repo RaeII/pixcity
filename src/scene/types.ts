@@ -96,6 +96,18 @@ export type EnvironmentSettings = {
   offsetZ: number;
 };
 
+export type HorizonSettings = {
+  radiusX: number;
+  radiusZ: number;
+  slots: number;
+  minHeight: number;
+  maxHeight: number;
+  minWidth: number;
+  maxWidth: number;
+  gapChance: number;
+  baseY: number;
+};
+
 export type BlockLayoutSettings = {
   blockSize: number;
   streetWidth: number;

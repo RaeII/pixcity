@@ -6,6 +6,7 @@ import { DEFAULT_SCENE_STATS } from "../scene/config/citySceneConfig";
 import { createDefaultBlockLayoutSettings } from "../scene/config/blockLayoutConfig";
 import { createDefaultBuildingSettings } from "../scene/config/buildingConfig";
 import { createDefaultEnvironmentSettings } from "../scene/config/environmentConfig";
+import { createDefaultHorizonSettings } from "../scene/config/horizonConfig";
 import { createDefaultGroundSettings } from "../scene/config/groundConfig";
 import { createDefaultLightSettings } from "../scene/config/lightConfig";
 import { createDefaultRenderDirectionSettings } from "../scene/config/renderDirectionConfig";
@@ -26,6 +27,7 @@ export function CitySceneEditor() {
     createDefaultRenderDirectionSettings,
   );
   const [environmentSettings, setEnvironmentSettings] = useState(createDefaultEnvironmentSettings);
+  const [horizonSettings, setHorizonSettings] = useState(createDefaultHorizonSettings);
   const [blockLayoutSettings, setBlockLayoutSettings] = useState(createDefaultBlockLayoutSettings);
   const [sceneStats, setSceneStats] = useState<SceneStats>({ ...DEFAULT_SCENE_STATS });
   const [hoverInfo, setHoverInfo] = useState<{ value: number; x: number; y: number } | null>(null);
@@ -58,6 +60,7 @@ export function CitySceneEditor() {
         shadowSettings={shadowSettings}
         renderDirectionSettings={renderDirectionSettings}
         environmentSettings={environmentSettings}
+        horizonSettings={horizonSettings}
         blockLayoutSettings={blockLayoutSettings}
         onStatsChange={setSceneStats}
         onHoverChange={handleHoverChange}
@@ -97,6 +100,8 @@ export function CitySceneEditor() {
         onRenderDirectionSettingsChange={setRenderDirectionSettings}
         environmentSettings={environmentSettings}
         onEnvironmentSettingsChange={setEnvironmentSettings}
+        horizonSettings={horizonSettings}
+        onHorizonSettingsChange={setHorizonSettings}
       />
     </div>
   );
