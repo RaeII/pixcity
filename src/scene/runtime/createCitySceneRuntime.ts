@@ -58,7 +58,6 @@ export function createCitySceneRuntime({
   groundSettings,
   lightSettings,
   shadowSettings,
-  renderDirectionSettings,
   horizonSettings,
   environmentSettings,
   blockLayoutSettings,
