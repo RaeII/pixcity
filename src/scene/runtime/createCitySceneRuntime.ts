@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { createGridHelper } from "../builders/createGridHelper";
 import { createGroundPlane } from "../builders/createGroundPlane";
+import { createHorizonSilhouette } from "../builders/createHorizonSilhouette";
 import { createLightingRig } from "../builders/createLightingRig";
 import { loadEnvironment } from "../builders/loadEnvironment";
 import { CITY_SCENE_CONFIG, DEFAULT_SCENE_STATS } from "../config/citySceneConfig";
@@ -135,6 +136,7 @@ export function createCitySceneRuntime({
   const lightingRig = createLightingRig(scene, lightSettings);
   const groundPlane = createGroundPlane(scene, groundSettings, shadowSettings.enabled);
   const gridHelper = createGridHelper(scene);
+  const horizonSilhouette = createHorizonSilhouette(scene);
 
   const buildingCubeTarget = new THREE.WebGLCubeRenderTarget(256, {
     type: THREE.HalfFloatType,
@@ -207,6 +209,7 @@ export function createCitySceneRuntime({
 
     groundPlane.setPosition(camera.position.x, camera.position.z);
     gridHelper.setPosition(camera.position.x, camera.position.z);
+    horizonSilhouette.update(camera);
     environmentUpdater.updatePosition(camera.position.x, camera.position.y, camera.position.z);
 
     fpsAccumulator += delta;
@@ -286,6 +289,7 @@ export function createCitySceneRuntime({
       donationManager.dispose();
       groundPlane.dispose();
       gridHelper.dispose();
+      horizonSilhouette.dispose();
       lightingRig.dispose();
       isDisposed = true;
       environmentUpdater.dispose();

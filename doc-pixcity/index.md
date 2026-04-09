@@ -72,7 +72,6 @@ src/
       createLightingRig.ts
       createGroundPlane.ts
       createGridHelper.ts
-      createHorizonSilhouette.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
