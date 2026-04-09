@@ -96,16 +96,23 @@ export type EnvironmentSettings = {
   offsetZ: number;
 };
 
-export type HorizonSettings = {
-  radiusX: number;
-  radiusZ: number;
+export type HorizonSegment = {
+  enabled: boolean;
+  radius: number;
+  curvature: number;
+  offsetX: number;
+  offsetZ: number;
+  baseY: number;
   slots: number;
+};
+
+export type HorizonSettings = {
   minHeight: number;
   maxHeight: number;
   minWidth: number;
   maxWidth: number;
   gapChance: number;
-  baseY: number;
+  segments: [HorizonSegment, HorizonSegment, HorizonSegment, HorizonSegment];
 };
 
 export type BlockLayoutSettings = {
