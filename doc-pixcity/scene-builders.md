@@ -25,30 +25,6 @@ Builders criam peças específicas da cena. O [[scene-runtime|runtime]] não pre
 
 ## Arquivos
 
-### `createHorizonSilhouette.ts`
-
-Cria dois anéis de edifícios-silhueta pretos no horizonte da cena.
-
-**Responsabilidades:**
-- Construir dois `InstancedMesh` com `BoxGeometry(1,1,1)` e `MeshBasicMaterial` preto
-- Distribuir prédios em anel circular com raios diferentes (100 e 145 unidades)
-- Gerar alturas, larguras e lacunas determinísticas via `seeded()` por slot
-- Seguir a câmera via `setPosition(x, z)` (como chão e grid)
-- Limpar geometrias, materiais e meshes no `dispose`
-
-**Efeito visual:**
-- Um único anel no raio 130, prédios variando de 1.5 a 13 unidades de altura
-- A névoa (`FogExp2`) funde os prédios pretos com o fundo escuro da cena, eliminando a linha visível entre chão e céu
-
-**Retorna:** `HorizonSilhouette` com métodos `setPosition(x, z)` e `dispose`.
-
-**Quando mexer aqui:**
-- Ajustar raio, densidade ou altura máxima dos anéis (constante `RINGS`)
-- Adicionar um terceiro anel para mais profundidade
-- Trocar a cor da silhueta
-
----
-
 ### `createGroundPlane.ts`
 
 Cria o chão da cidade.

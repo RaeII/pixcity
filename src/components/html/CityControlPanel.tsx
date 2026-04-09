@@ -3,7 +3,6 @@ import type {
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
-  HorizonSettings,
   LightSettings,
   RenderDirectionSettings,
   SceneStats,
@@ -13,7 +12,6 @@ import type {
 import { BuildingControls } from "./BuildingControls";
 import { EnvironmentControls } from "./EnvironmentControls";
 import { GroundControls } from "./GroundControls";
-import { HorizonControls } from "./HorizonControls";
 import { PanelIntro } from "./PanelIntro";
 import { RenderDirectionControls } from "./RenderDirectionControls";
 import { SceneLightControls } from "./SceneLightControls";
@@ -43,8 +41,6 @@ export type CityControlPanelProps = {
   onShadowSettingsChange: (settings: ShadowSettings) => void;
   onRenderDirectionSettingsChange: (settings: RenderDirectionSettings) => void;
   onEnvironmentSettingsChange: (settings: EnvironmentSettings) => void;
-  horizonSettings: HorizonSettings;
-  onHorizonSettingsChange: (settings: HorizonSettings) => void;
 };
 
 export function CityControlPanel({
@@ -64,15 +60,13 @@ export function CityControlPanel({
   onShadowSettingsChange,
   onRenderDirectionSettingsChange,
   onEnvironmentSettingsChange,
-  horizonSettings,
-  onHorizonSettingsChange,
 }: CityControlPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("geral");
 
   return (
     <div className="absolute right-0 top-0 z-20 flex h-screen w-full max-w-[360px] flex-col border-l border-white/10 bg-black/55 text-white shadow-2xl backdrop-blur-md">
       <div className="flex border-b border-white/10">
-        {(["geral", "texturas", "luz", "horizonte"] as Tab[]).map((tab) => (
+        {(["geral", "texturas", "luz"] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -115,12 +109,6 @@ export function CityControlPanel({
               metrics={lightMetrics}
               onChange={onLightSettingsChange}
             />
-          </div>
-        )}
-
-        {activeTab === "horizonte" && (
-          <div className="space-y-6 pb-8 pt-2">
-            <HorizonControls value={horizonSettings} onChange={onHorizonSettingsChange} />
           </div>
         )}
       </div>

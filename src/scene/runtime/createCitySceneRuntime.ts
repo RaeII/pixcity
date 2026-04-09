@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { createGridHelper } from "../builders/createGridHelper";
 import { createGroundPlane } from "../builders/createGroundPlane";
-import { createHorizonSilhouette } from "../builders/createHorizonSilhouette";
 import { createLightingRig } from "../builders/createLightingRig";
 import { loadEnvironment } from "../builders/loadEnvironment";
 import { CITY_SCENE_CONFIG, DEFAULT_SCENE_STATS } from "../config/citySceneConfig";
@@ -12,7 +11,6 @@ import type {
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
-  HorizonSettings,
   LightSettings,
   RenderDirectionSettings,
   SceneStats,
@@ -30,7 +28,6 @@ type CitySceneRuntimeOptions = {
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
   environmentSettings: EnvironmentSettings;
-  horizonSettings: HorizonSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
@@ -44,7 +41,6 @@ export type CitySceneRuntime = {
   updateShadowSettings: (settings: ShadowSettings) => void;
   updateRenderDirectionSettings: (settings: RenderDirectionSettings, forceRefresh?: boolean) => void;
   updateEnvironmentSettings: (settings: EnvironmentSettings) => void;
-  updateHorizonSettings: (settings: HorizonSettings) => void;
   updateBlockLayout: (settings: BlockLayoutSettings) => void;
   addDonation: (value: number) => void;
   addDonations: (values: number[]) => void;
@@ -59,7 +55,6 @@ export function createCitySceneRuntime({
   lightSettings,
   shadowSettings,
   environmentSettings,
-  horizonSettings,
   blockLayoutSettings,
   onStatsChange,
   onHoverChange,
@@ -140,7 +135,6 @@ export function createCitySceneRuntime({
   const lightingRig = createLightingRig(scene, lightSettings);
   const groundPlane = createGroundPlane(scene, groundSettings, shadowSettings.enabled);
   const gridHelper = createGridHelper(scene);
-  const horizonSilhouette = createHorizonSilhouette(scene, horizonSettings);
 
   const buildingCubeTarget = new THREE.WebGLCubeRenderTarget(256, {
     type: THREE.HalfFloatType,
@@ -213,7 +207,6 @@ export function createCitySceneRuntime({
 
     groundPlane.setPosition(camera.position.x, camera.position.z);
     gridHelper.setPosition(camera.position.x, camera.position.z);
-    horizonSilhouette.setPosition(camera.position.x, camera.position.z);
     environmentUpdater.updatePosition(camera.position.x, camera.position.y, camera.position.z);
 
     fpsAccumulator += delta;
@@ -275,9 +268,7 @@ export function createCitySceneRuntime({
     updateEnvironmentSettings(settings) {
       environmentUpdater.updateSettings(settings);
     },
-    updateHorizonSettings(settings) {
-      horizonSilhouette.updateSettings(settings);
-    },
+
     addDonation(value) {
       donationManager.addDonation(value);
       emitStatsPatch({ buildings: donationManager.getDonationCount() });
@@ -295,7 +286,6 @@ export function createCitySceneRuntime({
       donationManager.dispose();
       groundPlane.dispose();
       gridHelper.dispose();
-      horizonSilhouette.dispose();
       lightingRig.dispose();
       isDisposed = true;
       environmentUpdater.dispose();
