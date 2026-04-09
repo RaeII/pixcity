@@ -14,6 +14,11 @@ export type ChunkData = {
   scales: Float32Array;
 };
 
+export type HorizonSettings = {
+  color: string;
+  distance: number;
+};
+
 export type RenderDirectionSettings = {
   forwardDistance: number;
   sideDistance: number;

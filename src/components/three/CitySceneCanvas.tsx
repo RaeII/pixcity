@@ -10,6 +10,7 @@ import type {
   SceneStats,
   ShadowSettings,
   TextureSettings,
+  HorizonSettings,
 } from "../../scene/types";
 
 export type CitySceneCanvasHandle = {
@@ -24,6 +25,7 @@ export type CitySceneCanvasProps = {
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
+  horizonSettings: HorizonSettings;
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
@@ -39,6 +41,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       lightSettings,
       shadowSettings,
       renderDirectionSettings,
+      horizonSettings,
       environmentSettings,
       blockLayoutSettings,
       onStatsChange,
@@ -56,6 +59,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       lightSettings,
       shadowSettings,
       renderDirectionSettings,
+      horizonSettings,
       environmentSettings,
       blockLayoutSettings,
       onStatsChange,

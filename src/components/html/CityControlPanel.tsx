@@ -8,6 +8,7 @@ import type {
   SceneStats,
   ShadowSettings,
   TextureSettings,
+  HorizonSettings,
 } from "../../scene/types";
 import { BuildingControls } from "./BuildingControls";
 import { EnvironmentControls } from "./EnvironmentControls";
@@ -17,6 +18,7 @@ import { RenderDirectionControls } from "./RenderDirectionControls";
 import { SceneLightControls } from "./SceneLightControls";
 import { ShadowControls } from "./ShadowControls";
 import { TextureControls } from "./TextureControls";
+import { HorizonControls } from "./HorizonControls";
 
 type Tab = "geral" | "texturas" | "luz" | "horizonte";
 
@@ -28,6 +30,7 @@ export type CityControlPanelProps = {
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
   environmentSettings: EnvironmentSettings;
+  horizonSettings: HorizonSettings;
   sceneStats: SceneStats;
   lightMetrics: {
     ambientDynamic: number;
@@ -41,6 +44,7 @@ export type CityControlPanelProps = {
   onShadowSettingsChange: (settings: ShadowSettings) => void;
   onRenderDirectionSettingsChange: (settings: RenderDirectionSettings) => void;
   onEnvironmentSettingsChange: (settings: EnvironmentSettings) => void;
+  onHorizonSettingsChange: (settings: HorizonSettings) => void;
 };
 
 export function CityControlPanel({
@@ -51,6 +55,7 @@ export function CityControlPanel({
   shadowSettings,
   renderDirectionSettings,
   environmentSettings,
+  horizonSettings,
   sceneStats,
   lightMetrics,
   onBuildingSettingsChange,
@@ -60,13 +65,14 @@ export function CityControlPanel({
   onShadowSettingsChange,
   onRenderDirectionSettingsChange,
   onEnvironmentSettingsChange,
+  onHorizonSettingsChange,
 }: CityControlPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("geral");
 
   return (
     <div className="absolute right-0 top-0 z-20 flex h-screen w-full max-w-[360px] flex-col border-l border-white/10 bg-black/55 text-white shadow-2xl backdrop-blur-md">
       <div className="flex border-b border-white/10">
-        {(["geral", "texturas", "luz"] as Tab[]).map((tab) => (
+        {(["geral", "texturas", "luz", "horizonte"] as Tab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -109,6 +115,12 @@ export function CityControlPanel({
               metrics={lightMetrics}
               onChange={onLightSettingsChange}
             />
+          </div>
+        )}
+
+        {activeTab === "horizonte" && (
+          <div className="space-y-6 pb-8 pt-2">
+            <HorizonControls settings={horizonSettings} onChange={onHorizonSettingsChange} />
           </div>
         )}
       </div>

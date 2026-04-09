@@ -14,6 +14,7 @@ import type {
   GroundSettings,
   LightSettings,
   RenderDirectionSettings,
+  HorizonSettings,
   SceneStats,
   ShadowSettings,
   TextureSettings,
@@ -28,6 +29,7 @@ type CitySceneRuntimeOptions = {
   lightSettings: LightSettings;
   shadowSettings: ShadowSettings;
   renderDirectionSettings: RenderDirectionSettings;
+  horizonSettings: HorizonSettings;
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
@@ -41,6 +43,7 @@ export type CitySceneRuntime = {
   updateLightSettings: (settings: LightSettings) => void;
   updateShadowSettings: (settings: ShadowSettings) => void;
   updateRenderDirectionSettings: (settings: RenderDirectionSettings, forceRefresh?: boolean) => void;
+  updateHorizonSettings: (settings: HorizonSettings) => void;
   updateEnvironmentSettings: (settings: EnvironmentSettings) => void;
   updateBlockLayout: (settings: BlockLayoutSettings) => void;
   addDonation: (value: number) => void;
@@ -55,6 +58,8 @@ export function createCitySceneRuntime({
   groundSettings,
   lightSettings,
   shadowSettings,
+  renderDirectionSettings,
+  horizonSettings,
   environmentSettings,
   blockLayoutSettings,
   onStatsChange,
@@ -136,7 +141,7 @@ export function createCitySceneRuntime({
   const lightingRig = createLightingRig(scene, lightSettings);
   const groundPlane = createGroundPlane(scene, groundSettings, shadowSettings.enabled);
   const gridHelper = createGridHelper(scene);
-  const horizonSilhouette = createHorizonSilhouette(scene);
+  const horizonSilhouette = createHorizonSilhouette(scene, horizonSettings);
 
   const buildingCubeTarget = new THREE.WebGLCubeRenderTarget(256, {
     type: THREE.HalfFloatType,
@@ -265,6 +270,9 @@ export function createCitySceneRuntime({
     },
     // Sem chunks direcionais — mantido na API para compatibilidade com hook/canvas
     updateRenderDirectionSettings() {},
+    updateHorizonSettings(settings) {
+      horizonSilhouette.updateSettings(settings);
+    },
     updateBlockLayout(settings) {
       donationManager.updateBlockLayout(settings);
     },

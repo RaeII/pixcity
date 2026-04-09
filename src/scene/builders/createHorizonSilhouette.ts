@@ -1,9 +1,7 @@
 import * as THREE from "three";
 import { seeded } from "../utils/random";
 
-// Distância à frente da câmera onde a fileira é posicionada.
 // O far plane está em 260u — ficar em 248 garante que os prédios não são clipados.
-const FORWARD_DISTANCE = 248;
 
 // A fileira se estende lateralmente além dos limites do FOV (58° horizontal ~= ±245u a 248u de distância).
 // ±580u garante cobertura mesmo em qualquer ângulo de órbita.
@@ -17,8 +15,6 @@ const MAX_HEIGHT = 14;
 const MIN_WIDTH = 3;
 const MAX_WIDTH = 6.5;
 const DEPTH = 3;
-// Silhueta escura sem névoa — a 248u a névoa é ~100%, fog:true tornaria invisível
-const COLOR = 0x1c2b3a;
 const GROUND_Y = -0.03;
 
 const _matrix = new THREE.Matrix4();
@@ -34,21 +30,21 @@ type Bundle = {
   material: THREE.MeshBasicMaterial;
 };
 
-function build(scene: THREE.Scene): Bundle {
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshBasicMaterial({ color: COLOR, fog: false });
-  const mesh = new THREE.InstancedMesh(geometry, material, COUNT);
-  mesh.frustumCulled = false;
-
+function updateInstances(mesh: THREE.InstancedMesh, cameraShift: number) {
   const spacing = (ROW_HALF_WIDTH * 2) / (COUNT - 1);
+  const centerIndex = Math.round(cameraShift / spacing);
+  const halfCount = Math.floor(COUNT / 2);
 
   for (let i = 0; i < COUNT; i++) {
-    // Posição no eixo local X: de -ROW_HALF_WIDTH a +ROW_HALF_WIDTH
-    const localX =
-      -ROW_HALF_WIDTH + i * spacing + (seeded(i, 41, 0) - 0.5) * spacing * 0.35;
+    const globalIndex = centerIndex - halfCount + i;
+    const canonicalX = globalIndex * spacing;
 
-    const width = MIN_WIDTH + seeded(i, 41, 1) * (MAX_WIDTH - MIN_WIDTH);
-    const heightT = seeded(i, 41, 2);
+    // Posição no eixo local X com offset para cancelar o movimento da câmera
+    const randomX = (seeded(globalIndex, 41, 0) - 0.5) * spacing * 0.35;
+    const localX = canonicalX + randomX - cameraShift;
+
+    const width = MIN_WIDTH + seeded(globalIndex, 41, 1) * (MAX_WIDTH - MIN_WIDTH);
+    const heightT = seeded(globalIndex, 41, 2);
     // Distribuição quadrática: maioria de prédios baixos, alguns bem altos
     const height = MIN_HEIGHT + heightT * heightT * (MAX_HEIGHT - MIN_HEIGHT);
 
@@ -62,6 +58,20 @@ function build(scene: THREE.Scene): Bundle {
   }
 
   mesh.instanceMatrix.needsUpdate = true;
+}
+
+function build(scene: THREE.Scene, initialColor: string): Bundle {
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const material = new THREE.MeshBasicMaterial({ color: initialColor, fog: false });
+  const mesh = new THREE.InstancedMesh(geometry, material, COUNT);
+  mesh.frustumCulled = false;
+
+  const zeroScale = new THREE.Vector3(0, 0, 0);
+  for (let i = 0; i < COUNT; i++) {
+    _matrix.identity().scale(zeroScale);
+    mesh.setMatrixAt(i, _matrix);
+  }
+  mesh.instanceMatrix.needsUpdate = true;
   mesh.position.y = GROUND_Y;
   scene.add(mesh);
 
@@ -70,11 +80,18 @@ function build(scene: THREE.Scene): Bundle {
 
 export type HorizonSilhouette = {
   update: (camera: THREE.Camera) => void;
+  updateSettings: (settings: { distance: number; color: string }) => void;
   dispose: () => void;
 };
 
-export function createHorizonSilhouette(scene: THREE.Scene): HorizonSilhouette {
-  const bundle = build(scene);
+export function createHorizonSilhouette(
+  scene: THREE.Scene,
+  initialSettings: { distance: number; color: string }
+): HorizonSilhouette {
+  const bundle = build(scene, initialSettings.color);
+  let previousYaw: number | null = null;
+  let continuousYaw = 0;
+  let currentDistance = initialSettings.distance;
 
   return {
     update(camera) {
@@ -84,19 +101,38 @@ export function createHorizonSilhouette(scene: THREE.Scene): HorizonSilhouette {
       if (_forward.lengthSq() < 1e-6) return;
       _forward.normalize();
 
-      // Posiciona a fileira à FORWARD_DISTANCE da câmera, ao nível do chão
+      // Posiciona a fileira à distância configurada da câmera, ao nível do chão
       bundle.mesh.position.set(
-        camera.position.x + _forward.x * FORWARD_DISTANCE,
+        camera.position.x + _forward.x * currentDistance,
         GROUND_Y,
-        camera.position.z + _forward.z * FORWARD_DISTANCE,
+        camera.position.z + _forward.z * currentDistance,
       );
 
-      // Rotaciona o mesh para o eixo local X ficar perpendicular à direção da câmera.
-      // Com rotação Y = θ, o eixo local X no mundo fica em (cos θ, 0, -sin θ).
-      // Queremos (cos θ, 0, -sin θ) = lateral = (-forward.z, 0, forward.x):
-      //   cos θ = -forward.z  →  sin θ = forward.x
-      //   θ = atan2(forward.x, -forward.z)  ... mas Three.js usa a convenção abaixo:
       bundle.mesh.rotation.y = Math.atan2(-_forward.x, -_forward.z);
+
+      const rightX = -_forward.z;
+      const rightZ = _forward.x;
+      
+      const currentYaw = Math.atan2(_forward.x, _forward.z);
+      if (previousYaw === null) previousYaw = currentYaw;
+
+      let yawDelta = currentYaw - previousYaw;
+      if (yawDelta > Math.PI) yawDelta -= 2 * Math.PI;
+      if (yawDelta < -Math.PI) yawDelta += 2 * Math.PI;
+      
+      continuousYaw += yawDelta;
+      previousYaw = currentYaw;
+
+      const translationShift = camera.position.x * rightX + camera.position.z * rightZ;
+      const rotationShift = continuousYaw * currentDistance;
+      const cameraShift = translationShift - rotationShift;
+
+      updateInstances(bundle.mesh, cameraShift);
+    },
+
+    updateSettings(settings) {
+      currentDistance = settings.distance;
+      bundle.material.color.set(settings.color);
     },
 
     dispose() {
