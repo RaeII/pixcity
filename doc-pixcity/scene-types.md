@@ -172,6 +172,24 @@ type ShadowSettings = {
 
 ---
 
+### `HorizonSettings`
+
+Configurações da silhueta do horizonte e da névoa da cena:
+
+```typescript
+type HorizonSettings = {
+  color: string;       // cor dos prédios da silhueta
+  distance: number;    // distância da câmera até a fileira (padrão: 248)
+  fogDensity: number;  // densidade da névoa exponencial (FogExp2, padrão: 0.01)
+  fogColor: string;    // cor da névoa (padrão: "#090c11")
+}
+```
+
+> [!note] Névoa global
+> `fogDensity` e `fogColor` controlam o `THREE.FogExp2` da cena inteira. Como os prédios do horizonte têm `fog: true`, a névoa os dissolve progressivamente — quanto maior a densidade, mais apagada fica a silhueta.
+
+---
+
 ### `RenderDirectionSettings`
 
 Limites de carregamento de chunks por direção da câmera:

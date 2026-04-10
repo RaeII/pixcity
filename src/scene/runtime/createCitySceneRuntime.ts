@@ -75,8 +75,8 @@ export function createCitySceneRuntime({
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(CITY_SCENE_CONFIG.sceneBackground);
   scene.fog = new THREE.FogExp2(
-    CITY_SCENE_CONFIG.sceneFogColor,
-    CITY_SCENE_CONFIG.sceneFogDensity,
+    horizonSettings.fogColor,
+    horizonSettings.fogDensity,
   );
 
   const camera = new THREE.PerspectiveCamera(
@@ -271,6 +271,10 @@ export function createCitySceneRuntime({
     updateRenderDirectionSettings() {},
     updateHorizonSettings(settings) {
       horizonSilhouette.updateSettings(settings);
+      if (scene.fog instanceof THREE.FogExp2) {
+        scene.fog.color.set(settings.fogColor);
+        scene.fog.density = settings.fogDensity;
+      }
     },
     updateBlockLayout(settings) {
       donationManager.updateBlockLayout(settings);

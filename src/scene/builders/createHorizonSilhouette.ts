@@ -39,9 +39,7 @@ function updateInstances(mesh: THREE.InstancedMesh, cameraShift: number) {
     const globalIndex = centerIndex - halfCount + i;
     const canonicalX = globalIndex * spacing;
 
-    // Posição no eixo local X com offset para cancelar o movimento da câmera
-    const randomX = (seeded(globalIndex, 41, 0) - 0.5) * spacing * 0.35;
-    const localX = canonicalX + randomX - cameraShift;
+    const localX = canonicalX - cameraShift;
 
     const width = MIN_WIDTH + seeded(globalIndex, 41, 1) * (MAX_WIDTH - MIN_WIDTH);
     const heightT = seeded(globalIndex, 41, 2);
@@ -62,7 +60,7 @@ function updateInstances(mesh: THREE.InstancedMesh, cameraShift: number) {
 
 function build(scene: THREE.Scene, initialColor: string): Bundle {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshBasicMaterial({ color: initialColor, fog: false });
+  const material = new THREE.MeshBasicMaterial({ color: initialColor, fog: true });
   const mesh = new THREE.InstancedMesh(geometry, material, COUNT);
   mesh.frustumCulled = false;
 

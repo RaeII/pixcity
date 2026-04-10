@@ -172,6 +172,23 @@ Configurações do ambiente HDRI:
 
 ---
 
+### `HorizonControls.tsx`
+
+Controles da aba **Horizonte**. Dividido em duas seções:
+
+**Silhueta do Horizonte:**
+- `color` — cor dos prédios da silhueta
+- `distance` — distância da câmera até a fileira (100–600)
+
+**Névoa:**
+- `fogDensity` — densidade da névoa exponencial (`FogExp2`). Controla quão rápido os objetos distantes somem (0–0.05, padrão 0.01)
+- `fogColor` — cor da névoa. Deve combinar com o céu para o efeito de fusão
+
+> [!note]
+> A névoa é global — afeta toda a cena, não só o horizonte. Aumentar `fogDensity` também dissolve os prédios da cidade em distâncias maiores.
+
+---
+
 ## Componentes Reutilizáveis (`controls/`)
 
 Componentes pequenos e reaproveitáveis de formulário.

@@ -17,6 +17,8 @@ export type ChunkData = {
 export type HorizonSettings = {
   color: string;
   distance: number;
+  fogDensity: number;
+  fogColor: string;
 };
 
 export type RenderDirectionSettings = {

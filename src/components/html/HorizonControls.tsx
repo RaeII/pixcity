@@ -14,21 +14,39 @@ export function HorizonControls({ settings, onChange }: Props) {
   };
 
   return (
-    <PanelSection title="Silhueta do Horizonte">
-      <ColorField
-        label="Cor da Silhueta"
-        value={settings.color}
-        onChange={(val) => handleChange("color", val)}
-      />
-      
-      <RangeField
-        label="Distância"
-        value={settings.distance}
-        min={100}
-        max={600}
-        step={1}
-        onChange={(val) => handleChange("distance", val)}
-      />
-    </PanelSection>
+    <>
+      <PanelSection title="Silhueta do Horizonte">
+        <ColorField
+          label="Cor da Silhueta"
+          value={settings.color}
+          onChange={(val) => handleChange("color", val)}
+        />
+
+        <RangeField
+          label="Distância"
+          value={settings.distance}
+          min={100}
+          max={600}
+          step={0.1}
+          onChange={(val) => handleChange("distance", val)}
+        />
+      </PanelSection>
+
+      <PanelSection title="Névoa">
+        <RangeField
+          label="Densidade"
+          value={settings.fogDensity}
+          min={0}
+          max={0.05}
+          step={0.001}
+          onChange={(val) => handleChange("fogDensity", val)}
+        />
+        <ColorField
+          label="Cor da Névoa"
+          value={settings.fogColor}
+          onChange={(val) => handleChange("fogColor", val)}
+        />
+      </PanelSection>
+    </>
   );
 }
