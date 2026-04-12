@@ -23,7 +23,7 @@ export function BuildingCustomizePanel({
   };
 
   return (
-    <div className="absolute left-4 top-1/2 z-30 flex w-72 -translate-y-1/2 flex-col rounded-2xl border border-white/10 bg-black/70 text-white shadow-2xl backdrop-blur-md">
+    <div className="absolute right-4 top-4 z-30 flex w-72 flex-col rounded-2xl border border-white/10 bg-black/70 text-white shadow-2xl backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <span className="text-sm font-medium">Personalizar Edifício</span>
         <button
