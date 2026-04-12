@@ -38,6 +38,7 @@ src/
     html/
       CityControlPanel.tsx
       BuildingHeightInput.tsx
+      BuildingCustomizePanel.tsx
       BuildingControls.tsx
       TextureControls.tsx
       GroundControls.tsx

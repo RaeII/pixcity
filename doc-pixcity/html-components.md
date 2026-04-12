@@ -55,9 +55,31 @@ Overlay fixo no centro superior da página — é o input de doação.
 
 ---
 
+### `BuildingCustomizePanel.tsx`
+
+Painel de personalização de um edifício individual, exibido ao clicar em um prédio na cena.
+
+**Responsabilidades:**
+- Exibir campos de personalização para o edifício selecionado
+- Atualizar a cor do edifício em tempo real via `onColorChange`
+- Botão de fechar para desselecionar o edifício
+
+**Props:**
+| Prop | Tipo | Descrição |
+|---|---|---|
+| `donationId` | `number` | ID da doação selecionada |
+| `initialColor` | `string` | Cor atual do edifício (customizada ou global) |
+| `onColorChange` | `(id: number, color: string) => void` | Callback de troca de cor |
+| `onClose` | `() => void` | Fecha o painel |
+
+> [!note] Fluxo de personalização
+> Clique no edifício → `onBuildingClick(donationId)` → `CitySceneEditor` abre `BuildingCustomizePanel` → mudança de cor chama `canvasRef.updateDonationCustomization(id, { color })` → runtime aplica `instanceColor` individual.
+
+---
+
 ### `CityControlPanel.tsx`
 
-Componente que monta o painel completo.
+Componente que monta o painel completo de configuração da cena. **Escondido por padrão** — aberto via botão de engrenagem no canto inferior direito.
 
 **Responsabilidades:**
 - Receber todos os estados do editor

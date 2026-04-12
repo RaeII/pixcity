@@ -2,6 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useRef, type RefObject } from "
 import { createCitySceneRuntime, type CitySceneRuntime } from "../runtime/createCitySceneRuntime";
 import type {
   BlockLayoutSettings,
+  BuildingCustomization,
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
@@ -26,6 +27,7 @@ type UseCitySceneOptions = {
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
+  onBuildingClick?: (donationId: number | null) => void;
 };
 
 export function useCityScene({
@@ -41,6 +43,7 @@ export function useCityScene({
   blockLayoutSettings,
   onStatsChange,
   onHoverChange,
+  onBuildingClick,
 }: UseCitySceneOptions) {
   const runtimeRef = useRef<CitySceneRuntime | null>(null);
   const initialSettingsRef = useRef<Omit<UseCitySceneOptions, "mountRef" | "onStatsChange">>({
@@ -65,6 +68,12 @@ export function useCityScene({
     },
   );
 
+  const handleBuildingClick = useEffectEvent(
+    (donationId: number | null) => {
+      onBuildingClick?.(donationId);
+    },
+  );
+
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) {
@@ -76,6 +85,7 @@ export function useCityScene({
       ...initialSettingsRef.current,
       onStatsChange: (stats) => handleStatsChange(stats),
       onHoverChange: (value, x, y) => handleHoverChange(value, x, y),
+      onBuildingClick: (donationId) => handleBuildingClick(donationId),
     });
     runtimeRef.current = runtime;
 
@@ -130,5 +140,20 @@ export function useCityScene({
     runtimeRef.current?.addDonations(values);
   }, []);
 
-  return { addDonation, addDonations };
+  const updateDonationCustomization = useCallback(
+    (donationId: number, customization: BuildingCustomization) => {
+      runtimeRef.current?.updateDonationCustomization(donationId, customization);
+    },
+    [],
+  );
+
+  const focusOnDonation = useCallback((donationId: number) => {
+    runtimeRef.current?.focusOnDonation(donationId);
+  }, []);
+
+  const clearFocus = useCallback(() => {
+    runtimeRef.current?.clearFocus();
+  }, []);
+
+  return { addDonation, addDonations, updateDonationCustomization, focusOnDonation, clearFocus };
 }

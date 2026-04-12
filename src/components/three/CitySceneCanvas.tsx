@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useRef } from "react";
 import { useCityScene } from "../../scene/hooks/useCityScene";
 import type {
   BlockLayoutSettings,
+  BuildingCustomization,
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
@@ -16,6 +17,9 @@ import type {
 export type CitySceneCanvasHandle = {
   addDonation: (value: number) => void;
   addDonations: (values: number[]) => void;
+  updateDonationCustomization: (donationId: number, customization: BuildingCustomization) => void;
+  focusOnDonation: (donationId: number) => void;
+  clearFocus: () => void;
 };
 
 export type CitySceneCanvasProps = {
@@ -30,6 +34,7 @@ export type CitySceneCanvasProps = {
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
+  onBuildingClick?: (donationId: number | null) => void;
 };
 
 export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvasProps>(
@@ -46,12 +51,13 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       blockLayoutSettings,
       onStatsChange,
       onHoverChange,
+      onBuildingClick,
     },
     ref,
   ) {
     const mountRef = useRef<HTMLDivElement | null>(null);
 
-    const { addDonation, addDonations } = useCityScene({
+    const { addDonation, addDonations, updateDonationCustomization, focusOnDonation, clearFocus } = useCityScene({
       mountRef,
       buildingSettings,
       textureSettings,
@@ -64,9 +70,14 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       blockLayoutSettings,
       onStatsChange,
       onHoverChange,
+      onBuildingClick,
     });
 
-    useImperativeHandle(ref, () => ({ addDonation, addDonations }), [addDonation, addDonations]);
+    useImperativeHandle(
+      ref,
+      () => ({ addDonation, addDonations, updateDonationCustomization, focusOnDonation, clearFocus }),
+      [addDonation, addDonations, updateDonationCustomization, focusOnDonation, clearFocus],
+    );
 
     return <div ref={mountRef} className="h-full w-full cursor-grab active:cursor-grabbing" />;
   },

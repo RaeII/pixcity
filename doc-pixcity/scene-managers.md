@@ -110,6 +110,7 @@ Quando há mais de um bloco (`r > 0`), `rebuildRoads(r, blockSpacing, streetWidt
 
 ```typescript
 addDonation(value: number): void
+addDonations(values: number[]): void
 getDonationCount(): number
 setEnvMap(texture: THREE.Texture): void
 setShadowEnabled(enabled: boolean): void
@@ -118,8 +119,15 @@ endEnvCapture(): void    // reexibe prédios após captura
 updateBuildingSettings(settings: BuildingSettings): void
 updateTextureSettings(settings: TextureSettings): void
 updateBlockLayout(settings: BlockLayoutSettings): void  // recalcula posições de todas as quadras
+getHoveredValue(event, camera, domElement): number | null  // raycast hover
+getClickedDonationId(event, camera, domElement): number | null  // raycast clique → donation ID
+updateDonationCustomization(donationId: number, customization: BuildingCustomization): void  // aplica cor individual
 dispose(): void
 ```
+
+#### Cores Individuais por Edifício
+
+Quando um edifício recebe uma customização via `updateDonationCustomization`, a cor é armazenada em `DonationEntry.customization` e aplicada via `InstancedBufferAttribute` (instanceColor). Edifícios sem customização usam a cor global do material. O sistema é reativado a cada `rebuildInstances` ou mudança de `BuildingSettings`.
 
 ---
 

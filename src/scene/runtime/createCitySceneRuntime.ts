@@ -9,6 +9,7 @@ import { CITY_SCENE_CONFIG, DEFAULT_SCENE_STATS } from "../config/citySceneConfi
 import { createDonationManager } from "../managers/createDonationManager";
 import type {
   BlockLayoutSettings,
+  BuildingCustomization,
   BuildingSettings,
   EnvironmentSettings,
   GroundSettings,
@@ -34,6 +35,7 @@ type CitySceneRuntimeOptions = {
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
+  onBuildingClick?: (donationId: number | null) => void;
 };
 
 export type CitySceneRuntime = {
@@ -48,6 +50,9 @@ export type CitySceneRuntime = {
   updateBlockLayout: (settings: BlockLayoutSettings) => void;
   addDonation: (value: number) => void;
   addDonations: (values: number[]) => void;
+  updateDonationCustomization: (donationId: number, customization: BuildingCustomization) => void;
+  focusOnDonation: (donationId: number) => void;
+  clearFocus: () => void;
   dispose: () => void;
 };
 
@@ -63,6 +68,7 @@ export function createCitySceneRuntime({
   blockLayoutSettings,
   onStatsChange,
   onHoverChange,
+  onBuildingClick,
 }: CitySceneRuntimeOptions): CitySceneRuntime {
   runDevAssertionsOnce();
 
@@ -184,6 +190,45 @@ export function createCitySceneRuntime({
     : null;
   if (handleMouseMove) renderer.domElement.addEventListener("mousemove", handleMouseMove);
 
+  // Clique: detectar edifício clicado (só dispara se não houve drag)
+  let pointerDownPos: { x: number; y: number } | null = null;
+  const handlePointerDown = (event: PointerEvent) => {
+    pointerDownPos = { x: event.clientX, y: event.clientY };
+  };
+  const handlePointerUp = onBuildingClick
+    ? (event: PointerEvent) => {
+        if (!pointerDownPos) return;
+        const dx = event.clientX - pointerDownPos.x;
+        const dy = event.clientY - pointerDownPos.y;
+        // Ignorar se moveu mais de 5px (drag da câmera)
+        if (dx * dx + dy * dy > 25) return;
+        const donationId = donationManager.getClickedDonationId(
+          event as unknown as MouseEvent,
+          camera,
+          renderer.domElement,
+        );
+        onBuildingClick(donationId);
+      }
+    : null;
+  if (onBuildingClick) {
+    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+  }
+  if (handlePointerUp) renderer.domElement.addEventListener("pointerup", handlePointerUp);
+
+  // --- Animação de foco na câmera ---
+  let cameraAnim: {
+    startPos: THREE.Vector3;
+    startTarget: THREE.Vector3;
+    endPos: THREE.Vector3;
+    endTarget: THREE.Vector3;
+    progress: number;
+    duration: number;
+  } | null = null;
+
+  // Salvar posição da câmera antes do foco para restaurar
+  let savedCameraPos: THREE.Vector3 | null = null;
+  let savedCameraTarget: THREE.Vector3 | null = null;
+
   let animationId = 0;
   let lastTime = performance.now();
   let fpsAccumulator = 0;
@@ -210,6 +255,19 @@ export function createCitySceneRuntime({
     lastTime = time;
 
     controls.update();
+
+    // Interpolar câmera durante animação de foco
+    if (cameraAnim) {
+      cameraAnim.progress = Math.min(1, cameraAnim.progress + delta / cameraAnim.duration);
+      // Ease-out cubic
+      const t = 1 - Math.pow(1 - cameraAnim.progress, 3);
+      camera.position.lerpVectors(cameraAnim.startPos, cameraAnim.endPos, t);
+      controls.target.lerpVectors(cameraAnim.startTarget, cameraAnim.endTarget, t);
+      controls.update();
+      if (cameraAnim.progress >= 1) {
+        cameraAnim = null;
+      }
+    }
 
     groundPlane.setPosition(camera.position.x, camera.position.z);
     gridHelper.setPosition(camera.position.x, camera.position.z);
@@ -291,8 +349,56 @@ export function createCitySceneRuntime({
       donationManager.addDonations(values);
       emitStatsPatch({ buildings: donationManager.getDonationCount() });
     },
+    updateDonationCustomization(donationId, customization) {
+      donationManager.updateDonationCustomization(donationId, customization);
+    },
+    focusOnDonation(donationId) {
+      const worldPos = donationManager.getDonationWorldPosition(donationId);
+      if (!worldPos) return;
+
+      // Salvar posição atual para restaurar depois
+      if (!savedCameraPos) {
+        savedCameraPos = camera.position.clone();
+        savedCameraTarget = controls.target.clone();
+      }
+
+      // Aplicar transparência nos outros prédios
+      donationManager.setFocusedDonation(donationId);
+
+      // Calcular posição da câmera: offset lateral e acima do edifício
+      const offset = new THREE.Vector3(6, 5, 6);
+      const targetPos = worldPos.clone();
+      const endCamPos = targetPos.clone().add(offset);
+
+      cameraAnim = {
+        startPos: camera.position.clone(),
+        startTarget: controls.target.clone(),
+        endPos: endCamPos,
+        endTarget: targetPos,
+        progress: 0,
+        duration: 0.8,
+      };
+    },
+    clearFocus() {
+      donationManager.setFocusedDonation(null);
+
+      if (savedCameraPos && savedCameraTarget) {
+        cameraAnim = {
+          startPos: camera.position.clone(),
+          startTarget: controls.target.clone(),
+          endPos: savedCameraPos,
+          endTarget: savedCameraTarget,
+          progress: 0,
+          duration: 0.8,
+        };
+        savedCameraPos = null;
+        savedCameraTarget = null;
+      }
+    },
     dispose() {
       if (handleMouseMove) renderer.domElement.removeEventListener("mousemove", handleMouseMove);
+      if (onBuildingClick) renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      if (handlePointerUp) renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       if (hoverRafId !== null) cancelAnimationFrame(hoverRafId);
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);

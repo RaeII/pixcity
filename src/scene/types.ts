@@ -1,8 +1,13 @@
 import * as THREE from "three";
 
+export type BuildingCustomization = {
+  color: string;
+};
+
 export type DonationEntry = {
   id: number;
   value: number;
+  customization?: BuildingCustomization;
 };
 
 export type ChunkData = {

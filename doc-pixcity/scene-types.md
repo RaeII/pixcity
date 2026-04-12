@@ -231,6 +231,22 @@ type SceneStats = {
 }
 ```
 
+## Tipos de Personalização
+
+### `BuildingCustomization`
+
+Personalização visual de um edifício individual:
+
+```typescript
+type BuildingCustomization = {
+  color: string;  // cor hex do edifício
+}
+```
+
+Armazenada opcionalmente em cada `DonationEntry`. Quando presente, a cor individual substitui a cor global dos prédios (`BuildingSettings.color`) usando `InstancedBufferAttribute` de cores.
+
+---
+
 ## Tipos de Dados da Cena
 
 ### `DonationEntry`
@@ -241,6 +257,7 @@ Representa uma doação individual:
 type DonationEntry = {
   id: number;
   value: number;
+  customization?: BuildingCustomization;  // personalização visual opcional
 }
 ```
 

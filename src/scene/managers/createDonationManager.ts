@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { BlockLayoutSettings, BuildingSettings, DonationEntry, TextureSettings } from "../types";
+import type { BlockLayoutSettings, BuildingCustomization, BuildingSettings, DonationEntry, TextureSettings } from "../types";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -100,6 +100,10 @@ export type DonationManager = {
   endEnvCapture: () => void;
   getDonationCount: () => number;
   getHoveredValue: (event: MouseEvent, camera: THREE.Camera, domElement: HTMLElement) => number | null;
+  getClickedDonationId: (event: MouseEvent, camera: THREE.Camera, domElement: HTMLElement) => number | null;
+  getDonationWorldPosition: (donationId: number) => THREE.Vector3 | null;
+  setFocusedDonation: (donationId: number | null) => void;
+  updateDonationCustomization: (donationId: number, customization: BuildingCustomization) => void;
   dispose: () => void;
 };
 
@@ -254,6 +258,12 @@ export function createDonationManager({
   });
   applyTriplanarShader(topMaterial, "donation-top-triplanar", topTilingUniform);
 
+  // Materiais clonados para o edifício em destaque (opacidade total, independente do instanced)
+  const focusFacadeMaterial = facadeMaterial.clone();
+  const focusTopMaterial = topMaterial.clone();
+  applyTriplanarShader(focusFacadeMaterial, "focus-facade-triplanar", tilingUniform);
+  applyTriplanarShader(focusTopMaterial, "focus-top-triplanar", topTilingUniform);
+
   let capacity = 512;
   let mesh = new THREE.InstancedMesh(
     buildingGeometry,
@@ -388,57 +398,65 @@ export function createDonationManager({
   const raycaster = new THREE.Raycaster();
   const mouseVec = new THREE.Vector2();
   const instanceToValue: number[] = [];
+  const instanceToDonationId: number[] = [];
+  const currentBuildingColor = new THREE.Color(buildingSettings.color);
 
   const applyTextureToFacade = (settings: TextureSettings) => {
-    if (settings.enabled) {
-      facadeMaterial.map = colorMap;
-      facadeMaterial.normalMap = normalMap;
-      facadeMaterial.normalScale.set(settings.normalScale, settings.normalScale);
-      facadeMaterial.roughnessMap = roughnessMap;
-      facadeMaterial.metalnessMap = metalnessMap;
-      facadeMaterial.roughness = settings.roughnessIntensity;
-      facadeMaterial.metalness = settings.metalnessIntensity;
-      facadeMaterial.bumpMap = displacementMap;
-      facadeMaterial.displacementMap = displacementMap;
-      facadeMaterial.displacementScale = settings.displacementScale;
-      facadeMaterial.emissiveMap = emissiveMap;
-    } else {
-      facadeMaterial.map = null;
-      facadeMaterial.normalMap = null;
-      facadeMaterial.roughnessMap = null;
-      facadeMaterial.metalnessMap = null;
-      facadeMaterial.bumpMap = displacementMap;
-      facadeMaterial.displacementMap = displacementMap;
-      facadeMaterial.displacementScale = 0;
-      facadeMaterial.emissiveMap = null;
+    const targets = [facadeMaterial, focusFacadeMaterial];
+    for (const mat of targets) {
+      if (settings.enabled) {
+        mat.map = colorMap;
+        mat.normalMap = normalMap;
+        mat.normalScale.set(settings.normalScale, settings.normalScale);
+        mat.roughnessMap = roughnessMap;
+        mat.metalnessMap = metalnessMap;
+        mat.roughness = settings.roughnessIntensity;
+        mat.metalness = settings.metalnessIntensity;
+        mat.bumpMap = displacementMap;
+        mat.displacementMap = displacementMap;
+        mat.displacementScale = settings.displacementScale;
+        mat.emissiveMap = emissiveMap;
+      } else {
+        mat.map = null;
+        mat.normalMap = null;
+        mat.roughnessMap = null;
+        mat.metalnessMap = null;
+        mat.bumpMap = displacementMap;
+        mat.displacementMap = displacementMap;
+        mat.displacementScale = 0;
+        mat.emissiveMap = null;
+      }
+      mat.emissiveIntensity = settings.emissiveIntensity;
+      mat.envMapIntensity = settings.envMapIntensity;
+      mat.needsUpdate = true;
     }
-    facadeMaterial.emissiveIntensity = settings.emissiveIntensity;
-    facadeMaterial.envMapIntensity = settings.envMapIntensity;
-    facadeMaterial.needsUpdate = true;
   };
 
   const applyTextureToTop = (settings: TextureSettings) => {
     const top = settings.top;
-    if (settings.enabled) {
-      topMaterial.map = concreteColorMap;
-      topMaterial.normalMap = concreteNormalMap;
-      topMaterial.normalScale.set(top.normalScale, top.normalScale);
-      topMaterial.roughnessMap = concreteRoughnessMap;
-      topMaterial.roughness = top.roughnessIntensity;
-      topMaterial.metalness = top.metalnessIntensity;
-      topMaterial.bumpMap = concreteDisplacementMap;
-      topMaterial.displacementMap = concreteDisplacementMap;
-      topMaterial.displacementScale = top.displacementScale;
-    } else {
-      topMaterial.map = null;
-      topMaterial.normalMap = null;
-      topMaterial.roughnessMap = null;
-      topMaterial.bumpMap = concreteDisplacementMap;
-      topMaterial.displacementMap = concreteDisplacementMap;
-      topMaterial.displacementScale = 0;
+    const targets = [topMaterial, focusTopMaterial];
+    for (const mat of targets) {
+      if (settings.enabled) {
+        mat.map = concreteColorMap;
+        mat.normalMap = concreteNormalMap;
+        mat.normalScale.set(top.normalScale, top.normalScale);
+        mat.roughnessMap = concreteRoughnessMap;
+        mat.roughness = top.roughnessIntensity;
+        mat.metalness = top.metalnessIntensity;
+        mat.bumpMap = concreteDisplacementMap;
+        mat.displacementMap = concreteDisplacementMap;
+        mat.displacementScale = top.displacementScale;
+      } else {
+        mat.map = null;
+        mat.normalMap = null;
+        mat.roughnessMap = null;
+        mat.bumpMap = concreteDisplacementMap;
+        mat.displacementMap = concreteDisplacementMap;
+        mat.displacementScale = 0;
+      }
+      mat.envMapIntensity = top.envMapIntensity;
+      mat.needsUpdate = true;
     }
-    topMaterial.envMapIntensity = top.envMapIntensity;
-    topMaterial.needsUpdate = true;
   };
 
   applyTextureToFacade(textureSettings);
@@ -569,6 +587,7 @@ export function createDonationManager({
 
     // --- Posicionar instâncias ---
     instanceToValue.length = 0;
+    instanceToDonationId.length = 0;
     let instanceIdx = 0;
     const maxBaseValue = donations[towerCount]?.value ?? maxValue;
 
@@ -614,6 +633,7 @@ export function createDonationManager({
         dummy.updateMatrix();
         mesh.setMatrixAt(instanceIdx, dummy.matrix);
         instanceToValue[instanceIdx] = donations[donIdx].value;
+        instanceToDonationId[instanceIdx] = id;
         instanceIdx++;
       }
 
@@ -631,6 +651,7 @@ export function createDonationManager({
         dummy.updateMatrix();
         mesh.setMatrixAt(instanceIdx, dummy.matrix);
         instanceToValue[instanceIdx] = donations[donIdx].value;
+        instanceToDonationId[instanceIdx] = id;
         instanceIdx++;
       }
     }
@@ -639,7 +660,54 @@ export function createDonationManager({
     mesh.instanceMatrix.needsUpdate = true;
     mesh.boundingSphere = null; // força recomputação na próxima chamada de raycast
 
+    // Aplicar cores individuais (customização) por instância
+    applyInstanceColors();
+
     rebuildRoads(r, blockSpacing, streetWidth);
+  };
+
+  const tmpColor = new THREE.Color();
+  let focusedDonationId: number | null = null;
+  let focusHighlightMesh: THREE.Mesh | null = null;
+
+  const removeFocusHighlight = () => {
+    if (focusHighlightMesh) {
+      scene.remove(focusHighlightMesh);
+      focusHighlightMesh = null;
+    }
+  };
+
+  const applyInstanceColors = () => {
+    if (mesh.count === 0) return;
+
+    // Verificar se alguma doação tem customização
+    const hasAnyCustom = donations.some((d) => d.customization);
+    if (!hasAnyCustom) {
+      // Sem customizações: remover instanceColor para usar cor do material
+      mesh.instanceColor = null;
+      return;
+    }
+
+    // Criar ou redimensionar o buffer de cores
+    const colors = new Float32Array(capacity * 3);
+    const donationById = new Map<number, DonationEntry>();
+    for (const d of donations) donationById.set(d.id, d);
+
+    for (let i = 0; i < mesh.count; i++) {
+      const donId = instanceToDonationId[i];
+      const donation = donationById.get(donId);
+      if (donation?.customization) {
+        tmpColor.set(donation.customization.color);
+      } else {
+        tmpColor.copy(currentBuildingColor);
+      }
+      colors[i * 3] = tmpColor.r;
+      colors[i * 3 + 1] = tmpColor.g;
+      colors[i * 3 + 2] = tmpColor.b;
+    }
+
+    mesh.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
+    mesh.instanceColor.needsUpdate = true;
   };
 
   return {
@@ -659,6 +727,7 @@ export function createDonationManager({
       rebuildInstances();
     },
     updateBuildingSettings(settings) {
+      currentBuildingColor.set(settings.color); // manter em sync para instanceColor fallback
       facadeMaterial.color.set(settings.color);
       topMaterial.color.set(settings.color);
       if (!currentTextureSettings.enabled) {
@@ -669,6 +738,7 @@ export function createDonationManager({
       }
       facadeMaterial.needsUpdate = true;
       topMaterial.needsUpdate = true;
+      applyInstanceColors();
     },
     updateTextureSettings(settings) {
       currentTextureSettings = { ...settings };
@@ -691,6 +761,8 @@ export function createDonationManager({
     setEnvMap(envMap) {
       facadeMaterial.envMap = envMap;
       facadeMaterial.needsUpdate = true;
+      focusFacadeMaterial.envMap = envMap;
+      focusFacadeMaterial.needsUpdate = true;
     },
     beginEnvCapture() {
       facadeMaterial.envMapIntensity = 0;
@@ -714,7 +786,98 @@ export function createDonationManager({
       }
       return null;
     },
+    getClickedDonationId(event: MouseEvent, camera: THREE.Camera, domElement: HTMLElement) {
+      const rect = domElement.getBoundingClientRect();
+      mouseVec.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseVec.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouseVec, camera);
+      const hits = raycaster.intersectObject(mesh);
+      if (hits.length > 0 && hits[0].instanceId !== undefined) {
+        return instanceToDonationId[hits[0].instanceId] ?? null;
+      }
+      return null;
+    },
+    getDonationWorldPosition(donationId: number) {
+      const instanceIdx = instanceToDonationId.indexOf(donationId);
+      if (instanceIdx === -1) return null;
+      const mat = new THREE.Matrix4();
+      mesh.getMatrixAt(instanceIdx, mat);
+      const pos = new THREE.Vector3();
+      const scale = new THREE.Vector3();
+      mat.decompose(pos, new THREE.Quaternion(), scale);
+      // Retornar o topo do prédio (pos.y é o centro, scale.y é a altura)
+      pos.y += scale.y / 2;
+      return pos;
+    },
+    setFocusedDonation(donationId: number | null) {
+      focusedDonationId = donationId;
+      removeFocusHighlight();
+
+      if (donationId === null) {
+        // Restaurar opacidade total
+        facadeMaterial.transparent = false;
+        facadeMaterial.opacity = 1;
+        topMaterial.transparent = false;
+        topMaterial.opacity = 1;
+        facadeMaterial.needsUpdate = true;
+        topMaterial.needsUpdate = true;
+        applyInstanceColors();
+        return;
+      }
+
+      // Instanced mesh fica semitransparente
+      facadeMaterial.transparent = true;
+      facadeMaterial.opacity = 0.15;
+      topMaterial.transparent = true;
+      topMaterial.opacity = 0.15;
+      facadeMaterial.needsUpdate = true;
+      topMaterial.needsUpdate = true;
+      // Limpar instanceColor do instanced mesh para usar a opacidade uniforme
+      mesh.instanceColor = null;
+
+      // Criar mesh isolado para o edifício selecionado (opacidade total)
+      const instanceIdx = instanceToDonationId.indexOf(donationId);
+      if (instanceIdx === -1) return;
+
+      const mat = new THREE.Matrix4();
+      mesh.getMatrixAt(instanceIdx, mat);
+
+      // Aplicar cor customizada ao material de foco
+      const donation = donations.find((d) => d.id === donationId);
+      if (donation?.customization) {
+        focusFacadeMaterial.color.set(donation.customization.color);
+        focusTopMaterial.color.set(donation.customization.color);
+      } else {
+        focusFacadeMaterial.color.copy(currentBuildingColor);
+        focusTopMaterial.color.copy(currentBuildingColor);
+      }
+      focusFacadeMaterial.needsUpdate = true;
+      focusTopMaterial.needsUpdate = true;
+
+      focusHighlightMesh = new THREE.Mesh(buildingGeometry, [focusFacadeMaterial, focusTopMaterial]);
+      focusHighlightMesh.applyMatrix4(mat);
+      focusHighlightMesh.castShadow = true;
+      focusHighlightMesh.receiveShadow = true;
+      scene.add(focusHighlightMesh);
+    },
+    updateDonationCustomization(donationId: number, customization: BuildingCustomization) {
+      const donation = donations.find((d) => d.id === donationId);
+      if (!donation) return;
+      donation.customization = customization;
+      if (focusedDonationId === donationId && focusHighlightMesh) {
+        // Atualizar cor do mesh de destaque em tempo real
+        focusFacadeMaterial.color.set(customization.color);
+        focusTopMaterial.color.set(customization.color);
+        focusFacadeMaterial.needsUpdate = true;
+        focusTopMaterial.needsUpdate = true;
+      } else if (focusedDonationId === null) {
+        applyInstanceColors();
+      }
+    },
     dispose() {
+      removeFocusHighlight();
+      focusFacadeMaterial.dispose();
+      focusTopMaterial.dispose();
       scene.remove(mesh);
       mesh.dispose();
       buildingGeometry.dispose();

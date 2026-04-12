@@ -85,12 +85,18 @@ type CitySceneRuntime = {
   updateLightSettings(settings: LightSettings): void
   updateShadowSettings(settings: ShadowSettings): void
   updateRenderDirectionSettings(settings: RenderDirectionSettings): void
+  updateHorizonSettings(settings: HorizonSettings): void
   updateEnvironmentSettings(settings: EnvironmentSettings): void
   updateBlockLayout(settings: BlockLayoutSettings): void
   addDonation(value: number): void
+  addDonations(values: number[]): void
+  updateDonationCustomization(donationId: number, customization: BuildingCustomization): void
   dispose(): void
 }
 ```
+
+> [!note] Evento de clique em edifícios
+> O runtime escuta `pointerdown`/`pointerup` no canvas. Se o cursor não se moveu mais de 5px (não é drag), faz raycast para identificar o edifício clicado e chama `onBuildingClick(donationId)` para o React abrir o painel de personalização.
 
 > [!note] updateRenderDirectionSettings
 > Mantido na API para compatibilidade com o hook e o canvas, mas sem implementação ativa (sem chunks direcionais no runtime atual).
