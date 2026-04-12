@@ -73,6 +73,8 @@ src/
       createLightingRig.ts
       createGroundPlane.ts
       createGridHelper.ts
+      createRooftopMesh.ts
+      createSignMesh.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
@@ -114,20 +116,24 @@ doc-pixcity/
 
 Ele guarda todos os estados:
 
-- `buildingSettings`
-- `textureSettings`
-- `groundSettings`
-- `lightSettings`
-- `shadowSettings`
-- `renderDirectionSettings`
-- `environmentSettings`
-- `sceneStats`
+- `buildingSettings`, `textureSettings`, `groundSettings`
+- `lightSettings`, `shadowSettings`, `renderDirectionSettings`
+- `environmentSettings`, `horizonSettings`, `blockLayoutSettings`
+- `sceneStats`, `hoverInfo`
+- `showControlPanel` — toggle do painel de configuração (escondido por padrão)
+- `selectedBuildingId` — edifício selecionado para personalização
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, rooftop e letreiro
 
 E entrega para:
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
-- [[html-components|CityControlPanel]] — mostra os controles
+- [[html-components|CityControlPanel]] — mostra os controles (toggle via botão de engrenagem)
+- [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]] — personalização do edifício selecionado
+- [[html-components#BuildingHeightInput.tsx|BuildingHeightInput]] — input de doação e layout
 
-Também gerencia a ação de doação via `canvasRef.addDonation(value)`, exposta pelo handle imperativo de `CitySceneCanvas`.
+Também gerencia:
+- Doações via `canvasRef.addDonation(value)` e `canvasRef.addDonations(values)`
+- Foco em edifício via `canvasRef.focusOnDonation(id)` e `canvasRef.clearFocus()`
+- Personalização via `canvasRef.updateDonationCustomization(id, customization)`
 
 ### 3. Canvas 3D
 
@@ -154,6 +160,7 @@ flowchart TD
     C --> D[CitySceneCanvas]
     C --> E[CityControlPanel]
     C --> F[BuildingHeightInput]
+    C --> P[BuildingCustomizePanel]
     D --> G[useCityScene]
     G --> H[createCitySceneRuntime]
     H --> I[createLightingRig]
@@ -161,7 +168,26 @@ flowchart TD
     H --> K[createGridHelper]
     H --> L[loadEnvironment]
     H --> M[createDonationManager]
+    M --> N[createRooftopMesh]
+    M --> O[createSignMesh]
     E --> C
+    P --> C
+```
+
+## Fluxo de Personalização de Edifícios
+
+```mermaid
+flowchart LR
+    Click[Clique no edifício] --> Focus[focusOnDonation]
+    Focus --> Panel[BuildingCustomizePanel]
+    Panel --> |cor| UC[updateCustomization]
+    Panel --> |letreiro| UC
+    Panel --> |rooftop| UC
+    UC --> Runtime[runtime.updateDonationCustomization]
+    Runtime --> DM[donationManager]
+    DM --> |cor| IC[instanceColor]
+    DM --> |rooftop| RM[createRooftopMesh]
+    DM --> |sign| SM[createSignMesh]
 ```
 
 ## Onde Mexer?
@@ -169,10 +195,13 @@ flowchart TD
 | Objetivo | Arquivo |
 |---|---|
 | Alterar valor padrão dos prédios | [[scene-config]] |
-| Alterar a UI do painel | [[html-components]] |
+| Alterar a UI do painel de configuração | [[html-components#CityControlPanel.tsx]] |
+| Alterar a UI de personalização de edifício | [[html-components#BuildingCustomizePanel.tsx]] |
 | Alterar o canvas ou a ligação com o hook | [[three-components]] |
 | Alterar fórmulas de luz, clamp ou material | [[scene-utils]] |
 | Alterar criação do chão, grid, luzes ou ambiente | [[scene-builders]] |
+| Alterar estruturas de topo (rooftops) | [[scene-builders#createRooftopMesh.ts]] |
+| Alterar letreiros de fachada (signs) | [[scene-builders#createSignMesh.ts]] |
 | Alterar geração dos prédios de doação | [[scene-managers]] |
 | Alterar o ciclo completo da cena | [[scene-runtime]] |
 | Entender o contrato dos dados | [[scene-types]] |

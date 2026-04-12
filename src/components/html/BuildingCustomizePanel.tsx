@@ -1,29 +1,78 @@
 import { useState } from "react";
 import { PanelSection } from "./controls/PanelSection";
 import { ColorField } from "./controls/ColorField";
+import type { RooftopType } from "../../scene/types";
+
+const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
+  { value: "none", label: "Nenhuma" },
+  { value: "antenna", label: "Antena" },
+  { value: "water-tank", label: "Caixa d'água" },
+  { value: "helipad", label: "Heliponto" },
+  { value: "solar-panels", label: "Painéis solares" },
+  { value: "billboard", label: "Outdoor" },
+  { value: "satellite-dish", label: "Antena parabólica" },
+  { value: "spotlights", label: "Holofotes" },
+];
+
+const SIDE_OPTIONS = [
+  { value: 1, label: "1 lado" },
+  { value: 2, label: "2 lados" },
+  { value: 3, label: "3 lados" },
+  { value: 4, label: "4 lados" },
+];
 
 type BuildingCustomizePanelProps = {
   donationId: number;
   initialColor: string;
+  initialRooftopType: RooftopType;
+  initialSignText: string;
+  initialSignSides: number;
   onColorChange: (donationId: number, color: string) => void;
+  onRooftopChange: (donationId: number, rooftopType: RooftopType) => void;
+  onSignTextChange: (donationId: number, signText: string) => void;
+  onSignSidesChange: (donationId: number, signSides: number) => void;
   onClose: () => void;
 };
 
 export function BuildingCustomizePanel({
   donationId,
   initialColor,
+  initialRooftopType,
+  initialSignText,
+  initialSignSides,
   onColorChange,
+  onRooftopChange,
+  onSignTextChange,
+  onSignSidesChange,
   onClose,
 }: BuildingCustomizePanelProps) {
   const [color, setColor] = useState(initialColor);
+  const [rooftopType, setRooftopType] = useState<RooftopType>(initialRooftopType);
+  const [signText, setSignText] = useState(initialSignText);
+  const [signSides, setSignSides] = useState(initialSignSides);
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
     onColorChange(donationId, newColor);
   };
 
+  const handleRooftopChange = (newType: RooftopType) => {
+    setRooftopType(newType);
+    onRooftopChange(donationId, newType);
+  };
+
+  const handleSignTextChange = (text: string) => {
+    setSignText(text);
+    onSignTextChange(donationId, text);
+  };
+
+  const handleSignSidesChange = (sides: number) => {
+    setSignSides(sides);
+    onSignSidesChange(donationId, sides);
+  };
+
   return (
-    <div className="absolute right-4 top-4 z-30 flex w-72 flex-col rounded-2xl border border-white/10 bg-black/70 text-white shadow-2xl backdrop-blur-md">
+    <div className="absolute right-4 top-4 z-30 flex max-h-[calc(100vh-2rem)] w-72 flex-col rounded-2xl border border-white/10 bg-black/70 text-white shadow-2xl backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <span className="text-sm font-medium">Personalizar Edifício</span>
         <button
@@ -40,13 +89,63 @@ export function BuildingCustomizePanel({
           </svg>
         </button>
       </div>
-      <div className="p-4">
+      <div className="space-y-4 overflow-y-auto p-4">
         <PanelSection title="Aparência">
           <ColorField
             label="Cor do edifício"
             value={color}
             onChange={handleColorChange}
           />
+        </PanelSection>
+        <PanelSection title="Letreiro">
+          <label className="block">
+            <span className="mb-2 block text-sm text-white/75">Marca ou empresa</span>
+            <input
+              type="text"
+              value={signText}
+              onChange={(e) => handleSignTextChange(e.target.value)}
+              placeholder="Ex: Acme Corp"
+              maxLength={30}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-white/20"
+            />
+          </label>
+          {signText.trim() && (
+            <div className="mt-3">
+              <span className="mb-2 block text-sm text-white/75">Lados visíveis</span>
+              <div className="flex gap-2">
+                {SIDE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleSignSidesChange(option.value)}
+                    className={`flex-1 rounded-lg border py-1.5 text-xs transition-colors ${
+                      signSides === option.value
+                        ? "border-white/40 bg-white/15 text-white"
+                        : "border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </PanelSection>
+        <PanelSection title="Estrutura de topo">
+          <div className="grid grid-cols-2 gap-2">
+            {ROOFTOP_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleRooftopChange(option.value)}
+                className={`rounded-lg border px-3 py-2 text-xs transition-colors ${
+                  rooftopType === option.value
+                    ? "border-white/40 bg-white/15 text-white"
+                    : "border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </PanelSection>
       </div>
     </div>

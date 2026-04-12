@@ -78,25 +78,43 @@ Isso é importante para evitar um efeito gigante tentando fazer tudo.
 
 ### Retorno
 
-O hook retorna um objeto com:
+O hook retorna um objeto com referências estáveis (via `useCallback`) que delegam ao runtime atual:
 
 ```typescript
-{ addDonation: (value: number) => void }
+{
+  addDonation: (value: number) => void
+  addDonations: (values: number[]) => void
+  updateDonationCustomization: (donationId: number, customization: BuildingCustomization) => void
+  focusOnDonation: (donationId: number) => void
+  clearFocus: () => void
+}
 ```
 
-`addDonation` é uma referência estável (via `useCallback`) que delega ao runtime atual sem recriar a função.
+Cada função é memorizada para não recriar o handle imperativo do [[three-components|CitySceneCanvas]] a cada render.
 
 ## `useEffectEvent`
 
-O hook usa `useEffectEvent` para o callback de estatísticas.
+O hook usa `useEffectEvent` para callbacks que não devem recriar o runtime:
 
 ```typescript
 const handleStatsChange = useEffectEvent((stats: SceneStats) => {
   onStatsChange(stats);
 });
+
+const handleHoverChange = useEffectEvent(
+  (value: number | null, x: number, y: number) => {
+    onHoverChange?.(value, x, y);
+  },
+);
+
+const handleBuildingClick = useEffectEvent(
+  (donationId: number | null) => {
+    onBuildingClick?.(donationId);
+  },
+);
 ```
 
-Isso repassa `onStatsChange` para o runtime sem recriar o runtime toda vez que o React renderiza — o callback sempre vê o valor mais recente sem precisar ser listado como dependência.
+Isso repassa os callbacks para o runtime sem recriar o runtime toda vez que o React renderiza — cada callback sempre vê o valor mais recente sem precisar ser listado como dependência.
 
 ## Cleanup
 

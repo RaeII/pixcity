@@ -105,6 +105,85 @@ Carrega e configura o ambiente HDRI/skybox.
 - Alterar como o skybox responde ao offset de ambiente
 - Mudar a geração do `scene.environment`
 
+### `createRooftopMesh.ts`
+
+Factory para estruturas de topo dos edifícios. Chamado pelo [[scene-managers|DonationManager]] quando o usuário personaliza um edifício via [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]].
+
+**Estruturas disponíveis:**
+
+| Tipo | Geometria | Materiais | Descrição |
+|---|---|---|---|
+| `antenna` | `CylinderGeometry` × 4 + `SphereGeometry` | `ROOFTOP_MATERIAL` + `RED_LIGHT_MATERIAL` | Mastro principal (0.03–0.04r, 1.8h) com 3 suportes laterais angulados e esfera emissiva vermelha no topo (luz de sinalização aérea) |
+| `water-tank` | `CylinderGeometry` × 5 + `ConeGeometry` | `ROOFTOP_MATERIAL` | 4 pernas de suporte (0.03r, 0.4h) sustentando tanque cilíndrico (0.3r, 0.45h) com tampa cônica (0.32r, 0.15h) |
+| `helipad` | `CylinderGeometry` + `RingGeometry` + `BoxGeometry` × 3 | `ROOFTOP_MATERIAL` + `WHITE_MATERIAL` | Plataforma circular (0.6r) com anel branco (0.5–0.55r) e marcação H formada por 3 barras (2 verticais + 1 horizontal) |
+| `solar-panels` | `BoxGeometry` × 12 + `CylinderGeometry` × 2 | `PANEL_MATERIAL` + `PANEL_FRAME_MATERIAL` + `ROOFTOP_MATERIAL` | Grade 2×3 de painéis azuis (0.25×0.35) inclinados a −0.4rad sobre molduras metálicas, com 2 suportes cilíndricos |
+| `billboard` | `CylinderGeometry` × 2 + `BoxGeometry` × 2 | `ROOFTOP_MATERIAL` + `WHITE_MATERIAL` | 2 postes (0.03r, 1.0h) sustentando placa branca retangular (0.9×0.5) com moldura metálica traseira |
+| `satellite-dish` | `CylinderGeometry` × 3 + `SphereGeometry` | `ROOFTOP_MATERIAL` + `DISH_MATERIAL` | Base cilíndrica (0.12–0.15r) com haste angulada (0.3rad), prato côncavo (0.3r, meia esfera) e receptor cilíndrico apontando para o centro do prato |
+| `spotlights` | `CylinderGeometry` × 8 + `CircleGeometry` × 4 + `ConeGeometry` × 4 | `SPOTLIGHT_HOUSING_MATERIAL` + `SPOTLIGHT_LENS_MATERIAL` + `SPOTLIGHT_BEAM_MATERIAL` | 4 holofotes nos cantos (±0.35, ±0.35) — base (0.08r) + corpo cônico (0.04–0.07r, 0.12h) + lente emissiva amarela + feixe cônico (0.22r, 2.0h) com vertex alpha gradiente (opaco na fonte, desvanece no topo via curva quadrática) |
+
+**Materiais compartilhados (estáticos de módulo):**
+
+| Material | Cor | Roughness | Metalness | Extra |
+|---|---|---|---|---|
+| `ROOFTOP_MATERIAL` | `#888888` | 0.6 | 0.4 | Uso geral (postes, suportes, bases) |
+| `RED_LIGHT_MATERIAL` | `#ff2200` | 0.3 | 0.0 | `emissive: #ff2200`, `emissiveIntensity: 2.0` |
+| `PANEL_MATERIAL` | `#1a2a4a` | 0.2 | 0.8 | Painéis solares (azul escuro metálico) |
+| `PANEL_FRAME_MATERIAL` | `#555555` | 0.5 | 0.6 | Molduras dos painéis solares |
+| `WHITE_MATERIAL` | `#eeeeee` | 0.5 | 0.1 | Marcações do heliponto, placa do billboard |
+| `DISH_MATERIAL` | `#cccccc` | 0.3 | 0.7 | `side: DoubleSide` — prato da antena parabólica |
+| `SPOTLIGHT_HOUSING_MATERIAL` | `#222222` | 0.4 | 0.6 | Corpo escuro do holofote |
+| `SPOTLIGHT_LENS_MATERIAL` | `#ffffcc` | 0.1 | 0.0 | `emissive: #ffffaa`, `emissiveIntensity: 2.5` — lente amarela brilhante |
+| `SPOTLIGHT_BEAM_MATERIAL` | `#ffffdd` | — | — | `emissive: #ffffaa`, `emissiveIntensity: 0.8`, `vertexColors: true`, `transparent`, `DoubleSide`, `depthWrite: false` — feixe com alpha gradiente via vertex colors (curva quadrática: fonte opaca → topo transparente) |
+
+**API:**
+```typescript
+createRooftopMesh(type: RooftopType): THREE.Group | null  // null se "none"
+disposeRooftopMesh(group: THREE.Group): void               // limpa geometrias (não materiais)
+disposeRooftopMaterials(): void                             // limpa materiais compartilhados (só no dispose final)
+```
+
+> [!note] Sombras
+> Todos os meshes dentro do grupo têm `castShadow = true` e `receiveShadow = true`, habilitados automaticamente via `group.traverse()`.
+
+---
+
+### `createSignMesh.ts`
+
+Factory para letreiros de fachada nos edifícios. Renderiza texto via `CanvasTexture` em um plano fino com material emissivo (estilo LED corporativo). Chamado pelo [[scene-managers|DonationManager]] quando o usuário digita um texto no [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]].
+
+**Características visuais:**
+
+| Elemento | Descrição |
+|---|---|
+| **Fundo** | Painel escuro `rgba(8,10,16,0.88)` com cantos arredondados (8px) e borda fina `rgba(255,255,255,0.08)` |
+| **Texto** | Fonte `600` (semi-bold), família Inter/Segoe UI/Helvetica, cor `#e8ecf4` |
+| **Glow LED** | `shadowBlur: 12`, cor `rgba(200,220,255,0.6)` — simula sinalização LED retroiluminada |
+| **Material da placa** | `MeshStandardMaterial` com `emissiveIntensity: 0.4`, `roughness: 0.35`, `metalness: 0.6` |
+| **Backing plate** | `BoxGeometry` metálico escuro `#1a1c22` (`roughness: 0.7`, `metalness: 0.5`) |
+| **Posição Y** | `buildingH * 0.45` acima do centro = ~95% da altura do edifício (bem perto do topo) |
+
+**Lados (parâmetro `sides` 1–4):**
+
+| Valor | Fachadas | Rotação da normal do plano |
+|---|---|---|
+| 1 | Frente (+Z) | `rotY = 0` |
+| 2 | +Trás (−Z) | `rotY = π` |
+| 3 | +Direita (+X) | `rotY = +π/2` |
+| 4 | +Esquerda (−X) | `rotY = −π/2` |
+
+Cada lado cria seu próprio canvas, textura e material independentes. A largura do letreiro se adapta à largura da fachada correspondente (`buildingW` para frente/trás, `buildingD` para laterais). A altura é consistente em todos os lados: `max(buildingW, buildingD) * 0.22`.
+
+> [!note] Ajuste automático de fonte
+> O fontSize começa em 52% da altura do canvas e é reduzido pixel a pixel até o texto caber com 12% de padding lateral. Limite máximo: 30 caracteres (imposto pelo UI).
+
+**API:**
+```typescript
+createSignMesh(text: string, buildingW: number, buildingD: number, buildingH: number, sides: number): THREE.Group | null
+disposeSignMesh(group: THREE.Group): void  // limpa texturas, materiais e geometrias de todos os lados
+```
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

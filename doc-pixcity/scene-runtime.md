@@ -79,6 +79,7 @@ O runtime expõe métodos públicos chamados pelo [[scene-hooks|useCityScene]]:
 
 ```typescript
 type CitySceneRuntime = {
+  // Configurações da cena
   updateBuildingSettings(settings: BuildingSettings): void
   updateTextureSettings(settings: TextureSettings): void
   updateGroundSettings(settings: GroundSettings): void
@@ -88,15 +89,25 @@ type CitySceneRuntime = {
   updateHorizonSettings(settings: HorizonSettings): void
   updateEnvironmentSettings(settings: EnvironmentSettings): void
   updateBlockLayout(settings: BlockLayoutSettings): void
+
+  // Doações
   addDonation(value: number): void
   addDonations(values: number[]): void
+
+  // Personalização individual
   updateDonationCustomization(donationId: number, customization: BuildingCustomization): void
+  focusOnDonation(donationId: number): void  // destaque visual no edifício
+  clearFocus(): void                          // remove destaque
+
   dispose(): void
 }
 ```
 
 > [!note] Evento de clique em edifícios
 > O runtime escuta `pointerdown`/`pointerup` no canvas. Se o cursor não se moveu mais de 5px (não é drag), faz raycast para identificar o edifício clicado e chama `onBuildingClick(donationId)` para o React abrir o painel de personalização.
+
+> [!note] Sistema de foco
+> `focusOnDonation` delega para `donationManager.setFocusedDonation(id)`, que deixa toda a cidade semitransparente e cria um mesh isolado do edifício selecionado. `clearFocus` restaura a opacidade original.
 
 > [!note] updateRenderDirectionSettings
 > Mantido na API para compatibilidade com o hook e o canvas, mas sem implementação ativa (sem chunks direcionais no runtime atual).
@@ -107,12 +118,16 @@ Limpeza completa ao desmontar:
 
 ```
 dispose()
+  ├── removeEventListener('mousemove')     ← hover
+  ├── removeEventListener('pointerdown')   ← clique (detecção de drag)
+  ├── removeEventListener('pointerup')     ← clique (raycast)
   ├── cancelAnimationFrame
   ├── removeEventListener('resize')
   ├── controls.dispose()
-  ├── donationManager.dispose()
+  ├── donationManager.dispose()            ← inclui rooftops, signs, focus mesh
   ├── groundPlane.dispose()
   ├── gridHelper.dispose()
+  ├── horizonSilhouette.dispose()
   ├── lightingRig.dispose()
   ├── environmentUpdater.dispose()
   ├── loadedEnvMap?.dispose()

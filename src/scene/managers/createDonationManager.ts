@@ -1,5 +1,7 @@
 import * as THREE from "three";
-import type { BlockLayoutSettings, BuildingCustomization, BuildingSettings, DonationEntry, TextureSettings } from "../types";
+import type { BlockLayoutSettings, BuildingCustomization, BuildingSettings, DonationEntry, RooftopType, TextureSettings } from "../types";
+import { createRooftopMesh, disposeRooftopMesh, disposeRooftopMaterials } from "../builders/createRooftopMesh";
+import { createSignMesh, disposeSignMesh } from "../builders/createSignMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -663,6 +665,10 @@ export function createDonationManager({
     // Aplicar cores individuais (customização) por instância
     applyInstanceColors();
 
+    // Reposicionar estruturas de topo e letreiros
+    syncRooftops();
+    syncSigns();
+
     rebuildRoads(r, blockSpacing, streetWidth);
   };
 
@@ -708,6 +714,121 @@ export function createDonationManager({
 
     mesh.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
     mesh.instanceColor.needsUpdate = true;
+  };
+
+  // --- Estruturas de topo (rooftops) ---
+  // Mapa: donationId → { group, type }
+  const rooftopMeshes = new Map<number, { group: THREE.Group; type: RooftopType }>();
+
+  const syncRooftops = () => {
+    // Reposicionar todos os rooftops existentes com base nas posições atuais dos edifícios
+    for (const [donId, entry] of rooftopMeshes) {
+      const idx = instanceToDonationId.indexOf(donId);
+      if (idx === -1) {
+        // Edifício não está visível — esconder
+        entry.group.visible = false;
+        continue;
+      }
+      const mat4 = new THREE.Matrix4();
+      mesh.getMatrixAt(idx, mat4);
+      const pos = new THREE.Vector3();
+      const scale = new THREE.Vector3();
+      mat4.decompose(pos, new THREE.Quaternion(), scale);
+      // Posicionar no topo do edifício
+      entry.group.position.set(pos.x, pos.y + scale.y / 2, pos.z);
+      entry.group.visible = true;
+    }
+  };
+
+  const setRooftop = (donationId: number, type: RooftopType) => {
+    // Remover rooftop anterior se existir
+    const existing = rooftopMeshes.get(donationId);
+    if (existing) {
+      scene.remove(existing.group);
+      disposeRooftopMesh(existing.group);
+      rooftopMeshes.delete(donationId);
+    }
+
+    if (type === "none") return;
+
+    const group = createRooftopMesh(type);
+    if (!group) return;
+
+    rooftopMeshes.set(donationId, { group, type });
+    scene.add(group);
+
+    // Posicionar imediatamente
+    const idx = instanceToDonationId.indexOf(donationId);
+    if (idx !== -1) {
+      const mat4 = new THREE.Matrix4();
+      mesh.getMatrixAt(idx, mat4);
+      const pos = new THREE.Vector3();
+      const scale = new THREE.Vector3();
+      mat4.decompose(pos, new THREE.Quaternion(), scale);
+      group.position.set(pos.x, pos.y + scale.y / 2, pos.z);
+    }
+  };
+
+  // --- Letreiros (signs) ---
+  // Mapa: donationId → { group, text }
+  const signMeshes = new Map<number, { group: THREE.Group; text: string }>();
+
+  const getBuildingScale = (donationId: number): THREE.Vector3 | null => {
+    const idx = instanceToDonationId.indexOf(donationId);
+    if (idx === -1) return null;
+    const mat4 = new THREE.Matrix4();
+    mesh.getMatrixAt(idx, mat4);
+    const scale = new THREE.Vector3();
+    mat4.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale);
+    return scale;
+  };
+
+  const syncSigns = () => {
+    for (const [donId, entry] of signMeshes) {
+      const idx = instanceToDonationId.indexOf(donId);
+      if (idx === -1) {
+        entry.group.visible = false;
+        continue;
+      }
+      const mat4 = new THREE.Matrix4();
+      mesh.getMatrixAt(idx, mat4);
+      const pos = new THREE.Vector3();
+      mat4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+      entry.group.position.copy(pos);
+      entry.group.visible = true;
+    }
+  };
+
+  const setSign = (donationId: number, text: string, sides: number) => {
+    // Remover sign anterior
+    const existing = signMeshes.get(donationId);
+    if (existing) {
+      scene.remove(existing.group);
+      disposeSignMesh(existing.group);
+      signMeshes.delete(donationId);
+    }
+
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const scale = getBuildingScale(donationId);
+    if (!scale) return;
+
+    const group = createSignMesh(trimmed, scale.x, scale.z, scale.y, sides);
+    if (!group) return;
+
+    signMeshes.set(donationId, { group, text: trimmed });
+    scene.add(group);
+
+    // Posicionar imediatamente no centro do edifício
+    const idx = instanceToDonationId.indexOf(donationId);
+    if (idx !== -1) {
+      const mat4 = new THREE.Matrix4();
+      mesh.getMatrixAt(idx, mat4);
+      const pos = new THREE.Vector3();
+      mat4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+      group.position.copy(pos);
+    }
   };
 
   return {
@@ -863,7 +984,12 @@ export function createDonationManager({
     updateDonationCustomization(donationId: number, customization: BuildingCustomization) {
       const donation = donations.find((d) => d.id === donationId);
       if (!donation) return;
+
+      const prevRooftop = donation.customization?.rooftopType ?? "none";
+      const prevSignText = donation.customization?.signText ?? "";
+      const prevSignSides = donation.customization?.signSides ?? 1;
       donation.customization = customization;
+
       if (focusedDonationId === donationId && focusHighlightMesh) {
         // Atualizar cor do mesh de destaque em tempo real
         focusFacadeMaterial.color.set(customization.color);
@@ -873,9 +999,32 @@ export function createDonationManager({
       } else if (focusedDonationId === null) {
         applyInstanceColors();
       }
+
+      // Atualizar rooftop se o tipo mudou
+      if (customization.rooftopType !== prevRooftop) {
+        setRooftop(donationId, customization.rooftopType);
+      }
+
+      // Atualizar letreiro se o texto ou número de lados mudou
+      if (customization.signText !== prevSignText || customization.signSides !== prevSignSides) {
+        setSign(donationId, customization.signText, customization.signSides);
+      }
     },
     dispose() {
       removeFocusHighlight();
+      // Limpar rooftops
+      for (const [, entry] of rooftopMeshes) {
+        scene.remove(entry.group);
+        disposeRooftopMesh(entry.group);
+      }
+      rooftopMeshes.clear();
+      disposeRooftopMaterials();
+      // Limpar letreiros
+      for (const [, entry] of signMeshes) {
+        scene.remove(entry.group);
+        disposeSignMesh(entry.group);
+      }
+      signMeshes.clear();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);

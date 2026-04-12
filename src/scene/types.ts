@@ -1,7 +1,20 @@
 import * as THREE from "three";
 
+export type RooftopType =
+  | "none"
+  | "antenna"
+  | "water-tank"
+  | "helipad"
+  | "solar-panels"
+  | "billboard"
+  | "satellite-dish"
+  | "spotlights";
+
 export type BuildingCustomization = {
   color: string;
+  rooftopType: RooftopType;
+  signText: string;
+  signSides: number; // 1–4 lados com letreiro
 };
 
 export type DonationEntry = {

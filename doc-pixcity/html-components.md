@@ -57,23 +57,43 @@ Overlay fixo no centro superior da página — é o input de doação.
 
 ### `BuildingCustomizePanel.tsx`
 
-Painel de personalização de um edifício individual, exibido ao clicar em um prédio na cena.
+Painel de personalização de um edifício individual, exibido ao clicar em um prédio na cena. Posicionado no canto superior direito com scroll interno para caber em telas menores.
 
 **Responsabilidades:**
 - Exibir campos de personalização para o edifício selecionado
-- Atualizar a cor do edifício em tempo real via `onColorChange`
-- Botão de fechar para desselecionar o edifício
+- Atualizar cor, letreiro e estrutura de topo em tempo real
+- Botão de fechar (X) para desselecionar o edifício
 
 **Props:**
+
 | Prop | Tipo | Descrição |
 |---|---|---|
 | `donationId` | `number` | ID da doação selecionada |
 | `initialColor` | `string` | Cor atual do edifício (customizada ou global) |
+| `initialRooftopType` | `RooftopType` | Tipo de estrutura de topo atual |
+| `initialSignText` | `string` | Texto atual do letreiro na fachada |
+| `initialSignSides` | `number` | Quantidade de lados com letreiro (1–4) |
 | `onColorChange` | `(id: number, color: string) => void` | Callback de troca de cor |
-| `onClose` | `() => void` | Fecha o painel |
+| `onRooftopChange` | `(id: number, type: RooftopType) => void` | Callback de troca de estrutura de topo |
+| `onSignTextChange` | `(id: number, text: string) => void` | Callback de troca de texto do letreiro |
+| `onSignSidesChange` | `(id: number, sides: number) => void` | Callback de troca de lados do letreiro |
+| `onClose` | `() => void` | Fecha o painel e limpa o foco |
+
+**Seções do painel:**
+
+| Seção | Controles | Descrição |
+|---|---|---|
+| **Aparência** | `ColorField` | Cor individual do edifício (hex) |
+| **Letreiro** | Input de texto + seletor de lados | Marca/empresa na fachada (máx 30 chars). Seletor de lados (1–4) aparece quando há texto |
+| **Estrutura de topo** | Grid 2×2 de botões | 7 opções: nenhuma, antena, caixa d'água, heliponto, painéis solares, outdoor, antena parabólica |
 
 > [!note] Fluxo de personalização
-> Clique no edifício → `onBuildingClick(donationId)` → `CitySceneEditor` abre `BuildingCustomizePanel` → mudança de cor chama `canvasRef.updateDonationCustomization(id, { color })` → runtime aplica `instanceColor` individual.
+> Clique no edifício → `onBuildingClick(donationId)` → `CitySceneEditor` chama `focusOnDonation` (destaque visual) e abre `BuildingCustomizePanel` → cada mudança chama `updateCustomization` que monta o `BuildingCustomization` completo e envia ao runtime via `canvasRef.updateDonationCustomization(id, {...})`.
+
+> [!tip] Onde cada personalização é aplicada
+> - **Cor** → `InstancedBufferAttribute` (instanceColor) no [[scene-managers|DonationManager]]
+> - **Letreiro** → `CanvasTexture` + `PlaneGeometry` via [[scene-builders#createSignMesh.ts|createSignMesh]]
+> - **Rooftop** → `THREE.Group` via [[scene-builders#createRooftopMesh.ts|createRooftopMesh]]
 
 ---
 

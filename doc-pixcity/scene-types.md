@@ -233,17 +233,45 @@ type SceneStats = {
 
 ## Tipos de Personalização
 
+### `RooftopType`
+
+Tipos de estrutura que podem ser colocados no topo de um edifício:
+
+```typescript
+type RooftopType =
+  | "none"           // sem estrutura
+  | "antenna"        // antena com luz de sinalização
+  | "water-tank"     // caixa d'água com pernas
+  | "helipad"        // heliponto com marcação H
+  | "solar-panels"   // painéis solares inclinados
+  | "billboard"      // outdoor publicitário
+  | "satellite-dish" // antena parabólica
+  | "spotlights"     // 4 holofotes com feixe de luz para cima
+```
+
 ### `BuildingCustomization`
 
 Personalização visual de um edifício individual:
 
 ```typescript
 type BuildingCustomization = {
-  color: string;  // cor hex do edifício
+  color: string;              // cor hex do edifício
+  rooftopType: RooftopType;   // estrutura no topo
+  signText: string;           // texto do letreiro na fachada (vazio = sem letreiro)
+  signSides: number;          // quantos lados exibem o letreiro (1–4)
 }
 ```
 
-Armazenada opcionalmente em cada `DonationEntry`. Quando presente, a cor individual substitui a cor global dos prédios (`BuildingSettings.color`) usando `InstancedBufferAttribute` de cores.
+Armazenada opcionalmente em cada `DonationEntry`. Cada campo controla um aspecto visual independente:
+
+| Campo | Efeito | Implementação |
+|---|---|---|
+| `color` | Cor individual do edifício | `InstancedBufferAttribute` (instanceColor) sobrescrevendo a cor global do material |
+| `rooftopType` | Estrutura 3D no topo do edifício | `THREE.Group` criado por [[scene-builders#createRooftopMesh.ts\|createRooftopMesh]], posicionado no topo |
+| `signText` | Texto da marca/empresa na fachada | `CanvasTexture` + `PlaneGeometry` criados por [[scene-builders#createSignMesh.ts\|createSignMesh]] |
+| `signSides` | Em quantas fachadas o letreiro aparece | 1=frente, 2=+trás, 3=+direita, 4=todos os lados |
+
+Todos gerenciados pelo [[scene-managers|DonationManager]]. A customização é propagada pelo pipeline: `CitySceneEditor` → `CitySceneCanvas` → `useCityScene` → `runtime` → `donationManager.updateDonationCustomization()`.
 
 ---
 

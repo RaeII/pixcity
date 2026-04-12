@@ -90,6 +90,8 @@ O manager usa um único par de materiais para prédios e um material de asfalto 
 |---|---|---|
 | `facadeMaterial` | `MeshPhysicalMaterial` | Textura de fachada com shader triplanar + cube envMap dinâmico |
 | `topMaterial` | `MeshPhysicalMaterial` | Textura de concreto para o topo dos prédios |
+| `focusFacadeMaterial` | `MeshPhysicalMaterial` | Clone do facadeMaterial para o edifício em destaque (opacidade total quando o instanced mesh fica semitransparente) |
+| `focusTopMaterial` | `MeshPhysicalMaterial` | Clone do topMaterial para o edifício em destaque |
 | `asphaltMaterial` | `MeshStandardMaterial` | Cor escura (#18191c), roughness 0.92 — usado nas faixas de asfalto entre quadras |
 
 #### Rede de Estradas (Asfalto)
@@ -109,25 +111,69 @@ Quando há mais de um bloco (`r > 0`), `rebuildRoads(r, blockSpacing, streetWidt
 #### Métodos Públicos
 
 ```typescript
+// Doações
 addDonation(value: number): void
 addDonations(values: number[]): void
 getDonationCount(): number
-setEnvMap(texture: THREE.Texture): void
-setShadowEnabled(enabled: boolean): void
-beginEnvCapture(): void  // oculta prédios durante captura do CubeCamera
-endEnvCapture(): void    // reexibe prédios após captura
+
+// Configurações globais
 updateBuildingSettings(settings: BuildingSettings): void
 updateTextureSettings(settings: TextureSettings): void
-updateBlockLayout(settings: BlockLayoutSettings): void  // recalcula posições de todas as quadras
-getHoveredValue(event, camera, domElement): number | null  // raycast hover
+updateBlockLayout(settings: BlockLayoutSettings): void
+
+// EnvMap e sombras
+setEnvMap(texture: THREE.Texture): void
+setShadowEnabled(enabled: boolean): void
+beginEnvCapture(): void   // oculta prédios durante captura do CubeCamera
+endEnvCapture(): void     // reexibe prédios após captura
+
+// Interação
+getHoveredValue(event, camera, domElement): number | null       // raycast hover → valor da doação
 getClickedDonationId(event, camera, domElement): number | null  // raycast clique → donation ID
-updateDonationCustomization(donationId: number, customization: BuildingCustomization): void  // aplica cor individual
+getDonationWorldPosition(donationId: number): THREE.Vector3 | null  // posição do topo do edifício
+
+// Foco e personalização
+setFocusedDonation(donationId: number | null): void  // destaque visual (semitransparência + mesh isolado)
+updateDonationCustomization(donationId: number, customization: BuildingCustomization): void
+
+// Cleanup
 dispose(): void
 ```
+
+#### Foco em Edifício (Destaque Visual)
+
+Quando o usuário clica em um edifício, `setFocusedDonation(donationId)` cria um destaque visual:
+
+1. **Instanced mesh** fica semitransparente (`opacity: 0.15`) — toda a cidade some sutilmente
+2. **Mesh isolado** (`focusHighlightMesh`) é criado com os materiais de foco (`focusFacadeMaterial` / `focusTopMaterial`) na posição exata do edifício, com opacidade total
+3. Se o edifício tem **cor customizada**, os materiais de foco recebem essa cor
+4. O `instanceColor` do instanced mesh é limpo durante o foco para usar a opacidade uniforme
+
+Ao chamar `setFocusedDonation(null)`, a opacidade é restaurada a 1.0, o mesh isolado é removido e o `instanceColor` é reaplicado.
+
+---
 
 #### Cores Individuais por Edifício
 
 Quando um edifício recebe uma customização via `updateDonationCustomization`, a cor é armazenada em `DonationEntry.customization` e aplicada via `InstancedBufferAttribute` (instanceColor). Edifícios sem customização usam a cor global do material. O sistema é reativado a cada `rebuildInstances` ou mudança de `BuildingSettings`.
+
+#### Estruturas de Topo (Rooftops)
+
+Cada edifício pode ter uma estrutura 3D no topo, gerenciada pelo campo `rooftopType` em `BuildingCustomization`. O manager mantém um `Map<donationId, { group, type }>` com os `THREE.Group` criados por [[scene-builders#createRooftopMesh.ts|createRooftopMesh]].
+
+- **Posicionamento:** após cada `rebuildInstances`, `syncRooftops()` reposiciona todos os grupos no topo dos edifícios correspondentes.
+- **Criação/remoção:** `setRooftop(donationId, type)` remove o grupo anterior e cria um novo se `type !== "none"`.
+- **Cleanup:** no `dispose()`, todos os grupos são removidos e `disposeRooftopMaterials()` limpa materiais compartilhados.
+
+#### Letreiros (Signs)
+
+Cada edifício pode ter um letreiro na fachada com o texto da marca/empresa do doador, gerenciado pelo campo `signText` em `BuildingCustomization`. O manager mantém um `Map<donationId, { group, text }>` com os `THREE.Group` criados por [[scene-builders#createSignMesh.ts|createSignMesh]].
+
+- **Dimensionamento:** o letreiro usa as dimensões reais do edifício (`getBuildingScale`) — largura adaptada a cada fachada, altura consistente em todos os lados.
+- **Lados:** `signSides` (1–4) controla em quantas fachadas o letreiro aparece. Cada mudança de texto ou de lados recria o sign completo via `setSign(donationId, text, sides)`.
+- **Posicionamento:** `syncSigns()` reposiciona todos os letreiros no centro do edifício após cada `rebuildInstances`.
+- **Detecção de mudança:** `updateDonationCustomization` compara `signText` e `signSides` anteriores com os novos valores — recria só se houve mudança.
+- **Cleanup:** no `dispose()`, todos os sign meshes são removidos com `disposeSignMesh()`.
 
 ---
 

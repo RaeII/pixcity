@@ -13,7 +13,7 @@ import { createDefaultRenderDirectionSettings } from "../scene/config/renderDire
 import { createDefaultShadowSettings } from "../scene/config/shadowConfig";
 import { createDefaultTextureSettings } from "../scene/config/textureConfig";
 import { createDefaultHorizonSettings } from "../scene/config/horizonConfig";
-import type { SceneStats } from "../scene/types";
+import type { BuildingCustomization, RooftopType, SceneStats } from "../scene/types";
 import { getLightMetrics } from "../scene/utils/lighting";
 
 export function CitySceneEditor() {
@@ -34,7 +34,7 @@ export function CitySceneEditor() {
   const [hoverInfo, setHoverInfo] = useState<{ value: number; x: number; y: number } | null>(null);
   const [showControlPanel, setShowControlPanel] = useState(false);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
-  const [buildingColors, setBuildingColors] = useState<Map<number, string>>(new Map());
+  const [buildingCustomizations, setBuildingCustomizations] = useState<Map<number, BuildingCustomization>>(new Map());
 
   const lightMetrics = getLightMetrics(lightSettings);
 
@@ -70,16 +70,57 @@ export function CitySceneEditor() {
     setSelectedBuildingId(null);
   }, []);
 
-  const handleBuildingColorChange = useCallback(
-    (donationId: number, color: string) => {
-      canvasRef.current?.updateDonationCustomization(donationId, { color });
-      setBuildingColors((prev) => {
+  const getExistingCustomization = useCallback(
+    (donationId: number) => {
+      const existing = buildingCustomizations.get(donationId);
+      return {
+        color: existing?.color ?? buildingSettings.color,
+        rooftopType: existing?.rooftopType ?? "none" as const,
+        signText: existing?.signText ?? "",
+        signSides: existing?.signSides ?? 1,
+      };
+    },
+    [buildingCustomizations, buildingSettings.color],
+  );
+
+  const updateCustomization = useCallback(
+    (donationId: number, patch: Partial<BuildingCustomization>) => {
+      setBuildingCustomizations((prev) => {
         const next = new Map(prev);
-        next.set(donationId, color);
+        const existing = next.get(donationId);
+        const updated: BuildingCustomization = {
+          color: existing?.color ?? buildingSettings.color,
+          rooftopType: existing?.rooftopType ?? "none",
+          signText: existing?.signText ?? "",
+          signSides: existing?.signSides ?? 1,
+          ...patch,
+        };
+        next.set(donationId, updated);
+        canvasRef.current?.updateDonationCustomization(donationId, updated);
         return next;
       });
     },
-    [],
+    [buildingSettings.color],
+  );
+
+  const handleBuildingColorChange = useCallback(
+    (donationId: number, color: string) => updateCustomization(donationId, { color }),
+    [updateCustomization],
+  );
+
+  const handleRooftopChange = useCallback(
+    (donationId: number, rooftopType: RooftopType) => updateCustomization(donationId, { rooftopType }),
+    [updateCustomization],
+  );
+
+  const handleSignTextChange = useCallback(
+    (donationId: number, signText: string) => updateCustomization(donationId, { signText }),
+    [updateCustomization],
+  );
+
+  const handleSignSidesChange = useCallback(
+    (donationId: number, signSides: number) => updateCustomization(donationId, { signSides }),
+    [updateCustomization],
   );
 
   return (
@@ -117,15 +158,24 @@ export function CitySceneEditor() {
         blockLayoutSettings={blockLayoutSettings}
         onBlockLayoutChange={setBlockLayoutSettings}
       />
-      {selectedBuildingId !== null && (
-        <BuildingCustomizePanel
-          key={selectedBuildingId}
-          donationId={selectedBuildingId}
-          initialColor={buildingColors.get(selectedBuildingId) ?? buildingSettings.color}
-          onColorChange={handleBuildingColorChange}
-          onClose={handleCloseCustomizePanel}
-        />
-      )}
+      {selectedBuildingId !== null && (() => {
+        const c = getExistingCustomization(selectedBuildingId);
+        return (
+          <BuildingCustomizePanel
+            key={selectedBuildingId}
+            donationId={selectedBuildingId}
+            initialColor={c.color}
+            initialRooftopType={c.rooftopType}
+            initialSignText={c.signText}
+            initialSignSides={c.signSides}
+            onColorChange={handleBuildingColorChange}
+            onRooftopChange={handleRooftopChange}
+            onSignTextChange={handleSignTextChange}
+            onSignSidesChange={handleSignSidesChange}
+            onClose={handleCloseCustomizePanel}
+          />
+        );
+      })()}
       {showControlPanel && (
         <CityControlPanel
           buildingSettings={buildingSettings}
