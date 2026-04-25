@@ -113,9 +113,9 @@ Factory para os holofotes de topo dos edifícios. Chamado pelo [[scene-managers|
 
 | Tipo | Geometria | Materiais | Descrição |
 |---|---|---|---|
-| `spotlights` | `CylinderGeometry` × 8 + `CircleGeometry` × 4 + `ConeGeometry` × 4 | `SPOTLIGHT_HOUSING_MATERIAL` + `SPOTLIGHT_LENS_MATERIAL` + `SPOTLIGHT_BEAM_MATERIAL` | 4 holofotes nos cantos (±0.35, ±0.35) — base (0.08r) + corpo cônico (0.04–0.07r, 0.12h) + lente emissiva amarela + feixe cônico (0.22r, 2.0h) com vertex alpha gradiente (opaco na fonte, desvanece no topo via curva quadrática) |
+| `spotlights` | `CylinderGeometry` × 3 + `CircleGeometry` × 1 compartilhadas pelo módulo | `SPOTLIGHT_HOUSING_MATERIAL` + `SPOTLIGHT_LENS_MATERIAL` + `SPOTLIGHT_BEAM_MATERIAL` compartilhados | 4 holofotes nos cantos (±0.35, ±0.35) — base (0.08r) + corpo cônico (0.04–0.07r, 0.12h) + lente emissiva amarela + feixe cônico (0.22r, 10.0h) com vertex alpha gradiente (opaco na fonte, desvanece no topo via curva quadrática). Não cria luzes reais por edifício. |
 
-**Materiais compartilhados (estáticos de módulo):**
+**Recursos compartilhados (estáticos de módulo):**
 
 | Material | Cor | Roughness | Metalness | Extra |
 |---|---|---|---|---|
@@ -123,15 +123,18 @@ Factory para os holofotes de topo dos edifícios. Chamado pelo [[scene-managers|
 | `SPOTLIGHT_LENS_MATERIAL` | `#ffffcc` | 0.1 | 0.0 | `emissive: #ffffaa`, `emissiveIntensity: 2.5` — lente amarela brilhante |
 | `SPOTLIGHT_BEAM_MATERIAL` | `#ffffdd` | — | — | `emissive: #ffffaa`, `emissiveIntensity: 1.25`, `vertexColors: true`, `transparent`, `DoubleSide`, `depthWrite: false` — feixe com alpha gradiente via vertex colors (curva quadrática: fonte opaca → topo transparente) |
 
+As geometrias de base, corpo, lente e feixe também são compartilhadas. `disposeRooftopMesh()` apenas libera as referências do grupo; o descarte de GPU dos recursos compartilhados acontece no dispose final.
+
 **API:**
 ```typescript
 createRooftopMesh(type: RooftopType): THREE.Group | null  // null se "none"
-disposeRooftopMesh(group: THREE.Group): void               // limpa geometrias (não materiais)
-disposeRooftopMaterials(): void                             // limpa materiais compartilhados (só no dispose final)
+setRooftopMeshShadowEnabled(group: THREE.Group, enabled: boolean): void
+disposeRooftopMesh(group: THREE.Group): void               // limpa referências do grupo
+disposeRooftopSharedResources(): void                       // limpa geometrias e materiais compartilhados
 ```
 
 > [!note] Sombras
-> Todos os meshes dentro do grupo têm `castShadow = true` e `receiveShadow = true`, habilitados automaticamente via `group.traverse()`.
+> Apenas as partes sólidas (`base` e `housing`) projetam/recebem sombra. Lentes emissivas e feixes transparentes não participam do shadow map para evitar custo desnecessário e artefatos.
 
 ---
 
@@ -161,12 +164,16 @@ Factory para letreiros de fachada nos edifícios. Renderiza texto via `CanvasTex
 
 Cada lado cria seu próprio canvas, textura e material independentes. A largura do letreiro se adapta à largura da fachada correspondente (`buildingW` para frente/trás, `buildingD` para laterais). A altura é consistente em todos os lados: `max(buildingW, buildingD) * 0.22`.
 
+> [!note] Sombras
+> A placa emissiva do letreiro não projeta sombra. Apenas o backing metálico usa `castShadow`/`receiveShadow`, controlado por `setSignMeshShadowEnabled()`.
+
 > [!note] Ajuste automático de fonte
 > O fontSize começa em 52% da altura do canvas e é reduzido pixel a pixel até o texto caber com 12% de padding lateral. Limite máximo: 30 caracteres (imposto pelo UI).
 
 **API:**
 ```typescript
 createSignMesh(text: string, buildingW: number, buildingD: number, buildingH: number, sides: number): THREE.Group | null
+setSignMeshShadowEnabled(group: THREE.Group, enabled: boolean): void
 disposeSignMesh(group: THREE.Group): void  // limpa texturas, materiais e geometrias de todos os lados
 ```
 

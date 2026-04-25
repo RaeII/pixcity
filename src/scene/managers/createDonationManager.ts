@@ -1,7 +1,23 @@
 import * as THREE from "three";
-import type { BlockLayoutSettings, BuildingCustomization, BuildingSettings, DonationEntry, RooftopType, TextureSettings } from "../types";
-import { createRooftopMesh, disposeRooftopMesh, disposeRooftopMaterials } from "../builders/createRooftopMesh";
-import { createSignMesh, disposeSignMesh } from "../builders/createSignMesh";
+import type {
+  BlockLayoutSettings,
+  BuildingCustomization,
+  BuildingSettings,
+  DonationEntry,
+  RooftopType,
+  TextureSettings,
+} from "../types";
+import {
+  createRooftopMesh,
+  disposeRooftopMesh,
+  disposeRooftopSharedResources,
+  setRooftopMeshShadowEnabled,
+} from "../builders/createRooftopMesh";
+import {
+  createSignMesh,
+  disposeSignMesh,
+  setSignMeshShadowEnabled,
+} from "../builders/createSignMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -401,7 +417,34 @@ export function createDonationManager({
   const mouseVec = new THREE.Vector2();
   const instanceToValue: number[] = [];
   const instanceToDonationId: number[] = [];
+  const donationIdToInstanceIndex = new Map<number, number>();
   const currentBuildingColor = new THREE.Color(buildingSettings.color);
+  const tmpTransformMatrix = new THREE.Matrix4();
+  const tmpTransformPosition = new THREE.Vector3();
+  const tmpTransformQuaternion = new THREE.Quaternion();
+  const tmpTransformScale = new THREE.Vector3();
+
+  const setInstanceMetadata = (
+    instanceIndex: number,
+    donationId: number,
+    value: number,
+  ) => {
+    instanceToValue[instanceIndex] = value;
+    instanceToDonationId[instanceIndex] = donationId;
+    donationIdToInstanceIndex.set(donationId, instanceIndex);
+  };
+
+  const readDonationTransform = (donationId: number) => {
+    const instanceIndex = donationIdToInstanceIndex.get(donationId);
+    if (instanceIndex === undefined) return false;
+    mesh.getMatrixAt(instanceIndex, tmpTransformMatrix);
+    tmpTransformMatrix.decompose(
+      tmpTransformPosition,
+      tmpTransformQuaternion,
+      tmpTransformScale,
+    );
+    return true;
+  };
 
   const applyTextureToFacade = (settings: TextureSettings) => {
     const targets = [facadeMaterial, focusFacadeMaterial];
@@ -492,6 +535,8 @@ export function createDonationManager({
       mesh.count = 0;
       mesh.instanceMatrix.needsUpdate = true;
       instanceToValue.length = 0;
+      instanceToDonationId.length = 0;
+      donationIdToInstanceIndex.clear();
       return;
     }
 
@@ -590,6 +635,7 @@ export function createDonationManager({
     // --- Posicionar instâncias ---
     instanceToValue.length = 0;
     instanceToDonationId.length = 0;
+    donationIdToInstanceIndex.clear();
     let instanceIdx = 0;
     const maxBaseValue = donations[towerCount]?.value ?? maxValue;
 
@@ -634,8 +680,7 @@ export function createDonationManager({
         dummy.scale.set(1.0 + seeded(id, 1) * 1.6, height, 1.0 + seeded(id, 2) * 1.6);
         dummy.updateMatrix();
         mesh.setMatrixAt(instanceIdx, dummy.matrix);
-        instanceToValue[instanceIdx] = donations[donIdx].value;
-        instanceToDonationId[instanceIdx] = id;
+        setInstanceMetadata(instanceIdx, id, donations[donIdx].value);
         instanceIdx++;
       }
 
@@ -652,8 +697,7 @@ export function createDonationManager({
         dummy.scale.set(1.0 + seeded(id, 1) * 1.6, height, 1.0 + seeded(id, 2) * 1.6);
         dummy.updateMatrix();
         mesh.setMatrixAt(instanceIdx, dummy.matrix);
-        instanceToValue[instanceIdx] = donations[donIdx].value;
-        instanceToDonationId[instanceIdx] = id;
+        setInstanceMetadata(instanceIdx, id, donations[donIdx].value);
         instanceIdx++;
       }
     }
@@ -723,19 +767,17 @@ export function createDonationManager({
   const syncRooftops = () => {
     // Reposicionar todos os holofotes existentes com base nas posições atuais dos edifícios
     for (const [donId, entry] of rooftopMeshes) {
-      const idx = instanceToDonationId.indexOf(donId);
-      if (idx === -1) {
+      if (!readDonationTransform(donId)) {
         // Edifício não está visível — esconder
         entry.group.visible = false;
         continue;
       }
-      const mat4 = new THREE.Matrix4();
-      mesh.getMatrixAt(idx, mat4);
-      const pos = new THREE.Vector3();
-      const scale = new THREE.Vector3();
-      mat4.decompose(pos, new THREE.Quaternion(), scale);
       // Posicionar no topo do edifício
-      entry.group.position.set(pos.x, pos.y + scale.y / 2, pos.z);
+      entry.group.position.set(
+        tmpTransformPosition.x,
+        tmpTransformPosition.y + tmpTransformScale.y / 2,
+        tmpTransformPosition.z,
+      );
       entry.group.visible = true;
     }
   };
@@ -755,17 +797,16 @@ export function createDonationManager({
     if (!group) return;
 
     rooftopMeshes.set(donationId, { group, type });
+    setRooftopMeshShadowEnabled(group, shadowEnabled);
     scene.add(group);
 
     // Posicionar imediatamente
-    const idx = instanceToDonationId.indexOf(donationId);
-    if (idx !== -1) {
-      const mat4 = new THREE.Matrix4();
-      mesh.getMatrixAt(idx, mat4);
-      const pos = new THREE.Vector3();
-      const scale = new THREE.Vector3();
-      mat4.decompose(pos, new THREE.Quaternion(), scale);
-      group.position.set(pos.x, pos.y + scale.y / 2, pos.z);
+    if (readDonationTransform(donationId)) {
+      group.position.set(
+        tmpTransformPosition.x,
+        tmpTransformPosition.y + tmpTransformScale.y / 2,
+        tmpTransformPosition.z,
+      );
     }
   };
 
@@ -774,27 +815,17 @@ export function createDonationManager({
   const signMeshes = new Map<number, { group: THREE.Group; text: string }>();
 
   const getBuildingScale = (donationId: number): THREE.Vector3 | null => {
-    const idx = instanceToDonationId.indexOf(donationId);
-    if (idx === -1) return null;
-    const mat4 = new THREE.Matrix4();
-    mesh.getMatrixAt(idx, mat4);
-    const scale = new THREE.Vector3();
-    mat4.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale);
-    return scale;
+    if (!readDonationTransform(donationId)) return null;
+    return tmpTransformScale.clone();
   };
 
   const syncSigns = () => {
     for (const [donId, entry] of signMeshes) {
-      const idx = instanceToDonationId.indexOf(donId);
-      if (idx === -1) {
+      if (!readDonationTransform(donId)) {
         entry.group.visible = false;
         continue;
       }
-      const mat4 = new THREE.Matrix4();
-      mesh.getMatrixAt(idx, mat4);
-      const pos = new THREE.Vector3();
-      mat4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
-      entry.group.position.copy(pos);
+      entry.group.position.copy(tmpTransformPosition);
       entry.group.visible = true;
     }
   };
@@ -818,16 +849,12 @@ export function createDonationManager({
     if (!group) return;
 
     signMeshes.set(donationId, { group, text: trimmed });
+    setSignMeshShadowEnabled(group, shadowEnabled);
     scene.add(group);
 
     // Posicionar imediatamente no centro do edifício
-    const idx = instanceToDonationId.indexOf(donationId);
-    if (idx !== -1) {
-      const mat4 = new THREE.Matrix4();
-      mesh.getMatrixAt(idx, mat4);
-      const pos = new THREE.Vector3();
-      mat4.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
-      group.position.copy(pos);
+    if (readDonationTransform(donationId)) {
+      group.position.copy(tmpTransformPosition);
     }
   };
 
@@ -878,6 +905,16 @@ export function createDonationManager({
       for (const m of roadMeshes) {
         m.receiveShadow = enabled;
       }
+      for (const [, entry] of rooftopMeshes) {
+        setRooftopMeshShadowEnabled(entry.group, enabled);
+      }
+      for (const [, entry] of signMeshes) {
+        setSignMeshShadowEnabled(entry.group, enabled);
+      }
+      if (focusHighlightMesh) {
+        focusHighlightMesh.castShadow = enabled;
+        focusHighlightMesh.receiveShadow = enabled;
+      }
     },
     setEnvMap(envMap) {
       facadeMaterial.envMap = envMap;
@@ -919,15 +956,10 @@ export function createDonationManager({
       return null;
     },
     getDonationWorldPosition(donationId: number) {
-      const instanceIdx = instanceToDonationId.indexOf(donationId);
-      if (instanceIdx === -1) return null;
-      const mat = new THREE.Matrix4();
-      mesh.getMatrixAt(instanceIdx, mat);
-      const pos = new THREE.Vector3();
-      const scale = new THREE.Vector3();
-      mat.decompose(pos, new THREE.Quaternion(), scale);
+      if (!readDonationTransform(donationId)) return null;
+      const pos = tmpTransformPosition.clone();
       // Retornar o topo do prédio (pos.y é o centro, scale.y é a altura)
-      pos.y += scale.y / 2;
+      pos.y += tmpTransformScale.y / 2;
       return pos;
     },
     setFocusedDonation(donationId: number | null) {
@@ -957,11 +989,7 @@ export function createDonationManager({
       mesh.instanceColor = null;
 
       // Criar mesh isolado para o edifício selecionado (opacidade total)
-      const instanceIdx = instanceToDonationId.indexOf(donationId);
-      if (instanceIdx === -1) return;
-
-      const mat = new THREE.Matrix4();
-      mesh.getMatrixAt(instanceIdx, mat);
+      if (!readDonationTransform(donationId)) return;
 
       // Aplicar cor customizada ao material de foco
       const donation = donations.find((d) => d.id === donationId);
@@ -976,9 +1004,9 @@ export function createDonationManager({
       focusTopMaterial.needsUpdate = true;
 
       focusHighlightMesh = new THREE.Mesh(buildingGeometry, [focusFacadeMaterial, focusTopMaterial]);
-      focusHighlightMesh.applyMatrix4(mat);
-      focusHighlightMesh.castShadow = true;
-      focusHighlightMesh.receiveShadow = true;
+      focusHighlightMesh.applyMatrix4(tmpTransformMatrix);
+      focusHighlightMesh.castShadow = shadowEnabled;
+      focusHighlightMesh.receiveShadow = shadowEnabled;
       scene.add(focusHighlightMesh);
     },
     updateDonationCustomization(donationId: number, customization: BuildingCustomization) {
@@ -1018,7 +1046,7 @@ export function createDonationManager({
         disposeRooftopMesh(entry.group);
       }
       rooftopMeshes.clear();
-      disposeRooftopMaterials();
+      disposeRooftopSharedResources();
       // Limpar letreiros
       for (const [, entry] of signMeshes) {
         scene.remove(entry.group);

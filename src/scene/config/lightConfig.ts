@@ -1,4 +1,4 @@
-import type { LightSettings } from "../types";
+import type { LightSettings, PointLightConfig } from "../types";
 
 export const DEFAULT_LIGHT_SETTINGS: LightSettings = {
   ambientColor: "#fffaf2",
@@ -18,3 +18,10 @@ export const DEFAULT_LIGHT_SETTINGS: LightSettings = {
 export function createDefaultLightSettings(): LightSettings {
   return { ...DEFAULT_LIGHT_SETTINGS };
 }
+
+export const DEFAULT_POINT_LIGHTS: PointLightConfig[] = [
+  { x: -15, y: 25, z: 10, intensity: 1625 },
+  { x: 15, y: 25, z: 10, intensity: 1625 },
+  { x: -15, y: 25, z: -10, intensity: 1625 },
+  { x: 15, y: 25, z: -10, intensity: 1625 },
+];

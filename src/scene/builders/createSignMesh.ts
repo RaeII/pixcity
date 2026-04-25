@@ -79,11 +79,10 @@ export function createSignMesh(
     disposables.push({ texture, signMaterial, backingMaterial, planeGeo, backingGeo });
 
     const signPlane = new THREE.Mesh(planeGeo, signMaterial);
-    signPlane.castShadow = true;
+    setShadowRole(signPlane, false, false);
 
     const backing = new THREE.Mesh(backingGeo, backingMaterial);
-    backing.castShadow = true;
-    backing.receiveShadow = true;
+    setShadowRole(backing, true, true);
 
     const dist = cfg.normalOffset + 0.02;
     const px = cfg.offsetX * dist;
@@ -102,8 +101,31 @@ export function createSignMesh(
   }
 
   group.userData.signDisposables = disposables;
+  setSignMeshShadowEnabled(group, true);
 
   return group;
+}
+
+function setShadowRole(
+  mesh: THREE.Mesh,
+  castsShadow: boolean,
+  receivesShadow: boolean,
+): void {
+  mesh.userData.signCastsShadow = castsShadow;
+  mesh.userData.signReceivesShadow = receivesShadow;
+}
+
+/**
+ * Liga/desliga sombras do letreiro respeitando o papel de cada mesh.
+ * A placa emissiva não projeta sombra; o backing metálico mantém presença física.
+ */
+export function setSignMeshShadowEnabled(group: THREE.Group, enabled: boolean): void {
+  group.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.castShadow = enabled && child.userData.signCastsShadow === true;
+      child.receiveShadow = enabled && child.userData.signReceivesShadow === true;
+    }
+  });
 }
 
 /** Cria o canvas, textura, materiais e geometrias para um painel de letreiro. */

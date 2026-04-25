@@ -109,6 +109,13 @@ export type LightSettings = {
   directionalTargetZ: number;
 };
 
+export type PointLightConfig = {
+  x: number;
+  y: number;
+  z: number;
+  intensity: number;
+};
+
 export type EnvironmentSettings = {
   offsetX: number;
   offsetY: number;

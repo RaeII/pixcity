@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import type { RooftopType } from "../types";
 
+const SPOTLIGHT_SCALE = 0.75;
+const SPOTLIGHT_LENS_RADIUS = 0.04 * SPOTLIGHT_SCALE;
+const SPOTLIGHT_BEAM_HEIGHT = 10.0;
+
 const SPOTLIGHT_HOUSING_MATERIAL = new THREE.MeshStandardMaterial({
   color: 0x222222,
   roughness: 0.4,
@@ -24,6 +28,20 @@ const SPOTLIGHT_BEAM_MATERIAL = new THREE.MeshStandardMaterial({
   side: THREE.DoubleSide,
   depthWrite: false,
 });
+
+const SPOTLIGHT_BASE_GEOMETRY = new THREE.CylinderGeometry(
+  0.06 * SPOTLIGHT_SCALE,
+  0.08 * SPOTLIGHT_SCALE,
+  0.05 * SPOTLIGHT_SCALE,
+  8,
+);
+const SPOTLIGHT_HOUSING_GEOMETRY = new THREE.CylinderGeometry(
+  0.04 * SPOTLIGHT_SCALE,
+  0.07 * SPOTLIGHT_SCALE,
+  0.12 * SPOTLIGHT_SCALE,
+  8,
+);
+const SPOTLIGHT_LENS_GEOMETRY = new THREE.CircleGeometry(SPOTLIGHT_LENS_RADIUS, 12);
 
 /** Cria um feixe com alpha gradiente via vertex colors (opaco na fonte, transparente no topo). */
 function createBeamGeometry(
@@ -59,11 +77,37 @@ function createBeamGeometry(
   return geo;
 }
 
+const SPOTLIGHT_BEAM_GEOMETRY = createBeamGeometry(
+  SPOTLIGHT_LENS_RADIUS,
+  0.22,
+  SPOTLIGHT_BEAM_HEIGHT,
+  16,
+);
+
+const SHARED_ROOFTOP_GEOMETRIES: THREE.BufferGeometry[] = [
+  SPOTLIGHT_BASE_GEOMETRY,
+  SPOTLIGHT_HOUSING_GEOMETRY,
+  SPOTLIGHT_LENS_GEOMETRY,
+  SPOTLIGHT_BEAM_GEOMETRY,
+];
+
+const SHARED_ROOFTOP_MATERIALS: THREE.Material[] = [
+  SPOTLIGHT_HOUSING_MATERIAL,
+  SPOTLIGHT_LENS_MATERIAL,
+  SPOTLIGHT_BEAM_MATERIAL,
+];
+
+function setShadowRole(
+  mesh: THREE.Mesh,
+  castsShadow: boolean,
+  receivesShadow: boolean,
+): void {
+  mesh.userData.rooftopCastsShadow = castsShadow;
+  mesh.userData.rooftopReceivesShadow = receivesShadow;
+}
+
 function createSpotlights(): THREE.Group {
   const group = new THREE.Group();
-  const spotlightScale = 0.75;
-  const lensRadius = 0.04 * spotlightScale;
-  const beamHeight = 10.0;
 
   // 4 holofotes, um em cada canto do edifício
   const corners: [number, number][] = [
@@ -78,44 +122,37 @@ function createSpotlights(): THREE.Group {
 
     // Base cilíndrica
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(
-        0.06 * spotlightScale,
-        0.08 * spotlightScale,
-        0.05 * spotlightScale,
-        8,
-      ),
+      SPOTLIGHT_BASE_GEOMETRY,
       SPOTLIGHT_HOUSING_MATERIAL,
     );
-    base.position.y = 0.025 * spotlightScale;
+    base.position.y = 0.025 * SPOTLIGHT_SCALE;
+    setShadowRole(base, true, true);
     spot.add(base);
 
     // Corpo do holofote (cilindro cônico apontando para cima)
     const housing = new THREE.Mesh(
-      new THREE.CylinderGeometry(
-        0.04 * spotlightScale,
-        0.07 * spotlightScale,
-        0.12 * spotlightScale,
-        8,
-      ),
+      SPOTLIGHT_HOUSING_GEOMETRY,
       SPOTLIGHT_HOUSING_MATERIAL,
     );
-    housing.position.y = 0.11 * spotlightScale;
+    housing.position.y = 0.11 * SPOTLIGHT_SCALE;
+    setShadowRole(housing, true, true);
     spot.add(housing);
 
     // Lente emissiva no topo do holofote
     const lens = new THREE.Mesh(
-      new THREE.CircleGeometry(lensRadius, 12),
+      SPOTLIGHT_LENS_GEOMETRY,
       SPOTLIGHT_LENS_MATERIAL,
     );
     lens.rotation.x = -Math.PI / 2;
-    lens.position.y = 0.17 * spotlightScale;
+    lens.position.y = 0.17 * SPOTLIGHT_SCALE;
+    setShadowRole(lens, false, false);
     spot.add(lens);
 
     // Feixe de luz com fade gradual (opaco na fonte, transparente no topo)
-    const beamGeo = createBeamGeometry(lensRadius, 0.22, beamHeight, 16);
-    const beam = new THREE.Mesh(beamGeo, SPOTLIGHT_BEAM_MATERIAL);
+    const beam = new THREE.Mesh(SPOTLIGHT_BEAM_GEOMETRY, SPOTLIGHT_BEAM_MATERIAL);
     beam.rotation.x = Math.PI;
-    beam.position.y = lens.position.y + beamHeight / 2;
+    beam.position.y = lens.position.y + SPOTLIGHT_BEAM_HEIGHT / 2;
+    setShadowRole(beam, false, false);
     spot.add(beam);
 
     spot.position.set(cx, 0, cz);
@@ -140,29 +177,40 @@ export function createRooftopMesh(type: RooftopType): THREE.Group | null {
   const group = factory();
   group.userData.rooftopType = type;
 
-  // Habilitar sombra em todos os meshes do grupo
-  group.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
-    }
-  });
+  setRooftopMeshShadowEnabled(group, true);
 
   return group;
 }
 
-/** Descarta geometrias de um grupo de holofotes. Materiais são compartilhados e não devem ser descartados aqui. */
-export function disposeRooftopMesh(group: THREE.Group): void {
+/**
+ * Liga/desliga sombras do acessório respeitando o papel de cada mesh.
+ * Partes emissivas/transparentes não projetam sombra para reduzir custo e evitar artefatos.
+ */
+export function setRooftopMeshShadowEnabled(group: THREE.Group, enabled: boolean): void {
   group.traverse((child) => {
     if (child instanceof THREE.Mesh) {
-      child.geometry.dispose();
+      child.castShadow = enabled && child.userData.rooftopCastsShadow === true;
+      child.receiveShadow = enabled && child.userData.rooftopReceivesShadow === true;
     }
   });
 }
 
-/** Descarta todos os materiais compartilhados. Chamar apenas no dispose final do manager. */
+/** Libera referências do grupo. Geometrias e materiais são compartilhados no módulo. */
+export function disposeRooftopMesh(group: THREE.Group): void {
+  group.clear();
+}
+
+/** Descarta todos os recursos compartilhados. Chamar apenas no dispose final do manager. */
+export function disposeRooftopSharedResources(): void {
+  for (const geometry of SHARED_ROOFTOP_GEOMETRIES) {
+    geometry.dispose();
+  }
+  for (const material of SHARED_ROOFTOP_MATERIALS) {
+    material.dispose();
+  }
+}
+
+/** @deprecated Use disposeRooftopSharedResources. Mantido para compatibilidade. */
 export function disposeRooftopMaterials(): void {
-  SPOTLIGHT_HOUSING_MATERIAL.dispose();
-  SPOTLIGHT_LENS_MATERIAL.dispose();
-  SPOTLIGHT_BEAM_MATERIAL.dispose();
+  disposeRooftopSharedResources();
 }

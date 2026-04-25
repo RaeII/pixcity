@@ -163,7 +163,9 @@ Cada edifício pode ter holofotes 3D no topo, gerenciados pelo campo `rooftopTyp
 
 - **Posicionamento:** após cada `rebuildInstances`, `syncRooftops()` reposiciona todos os grupos no topo dos edifícios correspondentes.
 - **Criação/remoção:** `setRooftop(donationId, type)` remove o grupo anterior e cria um novo se `type !== "none"`.
-- **Cleanup:** no `dispose()`, todos os grupos são removidos e `disposeRooftopMaterials()` limpa materiais compartilhados.
+- **Performance:** o lookup do edifício usa `donationIdToInstanceIndex` em vez de `indexOf`, e os transforms temporários são reutilizados nos syncs.
+- **Sombras:** `setRooftopMeshShadowEnabled()` respeita apenas meshes sólidos; lentes emissivas e feixes transparentes não entram no shadow map.
+- **Cleanup:** no `dispose()`, todos os grupos são removidos e `disposeRooftopSharedResources()` limpa geometrias e materiais compartilhados.
 
 #### Letreiros (Signs)
 
@@ -172,6 +174,7 @@ Cada edifício pode ter um letreiro na fachada com o texto da marca/empresa do d
 - **Dimensionamento:** o letreiro usa as dimensões reais do edifício (`getBuildingScale`) — largura adaptada a cada fachada, altura consistente em todos os lados.
 - **Lados:** `signSides` (1–4) controla em quantas fachadas o letreiro aparece. Cada mudança de texto ou de lados recria o sign completo via `setSign(donationId, text, sides)`.
 - **Posicionamento:** `syncSigns()` reposiciona todos os letreiros no centro do edifício após cada `rebuildInstances`.
+- **Sombras:** a placa emissiva não projeta sombra; apenas o backing metálico mantém presença física no shadow map.
 - **Detecção de mudança:** `updateDonationCustomization` compara `signText` e `signSides` anteriores com os novos valores — recria só se houve mudança.
 - **Cleanup:** no `dispose()`, todos os sign meshes são removidos com `disposeSignMesh()`.
 
