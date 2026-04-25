@@ -57,31 +57,39 @@ const SPOTLIGHT_LENS_MATERIAL = new THREE.MeshStandardMaterial({
 const SPOTLIGHT_BEAM_MATERIAL = new THREE.MeshStandardMaterial({
   color: 0xffffdd,
   emissive: new THREE.Color(0xffffaa),
-  emissiveIntensity: 0.8,
+  emissiveIntensity: 1.25,
   transparent: true,
   vertexColors: true,
   side: THREE.DoubleSide,
   depthWrite: false,
 });
 
-/** Cria um ConeGeometry com alpha gradiente via vertex colors (opaco na base/fonte, transparente na ponta/topo). */
-function createBeamGeometry(radius: number, height: number, segments: number): THREE.ConeGeometry {
-  const geo = new THREE.ConeGeometry(radius, height, segments, 4, true);
+/** Cria um feixe com alpha gradiente via vertex colors (opaco na fonte, transparente no topo). */
+function createBeamGeometry(
+  sourceRadius: number,
+  endRadius: number,
+  height: number,
+  segments: number,
+): THREE.CylinderGeometry {
+  const geo = new THREE.CylinderGeometry(
+    sourceRadius,
+    endRadius,
+    height,
+    segments,
+    4,
+    true,
+  );
   const pos = geo.attributes.position;
   const count = pos.count;
   const colors = new Float32Array(count * 4);
 
-  // ConeGeometry: tip (ponta) está em +Y, base (anel) em -Y.
-  // Após rotation.x = PI, ponta fica embaixo (na fonte) e base fica em cima.
-  // Queremos: ponta (fonte) = opaco, base (topo) = transparente.
-  // No espaço local (antes da rotação): Y mais alto = ponta = opaco, Y mais baixo = base = transparente.
+  // Após rotation.x = PI, Y mais alto fica embaixo (fonte) e Y mais baixo fica em cima.
   const halfH = height / 2;
   for (let i = 0; i < count; i++) {
     const y = pos.getY(i);
-    // Normalizar: -halfH (base) → 0, +halfH (ponta) → 1
     const t = (y + halfH) / height;
     // Curva suave: mais opaco perto da fonte, desvanece para o final
-    const alpha = t * t * 0.14;
+    const alpha = t * t * 0.18;
     colors[i * 4] = 1;
     colors[i * 4 + 1] = 1;
     colors[i * 4 + 2] = 0.9;
@@ -320,6 +328,9 @@ function createSatelliteDish(): THREE.Group {
 
 function createSpotlights(): THREE.Group {
   const group = new THREE.Group();
+  const spotlightScale = 0.75;
+  const lensRadius = 0.04 * spotlightScale;
+  const beamHeight = 10.0;
 
   // 4 holofotes, um em cada canto do edifício
   const corners: [number, number][] = [
@@ -334,34 +345,44 @@ function createSpotlights(): THREE.Group {
 
     // Base cilíndrica
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.08, 0.05, 8),
+      new THREE.CylinderGeometry(
+        0.06 * spotlightScale,
+        0.08 * spotlightScale,
+        0.05 * spotlightScale,
+        8,
+      ),
       SPOTLIGHT_HOUSING_MATERIAL,
     );
-    base.position.y = 0.025;
+    base.position.y = 0.025 * spotlightScale;
     spot.add(base);
 
     // Corpo do holofote (cilindro cônico apontando para cima)
     const housing = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.04, 0.07, 0.12, 8),
+      new THREE.CylinderGeometry(
+        0.04 * spotlightScale,
+        0.07 * spotlightScale,
+        0.12 * spotlightScale,
+        8,
+      ),
       SPOTLIGHT_HOUSING_MATERIAL,
     );
-    housing.position.y = 0.11;
+    housing.position.y = 0.11 * spotlightScale;
     spot.add(housing);
 
     // Lente emissiva no topo do holofote
     const lens = new THREE.Mesh(
-      new THREE.CircleGeometry(0.04, 12),
+      new THREE.CircleGeometry(lensRadius, 12),
       SPOTLIGHT_LENS_MATERIAL,
     );
     lens.rotation.x = -Math.PI / 2;
-    lens.position.y = 0.17;
+    lens.position.y = 0.17 * spotlightScale;
     spot.add(lens);
 
     // Feixe de luz com fade gradual (opaco na fonte, transparente no topo)
-    const beamGeo = createBeamGeometry(0.22, 2.0, 16);
+    const beamGeo = createBeamGeometry(lensRadius, 0.22, beamHeight, 16);
     const beam = new THREE.Mesh(beamGeo, SPOTLIGHT_BEAM_MATERIAL);
     beam.rotation.x = Math.PI;
-    beam.position.y = 1.17;
+    beam.position.y = lens.position.y + beamHeight / 2;
     spot.add(beam);
 
     spot.position.set(cx, 0, cz);

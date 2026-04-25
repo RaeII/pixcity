@@ -33,10 +33,14 @@
             "id": "e5070b006d7f107a",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Visualização em gráfico"
+              "type": "markdown",
+              "state": {
+                "file": "html-components.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "html-components"
             }
           }
         ]
@@ -198,26 +202,26 @@
       "bases:Criar nova base": false
     }
   },
-  "active": "e5070b006d7f107a",
+  "active": "cbfd1448c1037122",
   "lastOpenFiles": [
+    "html-components.md",
+    "three-components.md",
+    "scene-utils.md",
+    "scene-types.md",
+    "scene-runtime.md",
+    "scene-managers.md",
+    "scene-hooks.md",
+    "scene-builders.md",
+    "index.md",
     "scene-managers.md.tmp.101754.1775426215739",
     "scene-config.md",
-    "index.md",
-    "scene-hooks.md",
     "scene-hooks.md.tmp.242476.1775177124882",
-    "scene-runtime.md",
     "scene-runtime.md.tmp.242476.1775177106406",
-    "scene-managers.md",
     "scene-managers.md.tmp.242476.1775177080505",
-    "scene-builders.md",
     "scene-builders.md.tmp.242476.1775177049705",
-    "scene-utils.md",
     "scene-utils.md.tmp.242476.1775177028823",
-    "scene-types.md",
     "scene-types.md.tmp.242476.1775177010392",
     "scene-config.md.tmp.242476.1775176984847",
-    "three-components.md",
-    "three-components.md.tmp.242476.1775176955826",
-    "html-components.md"
+    "three-components.md.tmp.242476.1775176955826"
   ]
 }
