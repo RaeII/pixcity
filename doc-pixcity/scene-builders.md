@@ -107,33 +107,21 @@ Carrega e configura o ambiente HDRI/skybox.
 
 ### `createRooftopMesh.ts`
 
-Factory para estruturas de topo dos edifícios. Chamado pelo [[scene-managers|DonationManager]] quando o usuário personaliza um edifício via [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]].
+Factory para os holofotes de topo dos edifícios. Chamado pelo [[scene-managers|DonationManager]] quando o usuário personaliza um edifício via [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]].
 
-**Estruturas disponíveis:**
+**Opção disponível:**
 
 | Tipo | Geometria | Materiais | Descrição |
 |---|---|---|---|
-| `antenna` | `CylinderGeometry` × 4 + `SphereGeometry` | `ROOFTOP_MATERIAL` + `RED_LIGHT_MATERIAL` | Mastro principal (0.03–0.04r, 1.8h) com 3 suportes laterais angulados e esfera emissiva vermelha no topo (luz de sinalização aérea) |
-| `water-tank` | `CylinderGeometry` × 5 + `ConeGeometry` | `ROOFTOP_MATERIAL` | 4 pernas de suporte (0.03r, 0.4h) sustentando tanque cilíndrico (0.3r, 0.45h) com tampa cônica (0.32r, 0.15h) |
-| `helipad` | `CylinderGeometry` + `RingGeometry` + `BoxGeometry` × 3 | `ROOFTOP_MATERIAL` + `WHITE_MATERIAL` | Plataforma circular (0.6r) com anel branco (0.5–0.55r) e marcação H formada por 3 barras (2 verticais + 1 horizontal) |
-| `solar-panels` | `BoxGeometry` × 12 + `CylinderGeometry` × 2 | `PANEL_MATERIAL` + `PANEL_FRAME_MATERIAL` + `ROOFTOP_MATERIAL` | Grade 2×3 de painéis azuis (0.25×0.35) inclinados a −0.4rad sobre molduras metálicas, com 2 suportes cilíndricos |
-| `billboard` | `CylinderGeometry` × 2 + `BoxGeometry` × 2 | `ROOFTOP_MATERIAL` + `WHITE_MATERIAL` | 2 postes (0.03r, 1.0h) sustentando placa branca retangular (0.9×0.5) com moldura metálica traseira |
-| `satellite-dish` | `CylinderGeometry` × 3 + `SphereGeometry` | `ROOFTOP_MATERIAL` + `DISH_MATERIAL` | Base cilíndrica (0.12–0.15r) com haste angulada (0.3rad), prato côncavo (0.3r, meia esfera) e receptor cilíndrico apontando para o centro do prato |
 | `spotlights` | `CylinderGeometry` × 8 + `CircleGeometry` × 4 + `ConeGeometry` × 4 | `SPOTLIGHT_HOUSING_MATERIAL` + `SPOTLIGHT_LENS_MATERIAL` + `SPOTLIGHT_BEAM_MATERIAL` | 4 holofotes nos cantos (±0.35, ±0.35) — base (0.08r) + corpo cônico (0.04–0.07r, 0.12h) + lente emissiva amarela + feixe cônico (0.22r, 2.0h) com vertex alpha gradiente (opaco na fonte, desvanece no topo via curva quadrática) |
 
 **Materiais compartilhados (estáticos de módulo):**
 
 | Material | Cor | Roughness | Metalness | Extra |
 |---|---|---|---|---|
-| `ROOFTOP_MATERIAL` | `#888888` | 0.6 | 0.4 | Uso geral (postes, suportes, bases) |
-| `RED_LIGHT_MATERIAL` | `#ff2200` | 0.3 | 0.0 | `emissive: #ff2200`, `emissiveIntensity: 2.0` |
-| `PANEL_MATERIAL` | `#1a2a4a` | 0.2 | 0.8 | Painéis solares (azul escuro metálico) |
-| `PANEL_FRAME_MATERIAL` | `#555555` | 0.5 | 0.6 | Molduras dos painéis solares |
-| `WHITE_MATERIAL` | `#eeeeee` | 0.5 | 0.1 | Marcações do heliponto, placa do billboard |
-| `DISH_MATERIAL` | `#cccccc` | 0.3 | 0.7 | `side: DoubleSide` — prato da antena parabólica |
 | `SPOTLIGHT_HOUSING_MATERIAL` | `#222222` | 0.4 | 0.6 | Corpo escuro do holofote |
 | `SPOTLIGHT_LENS_MATERIAL` | `#ffffcc` | 0.1 | 0.0 | `emissive: #ffffaa`, `emissiveIntensity: 2.5` — lente amarela brilhante |
-| `SPOTLIGHT_BEAM_MATERIAL` | `#ffffdd` | — | — | `emissive: #ffffaa`, `emissiveIntensity: 0.8`, `vertexColors: true`, `transparent`, `DoubleSide`, `depthWrite: false` — feixe com alpha gradiente via vertex colors (curva quadrática: fonte opaca → topo transparente) |
+| `SPOTLIGHT_BEAM_MATERIAL` | `#ffffdd` | — | — | `emissive: #ffffaa`, `emissiveIntensity: 1.25`, `vertexColors: true`, `transparent`, `DoubleSide`, `depthWrite: false` — feixe com alpha gradiente via vertex colors (curva quadrática: fonte opaca → topo transparente) |
 
 **API:**
 ```typescript

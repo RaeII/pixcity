@@ -2,12 +2,6 @@ import * as THREE from "three";
 
 export type RooftopType =
   | "none"
-  | "antenna"
-  | "water-tank"
-  | "helipad"
-  | "solar-panels"
-  | "billboard"
-  | "satellite-dish"
   | "spotlights";
 
 export type BuildingCustomization = {

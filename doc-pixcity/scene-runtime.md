@@ -124,7 +124,7 @@ dispose()
   ├── cancelAnimationFrame
   ├── removeEventListener('resize')
   ├── controls.dispose()
-  ├── donationManager.dispose()            ← inclui rooftops, signs, focus mesh
+  ├── donationManager.dispose()            ← inclui holofotes, signs, focus mesh
   ├── groundPlane.dispose()
   ├── gridHelper.dispose()
   ├── horizonSilhouette.dispose()

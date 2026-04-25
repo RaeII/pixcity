@@ -665,7 +665,7 @@ export function createDonationManager({
     // Aplicar cores individuais (customização) por instância
     applyInstanceColors();
 
-    // Reposicionar estruturas de topo e letreiros
+    // Reposicionar holofotes e letreiros
     syncRooftops();
     syncSigns();
 
@@ -716,12 +716,12 @@ export function createDonationManager({
     mesh.instanceColor.needsUpdate = true;
   };
 
-  // --- Estruturas de topo (rooftops) ---
+  // --- Holofotes de topo ---
   // Mapa: donationId → { group, type }
   const rooftopMeshes = new Map<number, { group: THREE.Group; type: RooftopType }>();
 
   const syncRooftops = () => {
-    // Reposicionar todos os rooftops existentes com base nas posições atuais dos edifícios
+    // Reposicionar todos os holofotes existentes com base nas posições atuais dos edifícios
     for (const [donId, entry] of rooftopMeshes) {
       const idx = instanceToDonationId.indexOf(donId);
       if (idx === -1) {
@@ -741,7 +741,7 @@ export function createDonationManager({
   };
 
   const setRooftop = (donationId: number, type: RooftopType) => {
-    // Remover rooftop anterior se existir
+    // Remover holofotes anteriores se existirem
     const existing = rooftopMeshes.get(donationId);
     if (existing) {
       scene.remove(existing.group);
@@ -1000,7 +1000,7 @@ export function createDonationManager({
         applyInstanceColors();
       }
 
-      // Atualizar rooftop se o tipo mudou
+      // Atualizar holofotes se o tipo mudou
       if (customization.rooftopType !== prevRooftop) {
         setRooftop(donationId, customization.rooftopType);
       }
@@ -1012,7 +1012,7 @@ export function createDonationManager({
     },
     dispose() {
       removeFocusHighlight();
-      // Limpar rooftops
+      // Limpar holofotes
       for (const [, entry] of rooftopMeshes) {
         scene.remove(entry.group);
         disposeRooftopMesh(entry.group);

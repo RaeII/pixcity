@@ -122,7 +122,7 @@ Ele guarda todos os estados:
 - `sceneStats`, `hoverInfo`
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, rooftop e letreiro
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, holofotes e letreiro
 
 E entrega para:
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
@@ -182,11 +182,11 @@ flowchart LR
     Focus --> Panel[BuildingCustomizePanel]
     Panel --> |cor| UC[updateCustomization]
     Panel --> |letreiro| UC
-    Panel --> |rooftop| UC
+    Panel --> |holofotes| UC
     UC --> Runtime[runtime.updateDonationCustomization]
     Runtime --> DM[donationManager]
     DM --> |cor| IC[instanceColor]
-    DM --> |rooftop| RM[createRooftopMesh]
+    DM --> |holofotes| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
 ```
 
@@ -200,7 +200,7 @@ flowchart LR
 | Alterar o canvas ou a ligação com o hook | [[three-components]] |
 | Alterar fórmulas de luz, clamp ou material | [[scene-utils]] |
 | Alterar criação do chão, grid, luzes ou ambiente | [[scene-builders]] |
-| Alterar estruturas de topo (rooftops) | [[scene-builders#createRooftopMesh.ts]] |
+| Alterar holofotes de topo | [[scene-builders#createRooftopMesh.ts]] |
 | Alterar letreiros de fachada (signs) | [[scene-builders#createSignMesh.ts]] |
 | Alterar geração dos prédios de doação | [[scene-managers]] |
 | Alterar o ciclo completo da cena | [[scene-runtime]] |

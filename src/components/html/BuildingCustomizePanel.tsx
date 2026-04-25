@@ -5,12 +5,6 @@ import type { RooftopType } from "../../scene/types";
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
   { value: "none", label: "Nenhuma" },
-  { value: "antenna", label: "Antena" },
-  { value: "water-tank", label: "Caixa d'água" },
-  { value: "helipad", label: "Heliponto" },
-  { value: "solar-panels", label: "Painéis solares" },
-  { value: "billboard", label: "Outdoor" },
-  { value: "satellite-dish", label: "Antena parabólica" },
   { value: "spotlights", label: "Holofotes" },
 ];
 
@@ -130,7 +124,7 @@ export function BuildingCustomizePanel({
             </div>
           )}
         </PanelSection>
-        <PanelSection title="Estrutura de topo">
+        <PanelSection title="Holofotes">
           <div className="grid grid-cols-2 gap-2">
             {ROOFTOP_OPTIONS.map((option) => (
               <button

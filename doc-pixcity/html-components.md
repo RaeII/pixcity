@@ -61,7 +61,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 
 **Responsabilidades:**
 - Exibir campos de personalização para o edifício selecionado
-- Atualizar cor, letreiro e estrutura de topo em tempo real
+- Atualizar cor, letreiro e holofotes em tempo real
 - Botão de fechar (X) para desselecionar o edifício
 
 **Props:**
@@ -70,11 +70,11 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 |---|---|---|
 | `donationId` | `number` | ID da doação selecionada |
 | `initialColor` | `string` | Cor atual do edifício (customizada ou global) |
-| `initialRooftopType` | `RooftopType` | Tipo de estrutura de topo atual |
+| `initialRooftopType` | `RooftopType` | Estado atual dos holofotes de topo |
 | `initialSignText` | `string` | Texto atual do letreiro na fachada |
 | `initialSignSides` | `number` | Quantidade de lados com letreiro (1–4) |
 | `onColorChange` | `(id: number, color: string) => void` | Callback de troca de cor |
-| `onRooftopChange` | `(id: number, type: RooftopType) => void` | Callback de troca de estrutura de topo |
+| `onRooftopChange` | `(id: number, type: RooftopType) => void` | Callback de troca dos holofotes de topo |
 | `onSignTextChange` | `(id: number, text: string) => void` | Callback de troca de texto do letreiro |
 | `onSignSidesChange` | `(id: number, sides: number) => void` | Callback de troca de lados do letreiro |
 | `onClose` | `() => void` | Fecha o painel e limpa o foco |
@@ -85,7 +85,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 |---|---|---|
 | **Aparência** | `ColorField` | Cor individual do edifício (hex) |
 | **Letreiro** | Input de texto + seletor de lados | Marca/empresa na fachada (máx 30 chars). Seletor de lados (1–4) aparece quando há texto |
-| **Estrutura de topo** | Grid 2×2 de botões | 7 opções: nenhuma, antena, caixa d'água, heliponto, painéis solares, outdoor, antena parabólica |
+| **Holofotes** | Botões | Opções: nenhum ou holofotes |
 
 > [!note] Fluxo de personalização
 > Clique no edifício → `onBuildingClick(donationId)` → `CitySceneEditor` chama `focusOnDonation` (destaque visual) e abre `BuildingCustomizePanel` → cada mudança chama `updateCustomization` que monta o `BuildingCustomization` completo e envia ao runtime via `canvasRef.updateDonationCustomization(id, {...})`.
@@ -93,7 +93,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 > [!tip] Onde cada personalização é aplicada
 > - **Cor** → `InstancedBufferAttribute` (instanceColor) no [[scene-managers|DonationManager]]
 > - **Letreiro** → `CanvasTexture` + `PlaneGeometry` via [[scene-builders#createSignMesh.ts|createSignMesh]]
-> - **Rooftop** → `THREE.Group` via [[scene-builders#createRooftopMesh.ts|createRooftopMesh]]
+> - **Holofotes** → `THREE.Group` via [[scene-builders#createRooftopMesh.ts|createRooftopMesh]]
 
 ---
 
