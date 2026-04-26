@@ -191,6 +191,17 @@ export function createDonationManager({
   for (const group of buildingGeometry.groups) {
     group.materialIndex = group.materialIndex === 2 ? 1 : 0;
   }
+  // Atributos de projeção (cópia da posição/normal axis-aligned). O shader triplanar
+  // os consome unificadamente — geometria torcida sobrescreve essas atribuições com
+  // os valores PRÉ-twist (ver createTwistedBuildingMesh).
+  buildingGeometry.setAttribute(
+    "aProjPosition",
+    new THREE.BufferAttribute(new Float32Array(buildingGeometry.attributes.position.array), 3),
+  );
+  buildingGeometry.setAttribute(
+    "aProjNormal",
+    new THREE.BufferAttribute(new Float32Array(buildingGeometry.attributes.normal.array), 3),
+  );
 
   // Shader triplanar: aplica textura usando coordenadas de mundo, não UV locais.
   // Necessário para instanced mesh onde cada prédio tem escala/posição diferente.
@@ -212,20 +223,26 @@ export function createDonationManager({
         `#include <common>
         uniform float uTiling;
         uniform float uTilingMultiplier;
+        attribute vec3 aProjPosition;
+        attribute vec3 aProjNormal;
         varying vec3 vTriplanarWorldPos;
         varying vec3 vTriplanarObjNormal;`,
       );
       shader.vertexShader = shader.vertexShader.replace(
         "#include <fog_vertex>",
         `#include <fog_vertex>
+        // Usa posição/normal de projeção (axis-aligned, pré-twist) para evitar
+        // costura no meio do edifício torcido. Em geometria default, esses
+        // atributos são cópias diretas de position/normal, então o
+        // comportamento é idêntico ao anterior.
         #ifdef USE_INSTANCING
-          vec4 triWp = modelMatrix * instanceMatrix * vec4(transformed, 1.0);
+          vec4 triWp = modelMatrix * instanceMatrix * vec4(aProjPosition, 1.0);
         #else
-          vec4 triWp = modelMatrix * vec4(transformed, 1.0);
+          vec4 triWp = modelMatrix * vec4(aProjPosition, 1.0);
         #endif
         vTriplanarWorldPos = triWp.xyz;
-        vTriplanarObjNormal = objectNormal;
-        vec3 triAbsN = abs(objectNormal);
+        vTriplanarObjNormal = aProjNormal;
+        vec3 triAbsN = abs(aProjNormal);
         vec2 triUV;
         if (triAbsN.y >= triAbsN.x && triAbsN.y >= triAbsN.z) {
           triUV = triWp.xz;
@@ -1030,9 +1047,13 @@ export function createDonationManager({
     const scale = getBuildingScale(donationId);
     if (!scale) return;
 
+    const donation = donations.find((d) => d.id === donationId);
+    const shape = donation?.customization?.buildingShape ?? "default";
+
     const group = createEdgeLightMesh(
       type,
       { width: scale.x, depth: scale.z, height: scale.y },
+      shape,
     );
     if (!group) return;
 

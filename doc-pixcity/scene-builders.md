@@ -220,12 +220,15 @@ O lift de `0.05` no topo evita z-fighting com `helipad` e holofotes existentes.
 
 **API:**
 ```typescript
-createEdgeLightMesh(type: EdgeLightType, footprint: { width: number; depth: number; height: number }, color: string): THREE.Group | null
+createEdgeLightMesh(type: EdgeLightType, footprint: { width: number; depth: number; height: number }, shape?: BuildingShape): THREE.Group | null
 updateEdgeLightMeshColor(group: THREE.Group, color: string): void   // mutação direta — sem rebuild
 setEdgeLightMeshShadowEnabled(group: THREE.Group, enabled: boolean): void
 disposeEdgeLightMesh(group: THREE.Group): void                      // libera materiais clonados
 disposeEdgeLightSharedResources(): void                             // libera BoxGeometry compartilhada
 ```
+
+> [!note] Acompanhamento de torção (`shape: "twisted"`)
+> Quando o edifício é torcido, o LED não pode ser uma única caixa axis-aligned — ela ficaria reta enquanto a fachada espirala. Para `shape === "twisted"`, cada aresta vertical é segmentada em `LED_TWIST_SEGMENTS = 12` pedaços curtos; cada segmento é orientado via quaternion (`setFromUnitVectors(Y, dir)`) para alinhar à tangente da curva torcida. O retângulo do topo também é rotacionado pelo `TWIST_TOTAL_ANGLE` total (importado de [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]]). O custo é ~3× mais meshes do que o caminho axis-aligned, mas só para edifícios torcidos com LED ativo.
 
 ---
 
@@ -235,9 +238,13 @@ Cria um `THREE.Mesh` com geometria torcida (estilo **Cayan Tower**) para edifíc
 
 **Responsabilidades:**
 - Construir uma `BoxGeometry(1, 1, 1, 1, 24, 1)` e aplicar deformação no CPU: cada vértice `(x, y, z)` é rotacionado no plano XZ por ângulo `(y + 0.5) * (π/2)`, gerando 90° de twist do chão ao topo
-- Recomputar normais via `geometry.computeVertexNormals()`
+- **Snapshot pré-twist** das posições e normais axis-aligned em atributos customizados `aProjPosition` e `aProjNormal` (consumidos pelo shader triplanar do [[scene-managers|DonationManager]] para evitar costura no meio do prédio)
+- Recomputar normais via `geometry.computeVertexNormals()` (lighting usa as normais twisted; só a projeção da textura usa `aProjNormal`)
 - Reaplicar mapeamento de `materialIndex` (topo → 1, demais → 0) idêntico à geometria base, para manter o split entre `facadeMaterial` e `topMaterial`
 - Compartilhar a `BufferGeometry` entre todos os prédios torcidos (escala via `mesh.scale`)
+
+> [!note] Por que `aProjPosition`/`aProjNormal`?
+> O shader triplanar escolhe a projeção (XY/ZY/XZ) com base no eixo dominante da normal e usa a posição mundo para o UV. Com a normal twisted, a fronteira entre projeções é cruzada no meio da altura (≈45° de torção) — visível como uma costura. Usando os valores axis-aligned **pré-twist**, cada face mantém uma única projeção do chão ao topo e a textura "acompanha" a deformação da geometria sem corte. A geometria base (não torcida) também declara esses atributos como cópias diretas de `position`/`normal`, então o shader é unificado.
 
 **Quando mexer aqui:**
 - Ajustar o ângulo total de twist (atual: 90°)

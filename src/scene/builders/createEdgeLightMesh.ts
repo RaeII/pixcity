@@ -1,11 +1,19 @@
 import * as THREE from "three";
-import type { EdgeLightType } from "../types";
+import type { BuildingShape, EdgeLightType } from "../types";
+import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
 type EdgeLightFootprint = {
   width: number;
   depth: number;
   height: number;
 };
+
+// Quantidade de segmentos verticais para acompanhar a curva torcida.
+// 12 já dá uma curva suficientemente suave sem multiplicar muito o nº de meshes
+// (cada segmento gera core + 2 halos). A geometria do prédio usa 24 — é seguro
+// usar metade pois o LED é fino e a aproximação por segmentos curtos é menos visível.
+const LED_TWIST_SEGMENTS = 12;
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 export const DEFAULT_EDGE_LIGHT_COLOR = "#ffca57";
 export const DEFAULT_EDGE_LIGHT_INTENSITY = 10;
@@ -14,6 +22,7 @@ export const DEFAULT_EDGE_LIGHT_THICKNESS = 0.05;
 
 type EdgeLightFactory = (
   footprint: EdgeLightFootprint,
+  shape: BuildingShape,
 ) => THREE.Group;
 
 const TOP_LIFT = 0.05;
@@ -187,8 +196,55 @@ function addEdgeSegment(
   group.add(haloOuter);
 }
 
+/**
+ * Adiciona um segmento de aresta orientado em uma direção arbitrária. Usado
+ * pelas torres torcidas, onde os cantos verticais sobem em curva e o retângulo
+ * superior está rotacionado em relação ao inferior. Ao contrário de
+ * `addEdgeSegment` (axis-aligned), aqui aplicamos uma quaternion para alinhar
+ * o eixo Y local da geometria ao vetor `direction`.
+ */
+function addOrientedEdgeSegment(
+  group: THREE.Group,
+  materials: EdgeMaterials,
+  center: THREE.Vector3,
+  direction: THREE.Vector3,
+  length: number,
+  distance: number,
+  thickness: number,
+): void {
+  const quat = new THREE.Quaternion().setFromUnitVectors(Y_AXIS, direction);
+
+  // Halo cujo gradiente está nas axes X/Z perpendiculares ao Y local. Ao rotar
+  // a mesh para alinhar Y → direction, o gradiente continua na seção transversal.
+  const haloGeo = HALO_GEOMETRY_FOR_AXIS["y"];
+
+  const core = new THREE.Mesh(EDGE_CORE_GEOMETRY, materials.core);
+  core.scale.set(thickness, length, thickness);
+  core.position.copy(center);
+  core.quaternion.copy(quat);
+  setShadowRole(core, false, false);
+  group.add(core);
+
+  const halo = new THREE.Mesh(haloGeo, materials.halo);
+  halo.scale.set(distance, length, distance);
+  halo.position.copy(center);
+  halo.quaternion.copy(quat);
+  halo.renderOrder = 1;
+  setShadowRole(halo, false, false);
+  group.add(halo);
+
+  const haloOuter = new THREE.Mesh(haloGeo, materials.haloOuter);
+  haloOuter.scale.set(distance * 3.4, length, distance * 3.4);
+  haloOuter.position.copy(center);
+  haloOuter.quaternion.copy(quat);
+  haloOuter.renderOrder = 2;
+  setShadowRole(haloOuter, false, false);
+  group.add(haloOuter);
+}
+
 function createLed(
   footprint: EdgeLightFootprint,
+  shape: BuildingShape,
 ): THREE.Group {
   const group = new THREE.Group();
   const { width, depth, height } = footprint;
@@ -198,12 +254,90 @@ function createLed(
   const materials = createEdgeMaterials(DEFAULT_EDGE_LIGHT_COLOR, DEFAULT_EDGE_LIGHT_INTENSITY);
   group.userData.edgeLightMaterials = materials;
 
-  // 4 arestas verticais (cantos), do chão ao topo
+  if (shape === "twisted") {
+    // Cantos em unit-space (±0.5). A torção da geometria do edifício acontece
+    // ANTES da aplicação do `mesh.scale` (ver createTwistedBuildingMesh), logo
+    // o canto unit é rotacionado primeiro e só então multiplicado por width/depth.
+    // Fazer o contrário (rotacionar valores já escalados) troca os eixos X↔Z
+    // quando width ≠ depth — o LED fica desencaixado do edifício.
+    const unitCorners: Array<[number, number]> = [
+      [-0.5, -0.5],
+      [0.5, -0.5],
+      [0.5, 0.5],
+      [-0.5, 0.5],
+    ];
+
+    // Cada canto vertical vira uma sequência de segmentos curtos acompanhando
+    // a curva da torção. Ângulo na altura y é proporcional a y/height —
+    // mesma fórmula que `createTwistedBuildingMesh` (onde
+    // angle = (y_local + 0.5) * TWIST_TOTAL_ANGLE com y_local em [-0.5, 0.5]).
+    const tmpDir = new THREE.Vector3();
+    for (const [ux, uz] of unitCorners) {
+      for (let i = 0; i < LED_TWIST_SEGMENTS; i++) {
+        const y0 = (i / LED_TWIST_SEGMENTS) * height;
+        const y1 = ((i + 1) / LED_TWIST_SEGMENTS) * height;
+        const a0 = (y0 / height) * TWIST_TOTAL_ANGLE;
+        const a1 = (y1 / height) * TWIST_TOTAL_ANGLE;
+        const x0 = (ux * Math.cos(a0) - uz * Math.sin(a0)) * width;
+        const z0 = (ux * Math.sin(a0) + uz * Math.cos(a0)) * depth;
+        const x1 = (ux * Math.cos(a1) - uz * Math.sin(a1)) * width;
+        const z1 = (ux * Math.sin(a1) + uz * Math.cos(a1)) * depth;
+
+        const cx_avg = (x0 + x1) / 2;
+        const cy_avg = (y0 + y1) / 2;
+        const cz_avg = (z0 + z1) / 2;
+        tmpDir.set(x1 - x0, y1 - y0, z1 - z0);
+        const segLen = tmpDir.length();
+        tmpDir.divideScalar(segLen); // normaliza in-place
+
+        addOrientedEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(cx_avg, cy_avg, cz_avg),
+          tmpDir.clone(),
+          segLen,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+    }
+
+    // Retângulo do topo: cantos unit rotacionados pelo ângulo total e então escalados.
+    const topAngle = TWIST_TOTAL_ANGLE;
+    const topY = height + TOP_LIFT;
+    const cosA = Math.cos(topAngle);
+    const sinA = Math.sin(topAngle);
+    const topCorners = unitCorners.map(([ux, uz]) => ({
+      x: (ux * cosA - uz * sinA) * width,
+      z: (ux * sinA + uz * cosA) * depth,
+    }));
+    for (let i = 0; i < topCorners.length; i++) {
+      const a = topCorners[i];
+      const b = topCorners[(i + 1) % topCorners.length];
+      const center = new THREE.Vector3((a.x + b.x) / 2, topY, (a.z + b.z) / 2);
+      const dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z);
+      const len = dir.length();
+      dir.divideScalar(len);
+      addOrientedEdgeSegment(
+        group,
+        materials,
+        center,
+        dir,
+        len,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
+    }
+
+    return group;
+  }
+
+  // Caminho default: arestas axis-aligned (mais leves — 1 mesh por aresta).
   const corners: Array<[number, number]> = [
     [-halfW, -halfD],
     [halfW, -halfD],
-    [-halfW, halfD],
     [halfW, halfD],
+    [-halfW, halfD],
   ];
   for (const [x, z] of corners) {
     addEdgeSegment(
@@ -242,10 +376,11 @@ const FACTORIES: Record<Exclude<EdgeLightType, "none">, EdgeLightFactory> = {
 export function createEdgeLightMesh(
   type: EdgeLightType,
   footprint: EdgeLightFootprint,
+  shape: BuildingShape = "default",
 ): THREE.Group | null {
   if (type === "none") return null;
   const factory = FACTORIES[type];
-  const group = factory(footprint);
+  const group = factory(footprint, shape);
   group.userData.edgeLightType = type;
   setEdgeLightMeshShadowEnabled(group, true);
   return group;

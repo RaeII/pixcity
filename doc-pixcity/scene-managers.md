@@ -108,6 +108,9 @@ Quando há mais de um bloco (`r > 0`), `rebuildRoads(r, blockSpacing, streetWidt
 > [!note] Por que shader triplanar?
 > Prédios dentro do mesmo `InstancedMesh` têm alturas diferentes. O shader triplanar garante que a textura de fachada seja aplicada corretamente sem distorção, independente da escala de cada instância.
 
+> [!note] Atributos `aProjPosition` / `aProjNormal`
+> O shader não usa `position`/`objectNormal` diretamente — usa atributos customizados `aProjPosition`/`aProjNormal` para selecionar a projeção (XY/ZY/XZ) e calcular o UV. Na geometria default eles são cópias de `position`/`normal` (comportamento idêntico). Na geometria torcida ([[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]]) eles preservam os valores **pré-twist** (axis-aligned), evitando que a normal twisted atravesse a fronteira entre projeções no meio do prédio — sem isso, aparece uma costura visível em ~50% da altura.
+
 #### Métodos Públicos
 
 ```typescript

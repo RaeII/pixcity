@@ -1,7 +1,9 @@
 import * as THREE from "three";
 
 const TWIST_HEIGHT_SEGMENTS = 24;
-const TWIST_TOTAL_ANGLE = Math.PI / 2; // 90° do chão ao topo (estilo Cayan Tower)
+// 90° do chão ao topo (estilo Cayan Tower). Exportado para que outros builders
+// (LED de arestas, etc) possam acompanhar a curva torcida do edifício.
+export const TWIST_TOTAL_ANGLE = Math.PI / 2;
 
 let sharedTwistedGeometry: THREE.BufferGeometry | null = null;
 
@@ -14,6 +16,15 @@ function buildTwistedGeometry(): THREE.BufferGeometry {
     TWIST_HEIGHT_SEGMENTS,
     1,
   );
+
+  // Snapshot da posição/normal axis-aligned ANTES do twist. O shader triplanar
+  // usa esses atributos para selecionar projeção e calcular UV — caso contrário,
+  // a normal pós-twist atravessa a fronteira XY/ZY no meio do prédio e cria
+  // uma costura visível.
+  const projPositions = new Float32Array(geometry.attributes.position.array);
+  const projNormals = new Float32Array(geometry.attributes.normal.array);
+  geometry.setAttribute("aProjPosition", new THREE.BufferAttribute(projPositions, 3));
+  geometry.setAttribute("aProjNormal", new THREE.BufferAttribute(projNormals, 3));
 
   const pos = geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) {
