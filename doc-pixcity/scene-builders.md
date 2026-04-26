@@ -177,10 +177,21 @@ Cada lado cria seu próprio canvas, textura e material independentes. A largura 
 
 **API:**
 ```typescript
-createSignMesh(text: string, buildingW: number, buildingD: number, buildingH: number, sides: number): THREE.Group | null
+createSignMesh(text: string, buildingW: number, buildingD: number, buildingH: number, sides: number, shape?: BuildingShape): THREE.Group | null
 setSignMeshShadowEnabled(group: THREE.Group, enabled: boolean): void
 disposeSignMesh(group: THREE.Group): void  // limpa texturas, materiais e geometrias de todos os lados
 ```
+
+> [!note] Acompanhamento de torção (`shape: "twisted"`)
+> Na altura do letreiro (~95% do prédio) a fachada já rodou ~85,5° em relação à base — uma placa axis-aligned ficaria parcialmente dentro do edifício, daí o "letreiro cortado". Para `shape === "twisted"`, o builder calcula `angle = (yOffset / buildingH + 0.5) · TWIST_TOTAL_ANGLE` e:
+> - rotaciona o ponto de attach em **unit-space** (`x' = x·cos − z·sin`, `z' = x·sin + z·cos`) antes de aplicar o `mesh.scale` — necessário porque a geometria torcida também é deformada antes do scale e width ≠ depth troca os eixos se invertido;
+> - calcula a **normal verdadeira em world-space** via inversa transposta da escala não-uniforme: `(n_unit.x/W, n_unit.z/D)` re-normalizada. Usar o vetor de posição como direção (que parece a normal mas não é, sob escala não-uniforme) deixa o plano levemente desalinhado e uma das pontas do letreiro entra na fachada;
+> - aplica `mesh.rotation.y = atan2(wnx, wnz)` para alinhar o plano à tangente da face na altura do letreiro;
+> - empurra a placa por **0,10** (vs 0,02 no caminho default) ao longo da normal world — margem maior porque a fachada é curva e a placa é flat: ao longo de `signH` a fachada gira mais alguns graus e os cantos superior/inferior do plano ainda poderiam cortar a face com offset menor;
+> - recalcula `signW` para a largura world real da face torcida — `sqrt((W·cos)² + (D·sin)²)` para frente/trás, `sqrt((W·sin)² + (D·cos)²)` para laterais — evitando que o letreiro extrapole os cantos da face quando a torção mistura os eixos.
+
+> [!note] Reconstrução em rebuildInstances
+> O `DonationManager` guarda `{group, text, sides}` por edifício e o `syncSigns` chama `setSign` em snapshot — assim, mudanças de altura (rebalanceamento de doações) ou shape (default ↔ twisted) regeneram os letreiros com os parâmetros atuais. Sem isso o letreiro ficaria com `yOffset`/`signH`/orientação obsoletos.
 
 ---
 

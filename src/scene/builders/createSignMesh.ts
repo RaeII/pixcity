@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import type { BuildingShape } from "../types";
+import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
 // Margem lateral dentro da placa (fração da largura do canvas)
 const PADDING = 0.12;
@@ -6,6 +8,10 @@ const PADDING = 0.12;
 const CANVAS_HEIGHT = 128;
 // Proporção altura da placa / largura do edifício
 const SIGN_HEIGHT_RATIO = 0.22;
+// Hastes visuais que conectam o letreiro afastado ao prédio torcido.
+const TWISTED_SUPPORT_THICKNESS = 0.035;
+const TWISTED_SUPPORT_FACE_OVERLAP = 0.006;
+const TWISTED_SUPPORT_BACKING_OVERLAP = 0.016;
 
 /**
  * Cria um letreiro 3D estilo corporativo para a fachada de um edifício.
@@ -27,6 +33,7 @@ export function createSignMesh(
   buildingD: number,
   buildingH: number,
   sides: number,
+  shape: BuildingShape = "default",
 ): THREE.Group | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
@@ -40,6 +47,17 @@ export function createSignMesh(
   // Altura do letreiro consistente em todos os lados
   const signH = Math.max(buildingW, buildingD) * SIGN_HEIGHT_RATIO;
 
+  // Para edifícios torcidos, calcula o ângulo da torção exatamente na altura do
+  // letreiro. A geometria torcida (createTwistedBuildingMesh) usa
+  // `angle = (y_unit + 0.5) * TWIST_TOTAL_ANGLE` com y_unit em [-0.5, 0.5];
+  // o letreiro está em y_unit = yOffset / buildingH.
+  const isTwisted = shape === "twisted" && buildingH > 0;
+  const twistAngle = isTwisted
+    ? (yOffset / buildingH + 0.5) * TWIST_TOTAL_ANGLE
+    : 0;
+  const cosT = Math.cos(twistAngle);
+  const sinT = Math.sin(twistAngle);
+
   // Definição dos 4 lados: frente (+Z), trás (−Z), direita (+X), esquerda (−X)
   // rotY deve rotacionar a normal do plano (+Z) para apontar PARA FORA do edifício.
   //   PlaneGeometry normal = +Z.
@@ -47,19 +65,19 @@ export function createSignMesh(
   //   Rotação −π/2 em Y: (0,0,1) → (−1,0,0) = face aponta −X (para fora da esquerda) ✓
   const sideConfigs: Array<{
     faceW: number;
-    normalOffset: number;
     rotY: number;
     offsetX: number;
     offsetZ: number;
   }> = [
-    // Frente (+Z): normal já aponta +Z
-    { faceW: buildingW, normalOffset: buildingD / 2, rotY: 0, offsetX: 0, offsetZ: 1 },
+    // Frente (+Z): normal já aponta +Z. Largura world ao longo de X (axis-aligned)
+    // ou (W·cos, D·sin) (twisted) — calculada abaixo.
+    { faceW: buildingW, rotY: 0, offsetX: 0, offsetZ: 1 },
     // Trás (−Z): rotação π → normal aponta −Z
-    { faceW: buildingW, normalOffset: buildingD / 2, rotY: Math.PI, offsetX: 0, offsetZ: -1 },
+    { faceW: buildingW, rotY: Math.PI, offsetX: 0, offsetZ: -1 },
     // Direita (+X): rotação +π/2 → normal aponta +X
-    { faceW: buildingD, normalOffset: buildingW / 2, rotY: Math.PI / 2, offsetX: 1, offsetZ: 0 },
+    { faceW: buildingD, rotY: Math.PI / 2, offsetX: 1, offsetZ: 0 },
     // Esquerda (−X): rotação −π/2 → normal aponta −X
-    { faceW: buildingD, normalOffset: buildingW / 2, rotY: -Math.PI / 2, offsetX: -1, offsetZ: 0 },
+    { faceW: buildingD, rotY: -Math.PI / 2, offsetX: -1, offsetZ: 0 },
   ];
 
   const disposables: Array<{
@@ -68,15 +86,38 @@ export function createSignMesh(
     backingMaterial: THREE.MeshStandardMaterial;
     planeGeo: THREE.PlaneGeometry;
     backingGeo: THREE.BoxGeometry;
+    strutGeos: THREE.BoxGeometry[];
   }> = [];
 
   for (let i = 0; i < clampedSides; i++) {
     const cfg = sideConfigs[i];
-    const signW = cfg.faceW * 0.92;
+
+    // Largura world da face. No edifício torcido, a face que era +Z se estende
+    // ao longo do vetor (cos, 0, sin) em unit-space; após escala não-uniforme
+    // (W em x, D em z), o comprimento real é sqrt((W·cos)² + (D·sin)²). Para as
+    // laterais, o eixo da face é (−sin, 0, cos), trocando os papéis.
+    let faceWorldW: number;
+    if (isTwisted) {
+      const isFrontBack = cfg.offsetZ !== 0;
+      const aw = isFrontBack ? buildingW * cosT : buildingW * sinT;
+      const ad = isFrontBack ? buildingD * sinT : buildingD * cosT;
+      faceWorldW = Math.sqrt(aw * aw + ad * ad);
+    } else {
+      faceWorldW = cfg.faceW;
+    }
+    const signW = faceWorldW * 0.92;
 
     const { texture, signMaterial, backingMaterial, planeGeo, backingGeo } =
       createSignPanel(trimmed, signW, signH);
-    disposables.push({ texture, signMaterial, backingMaterial, planeGeo, backingGeo });
+    const strutGeos: THREE.BoxGeometry[] = [];
+    disposables.push({
+      texture,
+      signMaterial,
+      backingMaterial,
+      planeGeo,
+      backingGeo,
+      strutGeos,
+    });
 
     const signPlane = new THREE.Mesh(planeGeo, signMaterial);
     setShadowRole(signPlane, false, false);
@@ -84,19 +125,101 @@ export function createSignMesh(
     const backing = new THREE.Mesh(backingGeo, backingMaterial);
     setShadowRole(backing, true, true);
 
-    const dist = cfg.normalOffset + 0.02;
-    const px = cfg.offsetX * dist;
-    const pz = cfg.offsetZ * dist;
+    // Posição/rotação do painel.
+    //
+    // No caminho axis-aligned, basta usar a face e empurrar a placa para fora
+    // pela normal cardinal.
+    //
+    // No torcido, dois cuidados:
+    //
+    // 1. **Normal verdadeira da face em world-space**. Com escala não-uniforme
+    //    (W ≠ D), a normal NÃO é o vetor unit-space twisted normalizado — é a
+    //    *inversa transposta*: para uma matriz de escala diag(W, 1, D), a
+    //    inversa transposta é diag(1/W, 1, 1/D), então a normal world é
+    //    (n_unit.x/W, n_unit.z/D) re-normalizada. Usar o vetor de posição
+    //    como direção de empurrão (o que a versão anterior fazia) deixa o
+    //    plano levemente desalinhado da face — uma ponta sai, a outra entra.
+    //
+    // 2. **Margem maior**. Mesmo com a normal correta no centro do letreiro,
+    //    o plano é flat e a fachada é curva: ao longo da altura do letreiro
+    //    (~signH), a fachada gira mais alguns graus, e os cantos superior/
+    //    inferior do plano ainda podem cortar a face. Aumentamos o offset de
+    //    0.02 → 0.10 só para shape="twisted", deixando a placa nitidamente à
+    //    frente — equivale a "um pouco para frente apenas nesse modelo".
+    let px: number;
+    let pz: number;
+    let backX: number;
+    let backZ: number;
+    let planeRotY: number;
+    let twistedSupport:
+      | {
+          faceX: number;
+          faceZ: number;
+          normalX: number;
+          normalZ: number;
+          backPush: number;
+        }
+      | null = null;
+    if (isTwisted) {
+      // Vetor unit-space twisted da normal cardinal (offsetX, 0, offsetZ).
+      const unitNx = cfg.offsetX * cosT - cfg.offsetZ * sinT;
+      const unitNz = cfg.offsetX * sinT + cfg.offsetZ * cosT;
+      // Attach point: 0,5 unit ao longo da normal, depois escalado a world.
+      const faceX = unitNx * 0.5 * buildingW;
+      const faceZ = unitNz * 0.5 * buildingD;
+      // Normal world via inversa transposta da escala não-uniforme.
+      const wnxRaw = unitNx / buildingW;
+      const wnzRaw = unitNz / buildingD;
+      const wnLen = Math.sqrt(wnxRaw * wnxRaw + wnzRaw * wnzRaw) || 1;
+      const wnx = wnxRaw / wnLen;
+      const wnz = wnzRaw / wnLen;
+
+      const PUSH = 0.1;
+      const BACK_PUSH = 0.085;
+      px = faceX + wnx * PUSH;
+      pz = faceZ + wnz * PUSH;
+      backX = faceX + wnx * BACK_PUSH;
+      backZ = faceZ + wnz * BACK_PUSH;
+
+      // Rotação Y do plano: Three.js gira (0,0,1) → (sinθ, 0, cosθ). Igualando
+      // ao vetor (wnx, 0, wnz) → θ = atan2(wnx, wnz). Isso alinha o plano
+      // exatamente com a tangente da face na altura do letreiro, eliminando o
+      // viés de ~4–8° produzido pelo `cfg.rotY − twistAngle` ingênuo.
+      planeRotY = Math.atan2(wnx, wnz);
+      twistedSupport = {
+        faceX,
+        faceZ,
+        normalX: wnx,
+        normalZ: wnz,
+        backPush: BACK_PUSH,
+      };
+    } else {
+      const normalOffset = cfg.offsetZ !== 0 ? buildingD / 2 : buildingW / 2;
+      const dist = normalOffset + 0.02;
+      px = cfg.offsetX * dist;
+      pz = cfg.offsetZ * dist;
+      const backDist = normalOffset + 0.005;
+      backX = cfg.offsetX * backDist;
+      backZ = cfg.offsetZ * backDist;
+      planeRotY = cfg.rotY;
+    }
 
     signPlane.position.set(px, yOffset, pz);
-    signPlane.rotation.y = cfg.rotY;
+    signPlane.rotation.y = planeRotY;
 
-    // Backing ligeiramente atrás da placa (na direção oposta à normal)
-    const backDist = cfg.normalOffset + 0.005;
-    backing.position.set(cfg.offsetX * backDist, yOffset, cfg.offsetZ * backDist);
-    backing.rotation.y = cfg.rotY;
+    backing.position.set(backX, yOffset, backZ);
+    backing.rotation.y = planeRotY;
 
     group.add(backing);
+    if (twistedSupport) {
+      addTwistedSignSupports(group, backingMaterial, strutGeos, {
+        ...twistedSupport,
+        yOffset,
+        signW,
+        signH,
+        rotY: planeRotY,
+      });
+    }
     group.add(signPlane);
   }
 
@@ -222,7 +345,60 @@ export function disposeSignMesh(group: THREE.Group): void {
       d.backingMaterial.dispose();
       d.planeGeo.dispose();
       d.backingGeo.dispose();
+      for (const geo of d.strutGeos) geo.dispose();
     }
+  }
+}
+
+function addTwistedSignSupports(
+  group: THREE.Group,
+  material: THREE.MeshStandardMaterial,
+  strutGeos: THREE.BoxGeometry[],
+  params: {
+    faceX: number;
+    faceZ: number;
+    normalX: number;
+    normalZ: number;
+    yOffset: number;
+    signW: number;
+    signH: number;
+    rotY: number;
+    backPush: number;
+  },
+): void {
+  const supportLength =
+    params.backPush + TWISTED_SUPPORT_FACE_OVERLAP + TWISTED_SUPPORT_BACKING_OVERLAP;
+  const supportGeo = new THREE.BoxGeometry(
+    TWISTED_SUPPORT_THICKNESS,
+    TWISTED_SUPPORT_THICKNESS,
+    supportLength,
+  );
+  strutGeos.push(supportGeo);
+
+  const normalOffset =
+    (params.backPush + TWISTED_SUPPORT_BACKING_OVERLAP - TWISTED_SUPPORT_FACE_OVERLAP) / 2;
+  const tangentX = Math.cos(params.rotY);
+  const tangentZ = -Math.sin(params.rotY);
+  const cornerX = Math.max(0, params.signW / 2 - TWISTED_SUPPORT_THICKNESS);
+  const cornerY = Math.max(0, params.signH / 2 - TWISTED_SUPPORT_THICKNESS);
+
+  const corners: Array<[number, number]> = [
+    [-cornerX, -cornerY],
+    [cornerX, -cornerY],
+    [-cornerX, cornerY],
+    [cornerX, cornerY],
+  ];
+
+  for (const [xOffset, yOffset] of corners) {
+    const support = new THREE.Mesh(supportGeo, material);
+    setShadowRole(support, true, true);
+    support.position.set(
+      params.faceX + params.normalX * normalOffset + tangentX * xOffset,
+      params.yOffset + yOffset,
+      params.faceZ + params.normalZ * normalOffset + tangentZ * xOffset,
+    );
+    support.rotation.y = params.rotY;
+    group.add(support);
   }
 }
 

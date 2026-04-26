@@ -965,22 +965,32 @@ export function createDonationManager({
   };
 
   // --- Letreiros (signs) ---
-  // Mapa: donationId → { group, text }
-  const signMeshes = new Map<number, { group: THREE.Group; text: string }>();
+  // Mapa: donationId → { group, text, sides }. `sides` é guardado junto
+  // para que `syncSigns` possa reconstruir o letreiro quando a altura ou o
+  // formato do edifício mudam — sem isso, depois de um rebuildInstances o
+  // letreiro fica obsoleto (yOffset/signH dependem de buildingH; a orientação
+  // depende do shape twisted).
+  const signMeshes = new Map<
+    number,
+    { group: THREE.Group; text: string; sides: number }
+  >();
 
   const getBuildingScale = (donationId: number): THREE.Vector3 | null => {
     if (!readDonationTransform(donationId)) return null;
     return tmpTransformScale.clone();
   };
 
+  // Reconstrói todos os letreiros existentes com as dimensões/shape atuais.
+  // Chamado em rebuildInstances porque novas doações podem alterar a altura ou
+  // o shape efetivo do edifício e o letreiro precisa refletir isso.
   const syncSigns = () => {
+    if (signMeshes.size === 0) return;
+    const snapshot: Array<{ donationId: number; text: string; sides: number }> = [];
     for (const [donId, entry] of signMeshes) {
-      if (!readDonationTransform(donId)) {
-        entry.group.visible = false;
-        continue;
-      }
-      entry.group.position.copy(tmpTransformPosition);
-      entry.group.visible = true;
+      snapshot.push({ donationId: donId, text: entry.text, sides: entry.sides });
+    }
+    for (const item of snapshot) {
+      setSign(item.donationId, item.text, item.sides);
     }
   };
 
@@ -999,10 +1009,13 @@ export function createDonationManager({
     const scale = getBuildingScale(donationId);
     if (!scale) return;
 
-    const group = createSignMesh(trimmed, scale.x, scale.z, scale.y, sides);
+    const donation = donations.find((d) => d.id === donationId);
+    const shape = donation?.customization?.buildingShape ?? "default";
+
+    const group = createSignMesh(trimmed, scale.x, scale.z, scale.y, sides, shape);
     if (!group) return;
 
-    signMeshes.set(donationId, { group, text: trimmed });
+    signMeshes.set(donationId, { group, text: trimmed, sides });
     setSignMeshShadowEnabled(group, shadowEnabled);
     scene.add(group);
 
