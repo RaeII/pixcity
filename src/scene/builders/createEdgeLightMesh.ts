@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { BuildingShape, EdgeLightType } from "../types";
+import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
 type EdgeLightFootprint = {
@@ -314,6 +315,43 @@ function createLed(
     for (let i = 0; i < topCorners.length; i++) {
       const a = topCorners[i];
       const b = topCorners[(i + 1) % topCorners.length];
+      const center = new THREE.Vector3((a.x + b.x) / 2, topY, (a.z + b.z) / 2);
+      const dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z);
+      const len = dir.length();
+      dir.divideScalar(len);
+      addOrientedEdgeSegment(
+        group,
+        materials,
+        center,
+        dir,
+        len,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
+    }
+
+    return group;
+  }
+
+  if (shape === "octagonal") {
+    const corners = getOctagonalFootprintPoints(width, depth);
+
+    for (const { x, z } of corners) {
+      addEdgeSegment(
+        group,
+        materials,
+        new THREE.Vector3(x, height / 2, z),
+        "y",
+        height,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
+    }
+
+    const topY = height + TOP_LIFT;
+    for (let i = 0; i < corners.length; i++) {
+      const a = corners[i];
+      const b = corners[(i + 1) % corners.length];
       const center = new THREE.Vector3((a.x + b.x) / 2, topY, (a.z + b.z) / 2);
       const dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z);
       const len = dir.length();

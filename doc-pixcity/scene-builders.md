@@ -276,6 +276,33 @@ disposeTwistedBuildingSharedResources(): void  // libera a BoxGeometry torcida c
 
 ---
 
+### `createOctagonalBuildingMesh.ts`
+
+Cria um `THREE.Mesh` com planta octogonal regular para edifícios com `BuildingShape === "octagonal"`.
+
+**Responsabilidades:**
+- Construir manualmente uma `BufferGeometry` unitária centralizada em `1×1×1`, com 8 faces laterais, tampa superior octogonal e face inferior
+- Manter `materialIndex = 1` somente no topo, preservando o split `facadeMaterial`/`topMaterial` usado pelo prédio padrão
+- Declarar `aProjPosition` e `aProjNormal` para o shader triplanar do [[scene-managers|DonationManager]]
+- Usar normais de projeção cardinalizadas nas faces diagonais, evitando ambiguidade no branch `XY/ZY/XZ` do shader e mantendo a textura estável
+- Compartilhar a `BufferGeometry` entre todos os prédios octogonais
+
+> [!note] Textura triplanar
+> A torre octogonal não deforma uma caixa como a torcida, mas ainda precisa fornecer `aProjPosition`/`aProjNormal`. Nas faces diagonais, a normal geométrica tem componentes X/Z parecidas; por isso o builder grava uma normal de projeção cardinal, escolhendo um eixo dominante determinístico para evitar alternância de projeção.
+
+**API:**
+```typescript
+createOctagonalBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Material): THREE.Mesh
+disposeOctagonalBuildingSharedResources(): void
+getOctagonalFootprintPoints(width?: number, depth?: number): Array<{ x: number; z: number }>
+OCTAGON_FLAT_SIDE_RATIO: number
+```
+
+> [!note] Acessórios
+> `createSignMesh` usa `OCTAGON_FLAT_SIDE_RATIO` para reduzir o letreiro às faces planas centrais. `createEdgeLightMesh` usa `getOctagonalFootprintPoints` para criar 8 arestas verticais e 8 segmentos no topo, alinhados à planta octogonal.
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

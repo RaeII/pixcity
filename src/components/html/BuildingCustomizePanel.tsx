@@ -7,6 +7,7 @@ import type { BuildingShape, EdgeLightType, RooftopType } from "../../scene/type
 const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "default", label: "Padrão" },
   { value: "twisted", label: "Torre torcida" },
+  { value: "octagonal", label: "Torre octogonal" },
 ];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [

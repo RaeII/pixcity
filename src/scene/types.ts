@@ -11,7 +11,8 @@ export type EdgeLightType =
 
 export type BuildingShape =
   | "default"
-  | "twisted";
+  | "twisted"
+  | "octagonal";
 
 export type BuildingCustomization = {
   color: string;

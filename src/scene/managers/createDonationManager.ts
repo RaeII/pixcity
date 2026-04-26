@@ -30,6 +30,10 @@ import {
   createTwistedBuildingMesh,
   disposeTwistedBuildingSharedResources,
 } from "../builders/createTwistedBuildingMesh";
+import {
+  createOctagonalBuildingMesh,
+  disposeOctagonalBuildingSharedResources,
+} from "../builders/createOctagonalBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -1132,6 +1136,8 @@ export function createDonationManager({
         let sceneMesh: THREE.Mesh;
         if (shape === "twisted") {
           sceneMesh = createTwistedBuildingMesh(facadeMat, topMat);
+        } else if (shape === "octagonal") {
+          sceneMesh = createOctagonalBuildingMesh(facadeMat, topMat);
         } else {
           // Formato default mas precisa de mesh próprio (ex: tiling customizado).
           sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
@@ -1394,6 +1400,7 @@ export function createDonationManager({
       }
       customShapeMeshes.clear();
       disposeTwistedBuildingSharedResources();
+      disposeOctagonalBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);

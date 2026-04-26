@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { BuildingShape } from "../types";
+import { OCTAGON_FLAT_SIDE_RATIO } from "./createOctagonalBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
 // Margem lateral dentro da placa (fração da largura do canvas)
@@ -52,6 +53,7 @@ export function createSignMesh(
   // `angle = (y_unit + 0.5) * TWIST_TOTAL_ANGLE` com y_unit em [-0.5, 0.5];
   // o letreiro está em y_unit = yOffset / buildingH.
   const isTwisted = shape === "twisted" && buildingH > 0;
+  const isOctagonal = shape === "octagonal";
   const twistAngle = isTwisted
     ? (yOffset / buildingH + 0.5) * TWIST_TOTAL_ANGLE
     : 0;
@@ -102,6 +104,8 @@ export function createSignMesh(
       const aw = isFrontBack ? buildingW * cosT : buildingW * sinT;
       const ad = isFrontBack ? buildingD * sinT : buildingD * cosT;
       faceWorldW = Math.sqrt(aw * aw + ad * ad);
+    } else if (isOctagonal) {
+      faceWorldW = cfg.faceW * OCTAGON_FLAT_SIDE_RATIO;
     } else {
       faceWorldW = cfg.faceW;
     }
