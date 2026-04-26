@@ -102,7 +102,6 @@ const HELIPAD_DECK_GEOMETRY = new THREE.CylinderGeometry(
 );
 const HELIPAD_RIM_GEOMETRY = new THREE.TorusGeometry(1, 0.016, 8, 96);
 const HELIPAD_OUTER_RING_GEOMETRY = new THREE.RingGeometry(0.78, 0.9, 96);
-const HELIPAD_INNER_RING_GEOMETRY = new THREE.RingGeometry(0.29, 0.33, 80);
 const HELIPAD_STRIP_GEOMETRY = new THREE.BoxGeometry(1, HELIPAD_PAINT_THICKNESS, 1);
 const HELIPAD_LIGHT_BASE_GEOMETRY = new THREE.CylinderGeometry(1, 1, 0.018, 12);
 const HELIPAD_LIGHT_LENS_GEOMETRY = new THREE.CylinderGeometry(1, 1, 0.012, 12);
@@ -157,7 +156,6 @@ const SHARED_ROOFTOP_GEOMETRIES: THREE.BufferGeometry[] = [
   HELIPAD_DECK_GEOMETRY,
   HELIPAD_RIM_GEOMETRY,
   HELIPAD_OUTER_RING_GEOMETRY,
-  HELIPAD_INNER_RING_GEOMETRY,
   HELIPAD_STRIP_GEOMETRY,
   HELIPAD_LIGHT_BASE_GEOMETRY,
   HELIPAD_LIGHT_LENS_GEOMETRY,
@@ -268,13 +266,6 @@ function createHelipad(footprint?: RooftopFootprint): THREE.Group {
   outerRing.position.y = paintY;
   setShadowRole(outerRing, false, true);
   group.add(outerRing);
-
-  const innerRing = new THREE.Mesh(HELIPAD_INNER_RING_GEOMETRY, HELIPAD_PAINT_MATERIAL);
-  innerRing.rotation.x = -Math.PI / 2;
-  innerRing.scale.set(radius, radius, 1);
-  innerRing.position.y = paintY + 0.001;
-  setShadowRole(innerRing, false, true);
-  group.add(innerRing);
 
   const addPaintStrip = (
     widthScale: number,

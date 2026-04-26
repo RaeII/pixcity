@@ -114,7 +114,7 @@ Factory para acessórios de topo dos edifícios. Chamado pelo [[scene-managers|D
 | Tipo | Geometria | Materiais | Descrição |
 |---|---|---|---|
 | `spotlights` | `CylinderGeometry` × 3 + `CircleGeometry` × 1 compartilhadas pelo módulo | `SPOTLIGHT_HOUSING_MATERIAL` + `SPOTLIGHT_LENS_MATERIAL` + `SPOTLIGHT_BEAM_MATERIAL` compartilhados | 4 holofotes nos cantos (±0.35, ±0.35) — base (0.08r) + corpo cônico (0.04–0.07r, 0.12h) + lente emissiva amarela + feixe cônico (0.22r, 10.0h) com vertex alpha gradiente (opaco na fonte, desvanece no topo via curva quadrática). Não cria luzes reais por edifício. |
-| `helipad` | `CylinderGeometry`, `TorusGeometry`, `RingGeometry`, `BoxGeometry` e pequenos cilindros compartilhados | Materiais de concreto escuro, aro metálico, pintura branca e lentes verdes emissivas | Heliponto proporcional ao topo do edifício, com base circular baixa, aro metálico, anéis pintados, “H” central, 12 luzes verdes de perímetro e escotilha técnica discreta. Não cria luzes reais por edifício. |
+| `helipad` | `CylinderGeometry`, `TorusGeometry`, `RingGeometry`, `BoxGeometry` e pequenos cilindros compartilhados | Materiais de concreto escuro, aro metálico, pintura branca e lentes verdes emissivas | Heliponto proporcional ao topo do edifício, com base circular baixa, aro metálico, anel externo pintado, “H” central limpo, 12 luzes verdes de perímetro e escotilha técnica discreta. Não cria luzes reais por edifício. |
 
 **Recursos compartilhados (estáticos de módulo):**
 
