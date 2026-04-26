@@ -8,6 +8,7 @@ const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "default", label: "Padrão" },
   { value: "twisted", label: "Torre torcida" },
   { value: "octagonal", label: "Torre octogonal" },
+  { value: "setback", label: "Torre setback" },
 ];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [

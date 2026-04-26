@@ -303,6 +303,33 @@ OCTAGON_FLAT_SIDE_RATIO: number
 
 ---
 
+### `createSetbackBuildingMesh.ts`
+
+Cria um `THREE.Mesh` com três patamares recuados para edifícios com `BuildingShape === "setback"`.
+
+**Responsabilidades:**
+- Construir manualmente uma `BufferGeometry` unitária centralizada em `1×1×1`, com base cheia, corpo intermediário recuado e topo mais estreito
+- Gerar faces laterais verticais para cada patamar e lajes horizontais expostas nos recuos
+- Manter `materialIndex = 0` nas fachadas e `materialIndex = 1` nas lajes/topo, preservando o split `facadeMaterial`/`topMaterial`
+- Declarar `aProjPosition` e `aProjNormal` em todas as faces para o shader triplanar do [[scene-managers|DonationManager]]
+- Compartilhar a `BufferGeometry` entre todos os prédios setback
+
+> [!note] Textura triplanar
+> A torre setback não torce os vértices, então não precisa de snapshot pré-deformação como a torcida. Ainda assim, o builder grava `aProjPosition`/`aProjNormal` explicitamente: laterais usam normais cardinais (`±X`/`±Z`) e lajes usam `+Y`, mantendo a seleção de projeção do shader estável em cada face.
+
+**API:**
+```typescript
+createSetbackBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Material): THREE.Mesh
+disposeSetbackBuildingSharedResources(): void
+getSetbackFootprintScaleAtHeightRatio(heightRatio: number): number
+getSetbackTierFootprints(width?: number, depth?: number, height?: number): SetbackTierFootprint[]
+```
+
+> [!note] Acessórios
+> `createSignMesh` usa `getSetbackFootprintScaleAtHeightRatio` para posicionar o letreiro no patamar correto perto do topo. `createEdgeLightMesh` usa `getSetbackTierFootprints` para criar LEDs verticais e contornos horizontais em cada nível recuado.
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

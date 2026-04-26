@@ -78,6 +78,7 @@ src/
       createEdgeLightMesh.ts
       createTwistedBuildingMesh.ts
       createOctagonalBuildingMesh.ts
+      createSetbackBuildingMesh.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
@@ -125,7 +126,7 @@ Ele guarda todos os estados:
 - `sceneStats`, `hoverInfo`
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal), acessório de topo, letreiro e LED de arestas
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback), acessório de topo, letreiro e LED de arestas
 
 E entrega para:
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
@@ -176,6 +177,7 @@ flowchart TD
     M --> Q[createEdgeLightMesh]
     M --> T[createTwistedBuildingMesh]
     M --> U[createOctagonalBuildingMesh]
+    M --> V[createSetbackBuildingMesh]
     E --> C
     P --> C
 ```
@@ -195,6 +197,7 @@ flowchart LR
     DM --> |cor| IC[instanceColor]
     DM --> |formato twisted| TW[createTwistedBuildingMesh]
     DM --> |formato octagonal| OC[createOctagonalBuildingMesh]
+    DM --> |formato setback| SB[createSetbackBuildingMesh]
     DM --> |topo| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
     DM --> |LED| EL[createEdgeLightMesh]
@@ -215,6 +218,7 @@ flowchart LR
 | Alterar LED de arestas | [[scene-builders#createEdgeLightMesh.ts]] |
 | Alterar torre torcida (twisted) | [[scene-builders#createTwistedBuildingMesh.ts]] |
 | Alterar torre octogonal (octagonal) | [[scene-builders#createOctagonalBuildingMesh.ts]] |
+| Alterar torre setback (setback) | [[scene-builders#createSetbackBuildingMesh.ts]] |
 | Alterar geração dos prédios de doação | [[scene-managers]] |
 | Alterar o ciclo completo da cena | [[scene-runtime]] |
 | Entender o contrato dos dados | [[scene-types]] |
