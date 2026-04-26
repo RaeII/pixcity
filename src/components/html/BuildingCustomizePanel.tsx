@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { PanelSection } from "./controls/PanelSection";
 import { ColorField } from "./controls/ColorField";
-import type { EdgeLightType, RooftopType } from "../../scene/types";
+import { RangeField } from "./controls/RangeField";
+import type { BuildingShape, EdgeLightType, RooftopType } from "../../scene/types";
+
+const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
+  { value: "default", label: "Padrão" },
+  { value: "twisted", label: "Torre torcida" },
+];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
   { value: "none", label: "Nenhuma" },
@@ -24,11 +30,15 @@ const SIDE_OPTIONS = [
 type BuildingCustomizePanelProps = {
   donationId: number;
   initialColor: string;
+  initialBuildingShape: BuildingShape;
+  initialTilingScale: number;
   initialRooftopType: RooftopType;
   initialSignText: string;
   initialSignSides: number;
   initialEdgeLightType: EdgeLightType;
   onColorChange: (donationId: number, color: string) => void;
+  onBuildingShapeChange: (donationId: number, shape: BuildingShape) => void;
+  onTilingScaleChange: (donationId: number, tilingScale: number) => void;
   onRooftopChange: (donationId: number, rooftopType: RooftopType) => void;
   onSignTextChange: (donationId: number, signText: string) => void;
   onSignSidesChange: (donationId: number, signSides: number) => void;
@@ -39,11 +49,15 @@ type BuildingCustomizePanelProps = {
 export function BuildingCustomizePanel({
   donationId,
   initialColor,
+  initialBuildingShape,
+  initialTilingScale,
   initialRooftopType,
   initialSignText,
   initialSignSides,
   initialEdgeLightType,
   onColorChange,
+  onBuildingShapeChange,
+  onTilingScaleChange,
   onRooftopChange,
   onSignTextChange,
   onSignSidesChange,
@@ -51,6 +65,8 @@ export function BuildingCustomizePanel({
   onClose,
 }: BuildingCustomizePanelProps) {
   const [color, setColor] = useState(initialColor);
+  const [buildingShape, setBuildingShape] = useState<BuildingShape>(initialBuildingShape);
+  const [tilingScale, setTilingScale] = useState(initialTilingScale);
   const [rooftopType, setRooftopType] = useState<RooftopType>(initialRooftopType);
   const [signText, setSignText] = useState(initialSignText);
   const [signSides, setSignSides] = useState(initialSignSides);
@@ -59,6 +75,16 @@ export function BuildingCustomizePanel({
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
     onColorChange(donationId, newColor);
+  };
+
+  const handleBuildingShapeChange = (newShape: BuildingShape) => {
+    setBuildingShape(newShape);
+    onBuildingShapeChange(donationId, newShape);
+  };
+
+  const handleTilingScaleChange = (newScale: number) => {
+    setTilingScale(newScale);
+    onTilingScaleChange(donationId, newScale);
   };
 
   const handleRooftopChange = (newType: RooftopType) => {
@@ -105,6 +131,34 @@ export function BuildingCustomizePanel({
             label="Cor do edifício"
             value={color}
             onChange={handleColorChange}
+          />
+        </PanelSection>
+        <PanelSection title="Formato">
+          <div className="grid grid-cols-2 gap-2">
+            {SHAPE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleBuildingShapeChange(option.value)}
+                className={`rounded-lg border px-3 py-2 text-xs transition-colors ${
+                  buildingShape === option.value
+                    ? "border-white/40 bg-white/15 text-white"
+                    : "border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </PanelSection>
+        <PanelSection title="Texturas">
+          <RangeField
+            label="Tiling Scale"
+            value={tilingScale}
+            min={0.25}
+            max={4}
+            step={0.05}
+            onChange={handleTilingScaleChange}
+            valueLabel={`${tilingScale.toFixed(2)}×`}
           />
         </PanelSection>
         <PanelSection title="Letreiro">

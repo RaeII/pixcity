@@ -76,6 +76,7 @@ src/
       createRooftopMesh.ts
       createSignMesh.ts
       createEdgeLightMesh.ts
+      createTwistedBuildingMesh.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
@@ -123,7 +124,7 @@ Ele guarda todos os estados:
 - `sceneStats`, `hoverInfo`
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, acessório de topo, letreiro e LED de arestas
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted), acessório de topo, letreiro e LED de arestas
 
 E entrega para:
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
@@ -172,6 +173,7 @@ flowchart TD
     M --> N[createRooftopMesh]
     M --> O[createSignMesh]
     M --> Q[createEdgeLightMesh]
+    M --> T[createTwistedBuildingMesh]
     E --> C
     P --> C
 ```
@@ -183,11 +185,13 @@ flowchart LR
     Click[Clique no edifício] --> Focus[focusOnDonation]
     Focus --> Panel[BuildingCustomizePanel]
     Panel --> |cor| UC[updateCustomization]
+    Panel --> |formato| UC
     Panel --> |letreiro| UC
     Panel --> |topo| UC
     UC --> Runtime[runtime.updateDonationCustomization]
     Runtime --> DM[donationManager]
     DM --> |cor| IC[instanceColor]
+    DM --> |formato twisted| TW[createTwistedBuildingMesh]
     DM --> |topo| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
     DM --> |LED| EL[createEdgeLightMesh]
@@ -206,6 +210,7 @@ flowchart LR
 | Alterar acessórios de topo | [[scene-builders#createRooftopMesh.ts]] |
 | Alterar letreiros de fachada (signs) | [[scene-builders#createSignMesh.ts]] |
 | Alterar LED de arestas | [[scene-builders#createEdgeLightMesh.ts]] |
+| Alterar torre torcida (twisted) | [[scene-builders#createTwistedBuildingMesh.ts]] |
 | Alterar geração dos prédios de doação | [[scene-managers]] |
 | Alterar o ciclo completo da cena | [[scene-runtime]] |
 | Entender o contrato dos dados | [[scene-types]] |

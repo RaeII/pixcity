@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type {
   BlockLayoutSettings,
   BuildingCustomization,
+  BuildingShape,
   BuildingSettings,
   DonationEntry,
   EdgeLightType,
@@ -25,6 +26,10 @@ import {
   disposeEdgeLightSharedResources,
   setEdgeLightMeshShadowEnabled,
 } from "../builders/createEdgeLightMesh";
+import {
+  createTwistedBuildingMesh,
+  disposeTwistedBuildingSharedResources,
+} from "../builders/createTwistedBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -189,18 +194,24 @@ export function createDonationManager({
 
   // Shader triplanar: aplica textura usando coordenadas de mundo, não UV locais.
   // Necessário para instanced mesh onde cada prédio tem escala/posição diferente.
+  // Cria um uniform `uTilingMultiplier` (default 1.0) por material — guardado em
+  // `material.userData.tilingMultiplier` para permitir override per-edifício em clones.
   const applyTriplanarShader = (
     material: THREE.MeshPhysicalMaterial,
     cacheKey: string,
     tiling: { value: number },
   ) => {
+    const tilingMultiplier = { value: 1.0 };
+    material.userData.tilingMultiplier = tilingMultiplier;
     material.customProgramCacheKey = () => cacheKey;
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uTiling = tiling;
+      shader.uniforms.uTilingMultiplier = tilingMultiplier;
       shader.vertexShader = shader.vertexShader.replace(
         "#include <common>",
         `#include <common>
         uniform float uTiling;
+        uniform float uTilingMultiplier;
         varying vec3 vTriplanarWorldPos;
         varying vec3 vTriplanarObjNormal;`,
       );
@@ -223,7 +234,7 @@ export function createDonationManager({
         } else {
           triUV = triWp.xy;
         }
-        triUV *= uTiling;
+        triUV *= uTiling * uTilingMultiplier;
         #ifdef USE_MAP
           vMapUv = triUV;
         #endif
@@ -425,6 +436,16 @@ export function createDonationManager({
   const instanceToValue: number[] = [];
   const instanceToDonationId: number[] = [];
   const donationIdToInstanceIndex = new Map<number, number>();
+  const donationTransforms = new Map<number, { position: THREE.Vector3; scale: THREE.Vector3 }>();
+  // Prédios com formato customizado (ex: twisted) renderizam como Mesh próprio
+  // — pulam alocação no InstancedMesh e mantêm clones de material por edifício.
+  type CustomShapeEntry = {
+    mesh: THREE.Mesh;
+    facadeMat: THREE.MeshPhysicalMaterial;
+    topMat: THREE.MeshPhysicalMaterial;
+    shape: BuildingShape;
+  };
+  const customShapeMeshes = new Map<number, CustomShapeEntry>();
   const currentBuildingColor = new THREE.Color(buildingSettings.color);
   const tmpTransformMatrix = new THREE.Matrix4();
   const tmpTransformPosition = new THREE.Vector3();
@@ -441,11 +462,16 @@ export function createDonationManager({
     donationIdToInstanceIndex.set(donationId, instanceIndex);
   };
 
+  // Lê position/scale lógicos da doação a partir de um map, independentemente
+  // de o prédio ser renderizado via InstancedMesh ou como mesh customizado (twisted).
+  // Acessórios (rooftop, sign, edge light) usam essa rota única para sincronização.
   const readDonationTransform = (donationId: number) => {
-    const instanceIndex = donationIdToInstanceIndex.get(donationId);
-    if (instanceIndex === undefined) return false;
-    mesh.getMatrixAt(instanceIndex, tmpTransformMatrix);
-    tmpTransformMatrix.decompose(
+    const transform = donationTransforms.get(donationId);
+    if (!transform) return false;
+    tmpTransformPosition.copy(transform.position);
+    tmpTransformScale.copy(transform.scale);
+    tmpTransformQuaternion.identity();
+    tmpTransformMatrix.compose(
       tmpTransformPosition,
       tmpTransformQuaternion,
       tmpTransformScale,
@@ -453,8 +479,20 @@ export function createDonationManager({
     return true;
   };
 
+  const getAllFacadeMaterials = (): THREE.MeshPhysicalMaterial[] => {
+    const list: THREE.MeshPhysicalMaterial[] = [facadeMaterial, focusFacadeMaterial];
+    for (const entry of customShapeMeshes.values()) list.push(entry.facadeMat);
+    return list;
+  };
+
+  const getAllTopMaterials = (): THREE.MeshPhysicalMaterial[] => {
+    const list: THREE.MeshPhysicalMaterial[] = [topMaterial, focusTopMaterial];
+    for (const entry of customShapeMeshes.values()) list.push(entry.topMat);
+    return list;
+  };
+
   const applyTextureToFacade = (settings: TextureSettings) => {
-    const targets = [facadeMaterial, focusFacadeMaterial];
+    const targets = getAllFacadeMaterials();
     for (const mat of targets) {
       if (settings.enabled) {
         mat.map = colorMap;
@@ -486,7 +524,7 @@ export function createDonationManager({
 
   const applyTextureToTop = (settings: TextureSettings) => {
     const top = settings.top;
-    const targets = [topMaterial, focusTopMaterial];
+    const targets = getAllTopMaterials();
     for (const mat of targets) {
       if (settings.enabled) {
         mat.map = concreteColorMap;
@@ -537,13 +575,35 @@ export function createDonationManager({
   //
   // Base urbana (restante) usa teto de altura reduzido (baseHeightCap × maxSceneHeight)
   // e é embaralhada deterministicamente nos slots restantes de todas as quadras.
+  // Define se a doação precisa virar um Mesh dedicado (saindo do InstancedMesh).
+  // Dispara quando o formato é diferente de "default" ou quando há customização
+  // que exige estado de material próprio (ex: tilingScale ≠ 1.0).
+  const needsCustomMesh = (c?: BuildingCustomization): boolean => {
+    if (!c) return false;
+    if (c.buildingShape !== "default") return true;
+    if (Math.abs(c.tilingScale - 1) > 0.001) return true;
+    return false;
+  };
+
+  const recordTransform = (donationId: number) => {
+    let transform = donationTransforms.get(donationId);
+    if (!transform) {
+      transform = { position: new THREE.Vector3(), scale: new THREE.Vector3() };
+      donationTransforms.set(donationId, transform);
+    }
+    transform.position.copy(dummy.position);
+    transform.scale.copy(dummy.scale);
+  };
+
   const rebuildInstances = () => {
+    donationTransforms.clear();
     if (donations.length === 0) {
       mesh.count = 0;
       mesh.instanceMatrix.needsUpdate = true;
       instanceToValue.length = 0;
       instanceToDonationId.length = 0;
       donationIdToInstanceIndex.clear();
+      syncCustomShapes();
       return;
     }
 
@@ -686,9 +746,15 @@ export function createDonationManager({
         dummy.position.set(blockCenterX + ox, height / 2, blockCenterZ + oz);
         dummy.scale.set(1.0 + seeded(id, 1) * 1.6, height, 1.0 + seeded(id, 2) * 1.6);
         dummy.updateMatrix();
-        mesh.setMatrixAt(instanceIdx, dummy.matrix);
-        setInstanceMetadata(instanceIdx, id, donations[donIdx].value);
-        instanceIdx++;
+        recordTransform(id);
+        // Prédios com customização que exige estado de material próprio
+        // (formato torcido, tilingScale ≠ 1.0, etc) pulam alocação no InstancedMesh —
+        // são desenhados como Mesh próprio em syncCustomShapes.
+        if (!needsCustomMesh(donations[donIdx].customization)) {
+          mesh.setMatrixAt(instanceIdx, dummy.matrix);
+          setInstanceMetadata(instanceIdx, id, donations[donIdx].value);
+          instanceIdx++;
+        }
       }
 
       // Base urbana nos slots restantes
@@ -703,9 +769,12 @@ export function createDonationManager({
         dummy.position.set(blockCenterX + ox, height / 2, blockCenterZ + oz);
         dummy.scale.set(1.0 + seeded(id, 1) * 1.6, height, 1.0 + seeded(id, 2) * 1.6);
         dummy.updateMatrix();
-        mesh.setMatrixAt(instanceIdx, dummy.matrix);
-        setInstanceMetadata(instanceIdx, id, donations[donIdx].value);
-        instanceIdx++;
+        recordTransform(id);
+        if (!needsCustomMesh(donations[donIdx].customization)) {
+          mesh.setMatrixAt(instanceIdx, dummy.matrix);
+          setInstanceMetadata(instanceIdx, id, donations[donIdx].value);
+          instanceIdx++;
+        }
       }
     }
 
@@ -715,6 +784,9 @@ export function createDonationManager({
 
     // Aplicar cores individuais (customização) por instância
     applyInstanceColors();
+
+    // Reposicionar/criar prédios com formato customizado (twisted)
+    syncCustomShapes();
 
     // Reposicionar acessórios de topo e letreiros
     syncRooftops();
@@ -733,6 +805,59 @@ export function createDonationManager({
       scene.remove(focusHighlightMesh);
       focusHighlightMesh = null;
     }
+  };
+
+  const setMatOpacity = (mat: THREE.MeshPhysicalMaterial, opacity: number) => {
+    mat.transparent = opacity < 1;
+    mat.opacity = opacity;
+    mat.needsUpdate = true;
+  };
+
+  const applyFocus = (donationId: number | null) => {
+    focusedDonationId = donationId;
+    removeFocusHighlight();
+
+    if (donationId === null) {
+      setMatOpacity(facadeMaterial, 1);
+      setMatOpacity(topMaterial, 1);
+      for (const entry of customShapeMeshes.values()) {
+        setMatOpacity(entry.facadeMat, 1);
+        setMatOpacity(entry.topMat, 1);
+      }
+      applyInstanceColors();
+      return;
+    }
+
+    setMatOpacity(facadeMaterial, 0.15);
+    setMatOpacity(topMaterial, 0.15);
+    mesh.instanceColor = null;
+
+    for (const [donId, entry] of customShapeMeshes) {
+      const opacity = donId === donationId ? 1 : 0.15;
+      setMatOpacity(entry.facadeMat, opacity);
+      setMatOpacity(entry.topMat, opacity);
+    }
+
+    if (customShapeMeshes.has(donationId)) return;
+
+    if (!readDonationTransform(donationId)) return;
+
+    const donation = donations.find((d) => d.id === donationId);
+    if (donation?.customization) {
+      focusFacadeMaterial.color.set(donation.customization.color);
+      focusTopMaterial.color.set(donation.customization.color);
+    } else {
+      focusFacadeMaterial.color.copy(currentBuildingColor);
+      focusTopMaterial.color.copy(currentBuildingColor);
+    }
+    focusFacadeMaterial.needsUpdate = true;
+    focusTopMaterial.needsUpdate = true;
+
+    focusHighlightMesh = new THREE.Mesh(buildingGeometry, [focusFacadeMaterial, focusTopMaterial]);
+    focusHighlightMesh.applyMatrix4(tmpTransformMatrix);
+    focusHighlightMesh.castShadow = shadowEnabled;
+    focusHighlightMesh.receiveShadow = shadowEnabled;
+    scene.add(focusHighlightMesh);
   };
 
   const applyInstanceColors = () => {
@@ -925,6 +1050,86 @@ export function createDonationManager({
   };
 
 
+  const updateCustomShapeColor = (donationId: number, color: string) => {
+    const entry = customShapeMeshes.get(donationId);
+    if (!entry) return;
+    entry.facadeMat.color.set(color);
+    entry.topMat.color.set(color);
+    entry.facadeMat.needsUpdate = true;
+    entry.topMat.needsUpdate = true;
+  };
+
+  // Garante que cada doação com customização que exige estado de material próprio
+  // tenha um Mesh dedicado e atualizado. Cria/remove conforme as doações mudam e
+  // reposiciona com base em donationTransforms.
+  function syncCustomShapes() {
+    const validIds = new Set<number>();
+
+    for (const donation of donations) {
+      if (!needsCustomMesh(donation.customization)) continue;
+
+      const transform = donationTransforms.get(donation.id);
+      if (!transform) continue;
+
+      const shape = donation.customization?.buildingShape ?? "default";
+      validIds.add(donation.id);
+      let entry = customShapeMeshes.get(donation.id);
+
+      if (!entry || entry.shape !== shape) {
+        if (entry) {
+          scene.remove(entry.mesh);
+          entry.facadeMat.dispose();
+          entry.topMat.dispose();
+          customShapeMeshes.delete(donation.id);
+        }
+
+        const customization = donation.customization!;
+        const facadeMat = facadeMaterial.clone();
+        const topMat = topMaterial.clone();
+        // Re-aplica triplanar shader para que o clone tenha seu próprio
+        // uTilingMultiplier (independente do main material).
+        applyTriplanarShader(facadeMat, "donation-facade-triplanar", tilingUniform);
+        applyTriplanarShader(topMat, "donation-top-triplanar", topTilingUniform);
+        facadeMat.color.set(customization.color);
+        topMat.color.set(customization.color);
+        facadeMat.userData.tilingMultiplier.value = customization.tilingScale;
+        topMat.userData.tilingMultiplier.value = customization.tilingScale;
+
+        let sceneMesh: THREE.Mesh;
+        if (shape === "twisted") {
+          sceneMesh = createTwistedBuildingMesh(facadeMat, topMat);
+        } else {
+          // Formato default mas precisa de mesh próprio (ex: tiling customizado).
+          sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
+          sceneMesh.castShadow = true;
+          sceneMesh.receiveShadow = true;
+        }
+
+        sceneMesh.userData.donationId = donation.id;
+        sceneMesh.userData.donationValue = donation.value;
+        sceneMesh.castShadow = shadowEnabled;
+        sceneMesh.receiveShadow = shadowEnabled;
+        scene.add(sceneMesh);
+
+        entry = { mesh: sceneMesh, facadeMat, topMat, shape };
+        customShapeMeshes.set(donation.id, entry);
+      }
+
+      entry.mesh.position.copy(transform.position);
+      entry.mesh.scale.copy(transform.scale);
+      entry.mesh.userData.donationValue = donation.value;
+    }
+
+    for (const [donId, entry] of customShapeMeshes) {
+      if (!validIds.has(donId)) {
+        scene.remove(entry.mesh);
+        entry.facadeMat.dispose();
+        entry.topMat.dispose();
+        customShapeMeshes.delete(donId);
+      }
+    }
+  }
+
   return {
     addDonation(value) {
       donations.push({ id: nextId++, value });
@@ -945,14 +1150,23 @@ export function createDonationManager({
       currentBuildingColor.set(settings.color); // manter em sync para instanceColor fallback
       facadeMaterial.color.set(settings.color);
       topMaterial.color.set(settings.color);
+      // Roughness/metalness afetam todos os materiais (inclui clones twisted).
+      // Cor é específica por edifício para clones — não sobrescrever aqui.
       if (!currentTextureSettings.enabled) {
-        facadeMaterial.roughness = settings.roughness;
-        facadeMaterial.metalness = settings.metalness;
-        topMaterial.roughness = settings.roughness;
-        topMaterial.metalness = settings.metalness;
+        for (const mat of getAllFacadeMaterials()) {
+          mat.roughness = settings.roughness;
+          mat.metalness = settings.metalness;
+          mat.needsUpdate = true;
+        }
+        for (const mat of getAllTopMaterials()) {
+          mat.roughness = settings.roughness;
+          mat.metalness = settings.metalness;
+          mat.needsUpdate = true;
+        }
+      } else {
+        for (const mat of getAllFacadeMaterials()) mat.needsUpdate = true;
+        for (const mat of getAllTopMaterials()) mat.needsUpdate = true;
       }
-      facadeMaterial.needsUpdate = true;
-      topMaterial.needsUpdate = true;
       applyInstanceColors();
     },
     updateTextureSettings(settings) {
@@ -981,24 +1195,32 @@ export function createDonationManager({
       for (const [, entry] of edgeLightMeshes) {
         setEdgeLightMeshShadowEnabled(entry.group, enabled);
       }
+      for (const [, entry] of customShapeMeshes) {
+        entry.mesh.castShadow = enabled;
+        entry.mesh.receiveShadow = enabled;
+      }
       if (focusHighlightMesh) {
         focusHighlightMesh.castShadow = enabled;
         focusHighlightMesh.receiveShadow = enabled;
       }
     },
     setEnvMap(envMap) {
-      facadeMaterial.envMap = envMap;
-      facadeMaterial.needsUpdate = true;
-      focusFacadeMaterial.envMap = envMap;
-      focusFacadeMaterial.needsUpdate = true;
+      for (const mat of getAllFacadeMaterials()) {
+        mat.envMap = envMap;
+        mat.needsUpdate = true;
+      }
     },
     beginEnvCapture() {
-      facadeMaterial.envMapIntensity = 0;
-      topMaterial.envMapIntensity = 0;
+      for (const mat of getAllFacadeMaterials()) mat.envMapIntensity = 0;
+      for (const mat of getAllTopMaterials()) mat.envMapIntensity = 0;
     },
     endEnvCapture() {
-      facadeMaterial.envMapIntensity = currentTextureSettings.envMapIntensity;
-      topMaterial.envMapIntensity = currentTextureSettings.top.envMapIntensity;
+      for (const mat of getAllFacadeMaterials()) {
+        mat.envMapIntensity = currentTextureSettings.envMapIntensity;
+      }
+      for (const mat of getAllTopMaterials()) {
+        mat.envMapIntensity = currentTextureSettings.top.envMapIntensity;
+      }
     },
     getDonationCount() {
       return donations.length;
@@ -1008,22 +1230,32 @@ export function createDonationManager({
       mouseVec.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouseVec.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouseVec, camera);
-      const hits = raycaster.intersectObject(mesh);
-      if (hits.length > 0 && hits[0].instanceId !== undefined) {
-        return instanceToValue[hits[0].instanceId] ?? null;
+      const targets: THREE.Object3D[] = [mesh];
+      for (const entry of customShapeMeshes.values()) targets.push(entry.mesh);
+      const hits = raycaster.intersectObjects(targets, false);
+      if (hits.length === 0) return null;
+      const hit = hits[0];
+      if (hit.object === mesh && hit.instanceId !== undefined) {
+        return instanceToValue[hit.instanceId] ?? null;
       }
-      return null;
+      const value = hit.object.userData.donationValue;
+      return typeof value === "number" ? value : null;
     },
     getClickedDonationId(event: MouseEvent, camera: THREE.Camera, domElement: HTMLElement) {
       const rect = domElement.getBoundingClientRect();
       mouseVec.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouseVec.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouseVec, camera);
-      const hits = raycaster.intersectObject(mesh);
-      if (hits.length > 0 && hits[0].instanceId !== undefined) {
-        return instanceToDonationId[hits[0].instanceId] ?? null;
+      const targets: THREE.Object3D[] = [mesh];
+      for (const entry of customShapeMeshes.values()) targets.push(entry.mesh);
+      const hits = raycaster.intersectObjects(targets, false);
+      if (hits.length === 0) return null;
+      const hit = hits[0];
+      if (hit.object === mesh && hit.instanceId !== undefined) {
+        return instanceToDonationId[hit.instanceId] ?? null;
       }
-      return null;
+      const id = hit.object.userData.donationId;
+      return typeof id === "number" ? id : null;
     },
     getDonationWorldPosition(donationId: number) {
       if (!readDonationTransform(donationId)) return null;
@@ -1033,64 +1265,48 @@ export function createDonationManager({
       return pos;
     },
     setFocusedDonation(donationId: number | null) {
-      focusedDonationId = donationId;
-      removeFocusHighlight();
-
-      if (donationId === null) {
-        // Restaurar opacidade total
-        facadeMaterial.transparent = false;
-        facadeMaterial.opacity = 1;
-        topMaterial.transparent = false;
-        topMaterial.opacity = 1;
-        facadeMaterial.needsUpdate = true;
-        topMaterial.needsUpdate = true;
-        applyInstanceColors();
-        return;
-      }
-
-      // Instanced mesh fica semitransparente
-      facadeMaterial.transparent = true;
-      facadeMaterial.opacity = 0.15;
-      topMaterial.transparent = true;
-      topMaterial.opacity = 0.15;
-      facadeMaterial.needsUpdate = true;
-      topMaterial.needsUpdate = true;
-      // Limpar instanceColor do instanced mesh para usar a opacidade uniforme
-      mesh.instanceColor = null;
-
-      // Criar mesh isolado para o edifício selecionado (opacidade total)
-      if (!readDonationTransform(donationId)) return;
-
-      // Aplicar cor customizada ao material de foco
-      const donation = donations.find((d) => d.id === donationId);
-      if (donation?.customization) {
-        focusFacadeMaterial.color.set(donation.customization.color);
-        focusTopMaterial.color.set(donation.customization.color);
-      } else {
-        focusFacadeMaterial.color.copy(currentBuildingColor);
-        focusTopMaterial.color.copy(currentBuildingColor);
-      }
-      focusFacadeMaterial.needsUpdate = true;
-      focusTopMaterial.needsUpdate = true;
-
-      focusHighlightMesh = new THREE.Mesh(buildingGeometry, [focusFacadeMaterial, focusTopMaterial]);
-      focusHighlightMesh.applyMatrix4(tmpTransformMatrix);
-      focusHighlightMesh.castShadow = shadowEnabled;
-      focusHighlightMesh.receiveShadow = shadowEnabled;
-      scene.add(focusHighlightMesh);
+      applyFocus(donationId);
     },
     updateDonationCustomization(donationId: number, customization: BuildingCustomization) {
       const donation = donations.find((d) => d.id === donationId);
       if (!donation) return;
 
-      const prevRooftop = donation.customization?.rooftopType ?? "none";
-      const prevSignText = donation.customization?.signText ?? "";
-      const prevSignSides = donation.customization?.signSides ?? 1;
-      const prevEdgeLightType = donation.customization?.edgeLightType ?? "none";
+      const prevCustomization = donation.customization;
+      const prevRooftop = prevCustomization?.rooftopType ?? "none";
+      const prevSignText = prevCustomization?.signText ?? "";
+      const prevSignSides = prevCustomization?.signSides ?? 1;
+      const prevEdgeLightType = prevCustomization?.edgeLightType ?? "none";
+      const prevShape = prevCustomization?.buildingShape ?? "default";
+      const prevTilingScale = prevCustomization?.tilingScale ?? 1;
       donation.customization = customization;
 
-      if (focusedDonationId === donationId && focusHighlightMesh) {
-        // Atualizar cor do mesh de destaque em tempo real
+      const prevNeedsCustom = needsCustomMesh(prevCustomization);
+      const nowNeedsCustom = needsCustomMesh(customization);
+
+      // Transição de allocation: se o prédio entra ou sai do customShapeMeshes
+      // (ou troca de shape), re-alocar instâncias e re-aplicar foco.
+      if (prevNeedsCustom !== nowNeedsCustom || customization.buildingShape !== prevShape) {
+        rebuildInstances();
+        if (focusedDonationId !== null) {
+          applyFocus(focusedDonationId);
+        }
+        return;
+      }
+
+      // Atualização de tiling em prédio que já está em customShapeMeshes:
+      // só atualiza o uniform — sem rebuild.
+      if (customization.tilingScale !== prevTilingScale) {
+        const entry = customShapeMeshes.get(donationId);
+        if (entry) {
+          entry.facadeMat.userData.tilingMultiplier.value = customization.tilingScale;
+          entry.topMat.userData.tilingMultiplier.value = customization.tilingScale;
+        }
+      }
+
+      // Atualização de cor: caminhos diferentes para custom mesh vs instanced.
+      if (customShapeMeshes.has(donationId)) {
+        updateCustomShapeColor(donationId, customization.color);
+      } else if (focusedDonationId === donationId && focusHighlightMesh) {
         focusFacadeMaterial.color.set(customization.color);
         focusTopMaterial.color.set(customization.color);
         focusFacadeMaterial.needsUpdate = true;
@@ -1136,6 +1352,14 @@ export function createDonationManager({
       }
       edgeLightMeshes.clear();
       disposeEdgeLightSharedResources();
+      // Limpar prédios com formato customizado
+      for (const [, entry] of customShapeMeshes) {
+        scene.remove(entry.mesh);
+        entry.facadeMat.dispose();
+        entry.topMat.dispose();
+      }
+      customShapeMeshes.clear();
+      disposeTwistedBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);

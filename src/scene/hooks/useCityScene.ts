@@ -4,6 +4,7 @@ import type {
   BlockLayoutSettings,
   BuildingCustomization,
   BuildingSettings,
+  CameraDebugInfo,
   EnvironmentSettings,
   GroundSettings,
   LightSettings,
@@ -26,6 +27,7 @@ type UseCitySceneOptions = {
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
+  onCameraDebugChange?: (cameraInfo: CameraDebugInfo) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
   onBuildingClick?: (donationId: number | null) => void;
 };
@@ -42,6 +44,7 @@ export function useCityScene({
   environmentSettings,
   blockLayoutSettings,
   onStatsChange,
+  onCameraDebugChange,
   onHoverChange,
   onBuildingClick,
 }: UseCitySceneOptions) {
@@ -60,6 +63,10 @@ export function useCityScene({
 
   const handleStatsChange = useEffectEvent((stats: SceneStats) => {
     onStatsChange(stats);
+  });
+
+  const handleCameraDebugChange = useEffectEvent((cameraInfo: CameraDebugInfo) => {
+    onCameraDebugChange?.(cameraInfo);
   });
 
   const handleHoverChange = useEffectEvent(
@@ -84,6 +91,7 @@ export function useCityScene({
       mount,
       ...initialSettingsRef.current,
       onStatsChange: (stats) => handleStatsChange(stats),
+      onCameraDebugChange: (cameraInfo) => handleCameraDebugChange(cameraInfo),
       onHoverChange: (value, x, y) => handleHoverChange(value, x, y),
       onBuildingClick: (donationId) => handleBuildingClick(donationId),
     });

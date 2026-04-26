@@ -1,9 +1,10 @@
-import { forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { useCityScene } from "../../scene/hooks/useCityScene";
 import type {
   BlockLayoutSettings,
   BuildingCustomization,
   BuildingSettings,
+  CameraDebugInfo,
   EnvironmentSettings,
   GroundSettings,
   LightSettings,
@@ -23,6 +24,8 @@ export type CitySceneCanvasHandle = {
 };
 
 export type CitySceneCanvasProps = {
+  initialDonations?: readonly number[];
+  initialBuildingCustomizations?: ReadonlyMap<number, BuildingCustomization>;
   buildingSettings: BuildingSettings;
   textureSettings: TextureSettings;
   groundSettings: GroundSettings;
@@ -33,6 +36,7 @@ export type CitySceneCanvasProps = {
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
+  onCameraDebugChange?: (cameraInfo: CameraDebugInfo) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
   onBuildingClick?: (donationId: number | null) => void;
 };
@@ -40,6 +44,8 @@ export type CitySceneCanvasProps = {
 export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvasProps>(
   function CitySceneCanvas(
     {
+      initialDonations,
+      initialBuildingCustomizations,
       buildingSettings,
       textureSettings,
       groundSettings,
@@ -50,6 +56,7 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       environmentSettings,
       blockLayoutSettings,
       onStatsChange,
+      onCameraDebugChange,
       onHoverChange,
       onBuildingClick,
     },
@@ -69,9 +76,19 @@ export const CitySceneCanvas = forwardRef<CitySceneCanvasHandle, CitySceneCanvas
       environmentSettings,
       blockLayoutSettings,
       onStatsChange,
+      onCameraDebugChange,
       onHoverChange,
       onBuildingClick,
     });
+
+    useEffect(() => {
+      if (!initialDonations?.length) return;
+
+      addDonations([...initialDonations]);
+      initialBuildingCustomizations?.forEach((customization, donationId) => {
+        updateDonationCustomization(donationId, { ...customization });
+      });
+    }, [addDonations, initialBuildingCustomizations, initialDonations, updateDonationCustomization]);
 
     useImperativeHandle(
       ref,

@@ -27,14 +27,14 @@ export const CITY_SCENE_CONFIG: CitySceneConfig = {
   cameraFov: 58,
   cameraNear: 0.1,
   initialCameraPosition: {
-    x: 30,
-    y: 50,
-    z: 22,
+    x: -12.91,
+    y: 19.12,
+    z: -14.70,
   },
   controlTarget: {
-    x: 0,
-    y: 7,
-    z: 0,
+    x: 0.19,
+    y: 9.09,
+    z: 0.16,
   },
   controls: {
     dampingFactor: 0.06,

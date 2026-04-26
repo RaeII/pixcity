@@ -11,6 +11,7 @@ import type {
   BlockLayoutSettings,
   BuildingCustomization,
   BuildingSettings,
+  CameraDebugInfo,
   EnvironmentSettings,
   GroundSettings,
   LightSettings,
@@ -34,6 +35,7 @@ type CitySceneRuntimeOptions = {
   environmentSettings: EnvironmentSettings;
   blockLayoutSettings: BlockLayoutSettings;
   onStatsChange: (stats: SceneStats) => void;
+  onCameraDebugChange?: (cameraInfo: CameraDebugInfo) => void;
   onHoverChange?: (value: number | null, x: number, y: number) => void;
   onBuildingClick?: (donationId: number | null) => void;
 };
@@ -67,6 +69,7 @@ export function createCitySceneRuntime({
   environmentSettings,
   blockLayoutSettings,
   onStatsChange,
+  onCameraDebugChange,
   onHoverChange,
   onBuildingClick,
 }: CitySceneRuntimeOptions): CitySceneRuntime {
@@ -235,6 +238,7 @@ export function createCitySceneRuntime({
   let frames = 0;
   let smoothedFps = 60;
   let cubeFrameCounter = 0;
+  let cameraDebugAccumulator = 0;
 
   const updateDynamicResolution = (fps: number) => {
     const previousScale = renderScale;
@@ -273,6 +277,25 @@ export function createCitySceneRuntime({
     gridHelper.setPosition(camera.position.x, camera.position.z);
     horizonSilhouette.update(camera);
     environmentUpdater.updatePosition(camera.position.x, camera.position.y, camera.position.z);
+
+    if (onCameraDebugChange) {
+      cameraDebugAccumulator += delta;
+      if (cameraDebugAccumulator >= 0.2) {
+        cameraDebugAccumulator = 0;
+        onCameraDebugChange({
+          position: {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z,
+          },
+          target: {
+            x: controls.target.x,
+            y: controls.target.y,
+            z: controls.target.z,
+          },
+        });
+      }
+    }
 
     fpsAccumulator += delta;
     frames += 1;

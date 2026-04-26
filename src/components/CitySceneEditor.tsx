@@ -15,11 +15,47 @@ import { createDefaultTextureSettings } from "../scene/config/textureConfig";
 import { createDefaultHorizonSettings } from "../scene/config/horizonConfig";
 import type {
   BuildingCustomization,
+  BuildingShape,
+  CameraDebugInfo,
   EdgeLightType,
   RooftopType,
   SceneStats,
 } from "../scene/types";
 import { getLightMetrics } from "../scene/utils/lighting";
+
+const INITIAL_TEST_DONATIONS = [
+  1000,
+  880,
+  760,
+  640,
+  520,
+  400,
+  280,
+  180,
+  90,
+  40,
+] as const;
+
+const INITIAL_TWISTED_BUILDING_ID = 0;
+
+const createInitialTwistedCustomization = (): BuildingCustomization => ({
+  color: createDefaultBuildingSettings().color,
+  buildingShape: "twisted",
+  tilingScale: 1,
+  rooftopType: "none",
+  signText: "",
+  signSides: 1,
+  edgeLightType: "none",
+});
+
+const createInitialBuildingCustomizations = () =>
+  new Map<number, BuildingCustomization>([
+    [INITIAL_TWISTED_BUILDING_ID, createInitialTwistedCustomization()],
+  ]);
+
+const INITIAL_TEST_BUILDING_CUSTOMIZATIONS = createInitialBuildingCustomizations();
+
+const formatCameraValue = (value: number) => value.toFixed(2);
 
 export function CitySceneEditor() {
   const canvasRef = useRef<CitySceneCanvasHandle>(null);
@@ -36,10 +72,13 @@ export function CitySceneEditor() {
   const [horizonSettings, setHorizonSettings] = useState(createDefaultHorizonSettings);
   const [blockLayoutSettings, setBlockLayoutSettings] = useState(createDefaultBlockLayoutSettings);
   const [sceneStats, setSceneStats] = useState<SceneStats>({ ...DEFAULT_SCENE_STATS });
+  const [cameraDebugInfo, setCameraDebugInfo] = useState<CameraDebugInfo | null>(null);
   const [hoverInfo, setHoverInfo] = useState<{ value: number; x: number; y: number } | null>(null);
   const [showControlPanel, setShowControlPanel] = useState(false);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
-  const [buildingCustomizations, setBuildingCustomizations] = useState<Map<number, BuildingCustomization>>(new Map());
+  const [buildingCustomizations, setBuildingCustomizations] = useState<Map<number, BuildingCustomization>>(
+    createInitialBuildingCustomizations,
+  );
 
   const lightMetrics = getLightMetrics(lightSettings);
 
@@ -80,6 +119,8 @@ export function CitySceneEditor() {
       const existing = buildingCustomizations.get(donationId);
       return {
         color: existing?.color ?? buildingSettings.color,
+        buildingShape: existing?.buildingShape ?? "default" as const,
+        tilingScale: existing?.tilingScale ?? 1,
         rooftopType: existing?.rooftopType ?? "none" as const,
         signText: existing?.signText ?? "",
         signSides: existing?.signSides ?? 1,
@@ -96,6 +137,8 @@ export function CitySceneEditor() {
         const existing = next.get(donationId);
         const updated: BuildingCustomization = {
           color: existing?.color ?? buildingSettings.color,
+          buildingShape: existing?.buildingShape ?? "default",
+          tilingScale: existing?.tilingScale ?? 1,
           rooftopType: existing?.rooftopType ?? "none",
           signText: existing?.signText ?? "",
           signSides: existing?.signSides ?? 1,
@@ -136,11 +179,25 @@ export function CitySceneEditor() {
     [updateCustomization],
   );
 
+  const handleBuildingShapeChange = useCallback(
+    (donationId: number, buildingShape: BuildingShape) =>
+      updateCustomization(donationId, { buildingShape }),
+    [updateCustomization],
+  );
+
+  const handleTilingScaleChange = useCallback(
+    (donationId: number, tilingScale: number) =>
+      updateCustomization(donationId, { tilingScale }),
+    [updateCustomization],
+  );
+
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#05070a]">
       <CitySceneCanvas
         ref={canvasRef}
+        initialDonations={INITIAL_TEST_DONATIONS}
+        initialBuildingCustomizations={INITIAL_TEST_BUILDING_CUSTOMIZATIONS}
         buildingSettings={buildingSettings}
         textureSettings={textureSettings}
         groundSettings={groundSettings}
@@ -151,10 +208,26 @@ export function CitySceneEditor() {
         horizonSettings={horizonSettings}
         blockLayoutSettings={blockLayoutSettings}
         onStatsChange={setSceneStats}
+        onCameraDebugChange={setCameraDebugInfo}
         onHoverChange={handleHoverChange}
         onBuildingClick={handleBuildingClick}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to from-black/35 to-transparent" />
+      {cameraDebugInfo && (
+        <div className="absolute bottom-4 left-4 z-30 w-[min(21rem,calc(100vw-2rem))] select-text rounded-lg border border-white/10 bg-black/70 px-3 py-2 font-mono text-[11px] leading-5 text-white/80 shadow-lg backdrop-blur-md">
+          <div className="mb-1 font-sans text-xs font-semibold text-white">Camera default</div>
+          <div>
+            initialCameraPosition: {"{"} x: {formatCameraValue(cameraDebugInfo.position.x)}, y:{" "}
+            {formatCameraValue(cameraDebugInfo.position.y)}, z:{" "}
+            {formatCameraValue(cameraDebugInfo.position.z)} {"}"}
+          </div>
+          <div>
+            controlTarget: {"{"} x: {formatCameraValue(cameraDebugInfo.target.x)}, y:{" "}
+            {formatCameraValue(cameraDebugInfo.target.y)}, z:{" "}
+            {formatCameraValue(cameraDebugInfo.target.z)} {"}"}
+          </div>
+        </div>
+      )}
       {hoverInfo && (
         <div
           className="pointer-events-none fixed z-50 rounded-lg border border-white/10 bg-black/80 px-3 py-1.5 text-sm text-white backdrop-blur-sm"
@@ -179,11 +252,15 @@ export function CitySceneEditor() {
             key={selectedBuildingId}
             donationId={selectedBuildingId}
             initialColor={c.color}
+            initialBuildingShape={c.buildingShape}
+            initialTilingScale={c.tilingScale}
             initialRooftopType={c.rooftopType}
             initialSignText={c.signText}
             initialSignSides={c.signSides}
             initialEdgeLightType={c.edgeLightType}
             onColorChange={handleBuildingColorChange}
+            onBuildingShapeChange={handleBuildingShapeChange}
+            onTilingScaleChange={handleTilingScaleChange}
             onRooftopChange={handleRooftopChange}
             onSignTextChange={handleSignTextChange}
             onSignSidesChange={handleSignSidesChange}

@@ -157,6 +157,41 @@ Ao chamar `setFocusedDonation(null)`, a opacidade é restaurada a 1.0, o mesh is
 
 Quando um edifício recebe uma customização via `updateDonationCustomization`, a cor é armazenada em `DonationEntry.customization` e aplicada via `InstancedBufferAttribute` (instanceColor). Edifícios sem customização usam a cor global do material. O sistema é reativado a cada `rebuildInstances` ou mudança de `BuildingSettings`.
 
+Para edifícios com `buildingShape === "twisted"`, a cor é aplicada diretamente nos materiais clonados (sem instanceColor) via `updateCustomShapeColor`.
+
+#### Customizações que exigem Mesh próprio (`needsCustomMesh`)
+
+Algumas personalizações precisam de **estado de material próprio** por edifício e não cabem no `InstancedMesh` (que compartilha um único material). O helper `needsCustomMesh(customization)` define quando uma doação sai do InstancedMesh e passa a ser desenhada como `Mesh` dedicado em `customShapeMeshes`:
+
+- `buildingShape !== "default"` (ex: torre torcida)
+- `Math.abs(tilingScale - 1) > 0.001` (tiling de textura customizado por edifício)
+
+Quando a flag transiciona (entra ou sai do `customShapeMeshes`), `updateDonationCustomization` chama `rebuildInstances()` e re-aplica `applyFocus(focusedDonationId)`. Mudanças que não atravessam essa fronteira (ex: ajustar tiling de 2.0 → 2.5 num prédio que já é custom) atualizam direto o uniform `uTilingMultiplier` do material — sem rebuild.
+
+Para cada doação custom, `syncCustomShapes()`:
+
+1. Clona `facadeMaterial`/`topMaterial`.
+2. **Re-aplica `applyTriplanarShader` no clone** para que ele tenha seu próprio `uTilingMultiplier` (default 1.0). Sem isso, o clone herdaria o `onBeforeCompile` do original, apontando para o uniform compartilhado.
+3. Define cor (`customization.color`) e tiling (`customization.tilingScale`) no clone.
+4. Cria o mesh:
+   - `shape === "twisted"` → [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]] (geometria espiralada compartilhada).
+   - `shape === "default"` → `THREE.Mesh(buildingGeometry, [facadeMat, topMat])` (mesma `BoxGeometry` do InstancedMesh).
+5. Adiciona à cena, registra em `customShapeMeshes` e seta `userData.donationId`/`userData.donationValue` para suportar raycast.
+
+Pontos de integração:
+
+- Os clones são incluídos em `getAllFacadeMaterials()` / `getAllTopMaterials()` para que `applyTextureToFacade`, `applyTextureToTop`, `updateBuildingSettings`, `setEnvMap`, `beginEnvCapture`/`endEnvCapture` e `setShadowEnabled` propaguem mudanças globais para eles.
+- `setFocusedDonation` dim os clones para `0.15` quando outro prédio está focado, mantém em `1.0` se o custom é o focado, e dispensa o `focusHighlightMesh` (o próprio Mesh já é separado).
+- `getHoveredValue` / `getClickedDonationId` estendem o raycast para `[mesh, ...customShapeMeshes]` e leem `donationId`/`donationValue` de `userData`.
+- O map `donationTransforms: Map<id, {position, scale}>` é a **fonte única** dos transforms lógicos: acessórios (rooftop/sign/edge) usam `readDonationTransform` que lê desse map, então funcionam igual para edifícios custom sem precisar saber se viraram Mesh separado.
+- `dispose()` limpa cada clone (`facadeMat.dispose()` + `topMat.dispose()`) e chama `disposeTwistedBuildingSharedResources()`.
+
+> [!tip] Adicionando novas customizações de material
+> Para uma futura personalização que precise de estado de material próprio (ex: normalScale individual), basta:
+> 1. Adicionar o campo em `BuildingCustomization`.
+> 2. Estender `needsCustomMesh` para considerar o novo campo.
+> 3. Aplicar no clone dentro de `syncCustomShapes` e atualizar via uniform em `updateDonationCustomization`.
+
 #### Acessórios de Topo
 
 Cada edifício pode ter um acessório 3D no topo, como holofotes ou heliponto, gerenciado pelo campo `rooftopType` em `BuildingCustomization`. O manager mantém um `Map<donationId, { group, type }>` com os `THREE.Group` criados por [[scene-builders#createRooftopMesh.ts|createRooftopMesh]].

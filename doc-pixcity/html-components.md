@@ -61,7 +61,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 
 **Responsabilidades:**
 - Exibir campos de personalização para o edifício selecionado
-- Atualizar cor, letreiro, acessório de topo e LED de arestas em tempo real
+- Atualizar cor, formato, letreiro, acessório de topo e LED de arestas em tempo real
 - Botão de fechar (X) para desselecionar o edifício
 
 **Props:**
@@ -70,17 +70,19 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 |---|---|---|
 | `donationId` | `number` | ID da doação selecionada |
 | `initialColor` | `string` | Cor atual do edifício (customizada ou global) |
+| `initialBuildingShape` | `BuildingShape` | Formato atual (`"default"` ou `"twisted"`) |
+| `initialTilingScale` | `number` | Multiplicador de tiling da textura (1.0 = sem alteração) |
 | `initialRooftopType` | `RooftopType` | Estado atual do acessório de topo |
 | `initialSignText` | `string` | Texto atual do letreiro na fachada |
 | `initialSignSides` | `number` | Quantidade de lados com letreiro (1–4) |
 | `initialEdgeLightType` | `EdgeLightType` | Estado atual do LED nas arestas (`"none"` ou `"led"`) |
-| `initialEdgeLightColor` | `string` | Cor atual do LED (hex) |
 | `onColorChange` | `(id: number, color: string) => void` | Callback de troca de cor |
+| `onBuildingShapeChange` | `(id: number, shape: BuildingShape) => void` | Callback de troca de formato |
+| `onTilingScaleChange` | `(id: number, tilingScale: number) => void` | Callback de troca de tiling |
 | `onRooftopChange` | `(id: number, type: RooftopType) => void` | Callback de troca do acessório de topo |
 | `onSignTextChange` | `(id: number, text: string) => void` | Callback de troca de texto do letreiro |
 | `onSignSidesChange` | `(id: number, sides: number) => void` | Callback de troca de lados do letreiro |
 | `onEdgeLightTypeChange` | `(id: number, type: EdgeLightType) => void` | Callback de toggle do LED |
-| `onEdgeLightColorChange` | `(id: number, color: string) => void` | Callback de troca de cor do LED (drag-friendly) |
 | `onClose` | `() => void` | Fecha o painel e limpa o foco |
 
 **Seções do painel:**
@@ -88,18 +90,25 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 | Seção | Controles | Descrição |
 |---|---|---|
 | **Aparência** | `ColorField` | Cor individual do edifício (hex) |
+| **Formato** | Botões | Opções: padrão (caixa) ou torre torcida (estilo Cayan Tower, 90° de twist) |
+| **Texturas** | `RangeField` | Tiling Scale (0.25× – 4×) — ajusta a repetição da textura **só nesse edifício**. Valores ≠ 1.0 fazem o prédio sair do `InstancedMesh` |
 | **Letreiro** | Input de texto + seletor de lados | Marca/empresa na fachada (máx 30 chars). Seletor de lados (1–4) aparece quando há texto |
 | **Topo** | Botões | Opções: nenhum, holofotes ou heliponto |
-| **LED de arestas** | Botões + `ColorField` | Liga/desliga o LED. Seletor de cor aparece quando ativo (atualiza em tempo real sem recriar geometria) |
+| **LED de arestas** | Botões | Liga/desliga o LED nas arestas verticais e topo |
 
 > [!note] Fluxo de personalização
 > Clique no edifício → `onBuildingClick(donationId)` → `CitySceneEditor` chama `focusOnDonation` (destaque visual) e abre `BuildingCustomizePanel` → cada mudança chama `updateCustomization` que monta o `BuildingCustomization` completo e envia ao runtime via `canvasRef.updateDonationCustomization(id, {...})`.
 
 > [!tip] Onde cada personalização é aplicada
-> - **Cor** → `InstancedBufferAttribute` (instanceColor) no [[scene-managers|DonationManager]]
+> - **Cor** → `InstancedBufferAttribute` (instanceColor) quando o prédio fica no `InstancedMesh`; clone de material quando o prédio vira mesh próprio
+> - **Formato** → `Mesh` próprio via [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]] (pula alocação no `InstancedMesh`)
+> - **Texturas (Tiling)** → uniform `uTilingMultiplier` por material clonado; valores ≠ 1.0 movem o prédio para `customShapeMeshes` (ver [[scene-managers#Customizações que exigem Mesh próprio (`needsCustomMesh`)|needsCustomMesh]])
 > - **Letreiro** → `CanvasTexture` + `PlaneGeometry` via [[scene-builders#createSignMesh.ts|createSignMesh]]
 > - **Topo** → `THREE.Group` via [[scene-builders#createRooftopMesh.ts|createRooftopMesh]]
-> - **LED de arestas** → `THREE.Group` (core emissivo + halo aditivo) via [[scene-builders#createEdgeLightMesh.ts|createEdgeLightMesh]]; cor muda sem rebuild
+> - **LED de arestas** → `THREE.Group` (core emissivo + halo aditivo) via [[scene-builders#createEdgeLightMesh.ts|createEdgeLightMesh]]
+
+> [!warning] Limitação: acessórios em torres torcidas
+> Letreiro, holofotes/heliponto e LED de arestas usam coordenadas da **caixa lógica** (`width/depth/height` da bounding box). Em prédios com `buildingShape === "twisted"`, esses acessórios ficam alinhados ao volume original — letreiros e LEDs aparecem fora da fachada espiralada. É uma limitação inerente do twist no CPU. Para alinhar com a superfície torcida seria necessário aplicar a mesma transformação de twist nos acessórios.
 
 ---
 

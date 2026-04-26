@@ -9,12 +9,18 @@ export type EdgeLightType =
   | "none"
   | "led";
 
+export type BuildingShape =
+  | "default"
+  | "twisted";
+
 export type BuildingCustomization = {
   color: string;
   rooftopType: RooftopType;
   signText: string;
   signSides: number; // 1–4 lados com letreiro
   edgeLightType: EdgeLightType;
+  buildingShape: BuildingShape;
+  tilingScale: number; // multiplicador da textura por edifício (1.0 = sem alteração)
 };
 
 export type DonationEntry = {
@@ -141,6 +147,19 @@ export type SceneStats = {
   fpsMode: string;
   chunks: number;
   buildingsWithShadow: number;
+};
+
+export type CameraDebugInfo = {
+  position: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  target: {
+    x: number;
+    y: number;
+    z: number;
+  };
 };
 
 export type CameraVisibilityState = {

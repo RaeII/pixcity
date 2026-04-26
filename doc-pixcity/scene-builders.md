@@ -229,6 +229,35 @@ disposeEdgeLightSharedResources(): void                             // libera Bo
 
 ---
 
+### `createTwistedBuildingMesh.ts`
+
+Cria um `THREE.Mesh` com geometria torcida (estilo **Cayan Tower**) para edifícios com `BuildingShape === "twisted"`.
+
+**Responsabilidades:**
+- Construir uma `BoxGeometry(1, 1, 1, 1, 24, 1)` e aplicar deformação no CPU: cada vértice `(x, y, z)` é rotacionado no plano XZ por ângulo `(y + 0.5) * (π/2)`, gerando 90° de twist do chão ao topo
+- Recomputar normais via `geometry.computeVertexNormals()`
+- Reaplicar mapeamento de `materialIndex` (topo → 1, demais → 0) idêntico à geometria base, para manter o split entre `facadeMaterial` e `topMaterial`
+- Compartilhar a `BufferGeometry` entre todos os prédios torcidos (escala via `mesh.scale`)
+
+**Quando mexer aqui:**
+- Ajustar o ângulo total de twist (atual: 90°)
+- Aumentar/reduzir `TWIST_HEIGHT_SEGMENTS` (qualidade vs custo)
+- Adicionar variantes de torção (sentido inverso, twist parcial, etc)
+
+**API:**
+```typescript
+createTwistedBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Material): THREE.Mesh
+disposeTwistedBuildingSharedResources(): void  // libera a BoxGeometry torcida compartilhada
+```
+
+> [!note] Materiais não são criados aqui
+> O caller (DonationManager) clona `facadeMaterial`/`topMaterial` por edifício para suportar cor individual, e passa esses clones aqui. A geometria é compartilhada; os materiais não.
+
+> [!important] Mesh único, não Instanced
+> Twisted towers são desenhadas como `Mesh` separadas, fora do `InstancedMesh`. Para isso, o `DonationManager` mantém `customShapeMeshes: Map<donationId, {mesh, facadeMat, topMat, shape}>` e pula a alocação de slot no InstancedMesh para essas doações.
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:
