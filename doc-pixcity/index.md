@@ -75,6 +75,7 @@ src/
       createGridHelper.ts
       createRooftopMesh.ts
       createSignMesh.ts
+      createEdgeLightMesh.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
@@ -122,7 +123,7 @@ Ele guarda todos os estados:
 - `sceneStats`, `hoverInfo`
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, acessório de topo e letreiro
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, acessório de topo, letreiro e LED de arestas
 
 E entrega para:
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
@@ -170,6 +171,7 @@ flowchart TD
     H --> M[createDonationManager]
     M --> N[createRooftopMesh]
     M --> O[createSignMesh]
+    M --> Q[createEdgeLightMesh]
     E --> C
     P --> C
 ```
@@ -188,6 +190,7 @@ flowchart LR
     DM --> |cor| IC[instanceColor]
     DM --> |topo| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
+    DM --> |LED| EL[createEdgeLightMesh]
 ```
 
 ## Onde Mexer?
@@ -202,6 +205,7 @@ flowchart LR
 | Alterar criação do chão, grid, luzes ou ambiente | [[scene-builders]] |
 | Alterar acessórios de topo | [[scene-builders#createRooftopMesh.ts]] |
 | Alterar letreiros de fachada (signs) | [[scene-builders#createSignMesh.ts]] |
+| Alterar LED de arestas | [[scene-builders#createEdgeLightMesh.ts]] |
 | Alterar geração dos prédios de doação | [[scene-managers]] |
 | Alterar o ciclo completo da cena | [[scene-runtime]] |
 | Entender o contrato dos dados | [[scene-types]] |

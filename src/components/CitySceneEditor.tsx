@@ -13,7 +13,14 @@ import { createDefaultRenderDirectionSettings } from "../scene/config/renderDire
 import { createDefaultShadowSettings } from "../scene/config/shadowConfig";
 import { createDefaultTextureSettings } from "../scene/config/textureConfig";
 import { createDefaultHorizonSettings } from "../scene/config/horizonConfig";
-import type { BuildingCustomization, RooftopType, SceneStats } from "../scene/types";
+import type {
+  BuildingCustomization,
+  EdgeLightType,
+  RooftopType,
+  SceneStats,
+} from "../scene/types";
+
+const DEFAULT_EDGE_LIGHT_COLOR = "#00e5ff";
 import { getLightMetrics } from "../scene/utils/lighting";
 
 export function CitySceneEditor() {
@@ -78,6 +85,10 @@ export function CitySceneEditor() {
         rooftopType: existing?.rooftopType ?? "none" as const,
         signText: existing?.signText ?? "",
         signSides: existing?.signSides ?? 1,
+        edgeLightType: existing?.edgeLightType ?? "none" as const,
+        edgeLightColor: existing?.edgeLightColor ?? DEFAULT_EDGE_LIGHT_COLOR,
+        edgeLightIntensity: existing?.edgeLightIntensity ?? 4.0,
+        edgeLightDistance: existing?.edgeLightDistance ?? 0.07,
       };
     },
     [buildingCustomizations, buildingSettings.color],
@@ -93,6 +104,10 @@ export function CitySceneEditor() {
           rooftopType: existing?.rooftopType ?? "none",
           signText: existing?.signText ?? "",
           signSides: existing?.signSides ?? 1,
+          edgeLightType: existing?.edgeLightType ?? "none",
+          edgeLightColor: existing?.edgeLightColor ?? DEFAULT_EDGE_LIGHT_COLOR,
+          edgeLightIntensity: existing?.edgeLightIntensity ?? 4.0,
+          edgeLightDistance: existing?.edgeLightDistance ?? 0.07,
           ...patch,
         };
         next.set(donationId, updated);
@@ -120,6 +135,30 @@ export function CitySceneEditor() {
 
   const handleSignSidesChange = useCallback(
     (donationId: number, signSides: number) => updateCustomization(donationId, { signSides }),
+    [updateCustomization],
+  );
+
+  const handleEdgeLightTypeChange = useCallback(
+    (donationId: number, edgeLightType: EdgeLightType) =>
+      updateCustomization(donationId, { edgeLightType }),
+    [updateCustomization],
+  );
+
+  const handleEdgeLightColorChange = useCallback(
+    (donationId: number, edgeLightColor: string) =>
+      updateCustomization(donationId, { edgeLightColor }),
+    [updateCustomization],
+  );
+
+  const handleEdgeLightIntensityChange = useCallback(
+    (donationId: number, edgeLightIntensity: number) =>
+      updateCustomization(donationId, { edgeLightIntensity }),
+    [updateCustomization],
+  );
+
+  const handleEdgeLightDistanceChange = useCallback(
+    (donationId: number, edgeLightDistance: number) =>
+      updateCustomization(donationId, { edgeLightDistance }),
     [updateCustomization],
   );
 
@@ -168,10 +207,18 @@ export function CitySceneEditor() {
             initialRooftopType={c.rooftopType}
             initialSignText={c.signText}
             initialSignSides={c.signSides}
+            initialEdgeLightType={c.edgeLightType}
+            initialEdgeLightColor={c.edgeLightColor}
+            initialEdgeLightIntensity={c.edgeLightIntensity}
+            initialEdgeLightDistance={c.edgeLightDistance}
             onColorChange={handleBuildingColorChange}
             onRooftopChange={handleRooftopChange}
             onSignTextChange={handleSignTextChange}
             onSignSidesChange={handleSignSidesChange}
+            onEdgeLightTypeChange={handleEdgeLightTypeChange}
+            onEdgeLightColorChange={handleEdgeLightColorChange}
+            onEdgeLightIntensityChange={handleEdgeLightIntensityChange}
+            onEdgeLightDistanceChange={handleEdgeLightDistanceChange}
             onClose={handleCloseCustomizePanel}
           />
         );

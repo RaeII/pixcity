@@ -5,11 +5,19 @@ export type RooftopType =
   | "spotlights"
   | "helipad";
 
+export type EdgeLightType =
+  | "none"
+  | "led";
+
 export type BuildingCustomization = {
   color: string;
   rooftopType: RooftopType;
   signText: string;
   signSides: number; // 1–4 lados com letreiro
+  edgeLightType: EdgeLightType;
+  edgeLightColor: string;
+  edgeLightIntensity: number;
+  edgeLightDistance: number;
 };
 
 export type DonationEntry = {

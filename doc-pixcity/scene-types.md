@@ -244,6 +244,16 @@ type RooftopType =
   | "helipad"        // heliponto realista com pintura e luzes de perímetro
 ```
 
+### `EdgeLightType`
+
+Estilos de iluminação aplicáveis às arestas do edifício:
+
+```typescript
+type EdgeLightType =
+  | "none"           // sem LED
+  | "led"            // 4 arestas verticais (cantos) + 4 arestas no topo formando retângulo
+```
+
 ### `BuildingCustomization`
 
 Personalização visual de um edifício individual:
@@ -254,6 +264,8 @@ type BuildingCustomization = {
   rooftopType: RooftopType;   // acessório de topo ou none
   signText: string;           // texto do letreiro na fachada (vazio = sem letreiro)
   signSides: number;          // quantos lados exibem o letreiro (1–4)
+  edgeLightType: EdgeLightType; // LED nas arestas ou none
+  edgeLightColor: string;     // cor hex do LED (usada apenas quando edgeLightType ≠ "none")
 }
 ```
 
@@ -265,6 +277,8 @@ Armazenada opcionalmente em cada `DonationEntry`. Cada campo controla um aspecto
 | `rooftopType` | Acessório 3D no topo do edifício | `THREE.Group` criado por [[scene-builders#createRooftopMesh.ts\|createRooftopMesh]], posicionado no topo |
 | `signText` | Texto da marca/empresa na fachada | `CanvasTexture` + `PlaneGeometry` criados por [[scene-builders#createSignMesh.ts\|createSignMesh]] |
 | `signSides` | Em quantas fachadas o letreiro aparece | 1=frente, 2=+trás, 3=+direita, 4=todos os lados |
+| `edgeLightType` | LED contornando as arestas do edifício | `THREE.Group` criado por [[scene-builders#createEdgeLightMesh.ts\|createEdgeLightMesh]] (core + halo aditivo) |
+| `edgeLightColor` | Cor do LED (drag-friendly) | Atualizada via `updateEdgeLightMeshColor` sem rebuild — só mexe nos materiais clonados |
 
 Todos gerenciados pelo [[scene-managers|DonationManager]]. A customização é propagada pelo pipeline: `CitySceneEditor` → `CitySceneCanvas` → `useCityScene` → `runtime` → `donationManager.updateDonationCustomization()`.
 

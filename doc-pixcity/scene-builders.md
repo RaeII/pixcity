@@ -184,6 +184,51 @@ disposeSignMesh(group: THREE.Group): void  // limpa texturas, materiais e geomet
 
 ---
 
+### `createEdgeLightMesh.ts`
+
+Factory para o efeito de **LED nas arestas** do edifício — 4 arestas verticais nos cantos (chão → topo) + 4 arestas no topo formando um retângulo. Chamado pelo [[scene-managers|DonationManager]] quando o usuário escolhe a opção LED no [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]].
+
+**Estrutura por aresta (3 meshes empilhados):**
+
+| Camada | Espessura | Material | Função visual |
+|---|---|---|---|
+| **Core** | 0.04 | `MeshStandardMaterial` com `emissive` e `emissiveIntensity: 4.0` | Linha sólida emissiva — o "filamento" do LED |
+| **Halo** | 0.16 (4× core) | `MeshBasicMaterial`, `transparent`, `AdditiveBlending`, `opacity: 0.35`, `depthWrite: false` | Brilho próximo |
+| **Halo externo** | 0.32 (8× core) | mesmo material do halo, `opacity: 0.12` | Glow difuso simulando bloom sem pós-processamento |
+
+`depthWrite: false` evita que halos se cancelem entre si; `depthTest` permanece ativo para que o brilho seja oclusionado pelo edifício (não atravessa a fachada).
+
+**Layout (relativo à base do edifício, local Y=0 = chão):**
+
+| Posição | Quantidade | Eixo |
+|---|---|---|
+| Cantos `(±W/2, Y=0..H, ±D/2)` | 4 | Y (vertical) |
+| Topo frente/trás `(0, H+0.05, ±D/2)` | 2 | X |
+| Topo laterais `(±W/2, H+0.05, 0)` | 2 | Z |
+
+O lift de `0.05` no topo evita z-fighting com `helipad` e holofotes existentes.
+
+**Materiais clonados por edifício:** ao contrário do `createRooftopMesh`, cada `Group` cria seus próprios `core`/`halo`/`haloOuter` materials. Isso permite atualizar a cor em tempo real (drag do `<input type="color">`) via `updateEdgeLightMeshColor` **sem reconstruir geometria**. A geometria `BoxGeometry(1,1,1)` é compartilhada no módulo (via `mesh.scale`).
+
+**Posicionamento no DonationManager:** o grupo é colocado em `(donationX, donationY − scale.y/2, donationZ)` — ou seja, na **base** do edifício, não no topo. Quando uma nova doação rebalanceia alturas, o `syncEdgeLights` reconstrói os grupos existentes (preservando type/color) com as novas dimensões.
+
+> [!note] Sombras
+> LEDs nunca projetam nem recebem sombras. `setEdgeLightMeshShadowEnabled` mantém a API consistente mas todas as `userData.edgeLightCastsShadow`/`Receives` são `false`.
+
+> [!warning] Sem PointLight por aresta
+> O efeito é puramente material/emissivo. Adicionar luzes reais por aresta seria O(N × 12) e estouraria limites de uniforms da GPU rapidamente.
+
+**API:**
+```typescript
+createEdgeLightMesh(type: EdgeLightType, footprint: { width: number; depth: number; height: number }, color: string): THREE.Group | null
+updateEdgeLightMeshColor(group: THREE.Group, color: string): void   // mutação direta — sem rebuild
+setEdgeLightMeshShadowEnabled(group: THREE.Group, enabled: boolean): void
+disposeEdgeLightMesh(group: THREE.Group): void                      // libera materiais clonados
+disposeEdgeLightSharedResources(): void                             // libera BoxGeometry compartilhada
+```
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

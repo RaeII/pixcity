@@ -4,6 +4,7 @@ import type {
   BuildingCustomization,
   BuildingSettings,
   DonationEntry,
+  EdgeLightType,
   RooftopType,
   TextureSettings,
 } from "../types";
@@ -18,6 +19,13 @@ import {
   disposeSignMesh,
   setSignMeshShadowEnabled,
 } from "../builders/createSignMesh";
+import {
+  createEdgeLightMesh,
+  disposeEdgeLightMesh,
+  disposeEdgeLightSharedResources,
+  setEdgeLightMeshShadowEnabled,
+  updateEdgeLightMeshParams,
+} from "../builders/createEdgeLightMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -712,6 +720,7 @@ export function createDonationManager({
     // Reposicionar acessórios de topo e letreiros
     syncRooftops();
     syncSigns();
+    syncEdgeLights();
 
     rebuildRoads(r, blockSpacing, streetWidth);
   };
@@ -862,6 +871,76 @@ export function createDonationManager({
     }
   };
 
+  // Mapa: donationId → { group, type, color, intensity, distance }
+  const edgeLightMeshes = new Map<
+    number,
+    { group: THREE.Group; type: EdgeLightType; color: string; intensity: number; distance: number }
+  >();
+
+  // Reconstrói todos os LEDs existentes com as dimensões atuais do edifício.
+  // É chamado em rebuildInstances porque novas doações podem alterar a altura
+  // de edifícios já com LED — o group precisa ser recriado para refletir scale.y.
+  const syncEdgeLights = () => {
+    if (edgeLightMeshes.size === 0) return;
+    const snapshot: Array<{ donationId: number; type: EdgeLightType; color: string; intensity: number; distance: number }> =
+      [];
+    for (const [donId, entry] of edgeLightMeshes) {
+      snapshot.push({ donationId: donId, type: entry.type, color: entry.color, intensity: entry.intensity, distance: entry.distance });
+    }
+    for (const item of snapshot) {
+      setEdgeLight(item.donationId, item.type, item.color, item.intensity, item.distance);
+    }
+  };
+
+  const setEdgeLight = (
+    donationId: number,
+    type: EdgeLightType,
+    color: string,
+    intensity: number,
+    distance: number,
+  ) => {
+    const existing = edgeLightMeshes.get(donationId);
+    if (existing) {
+      scene.remove(existing.group);
+      disposeEdgeLightMesh(existing.group);
+      edgeLightMeshes.delete(donationId);
+    }
+
+    if (type === "none") return;
+
+    const scale = getBuildingScale(donationId);
+    if (!scale) return;
+
+    const group = createEdgeLightMesh(
+      type,
+      { width: scale.x, depth: scale.z, height: scale.y },
+      color,
+      intensity,
+      distance,
+    );
+    if (!group) return;
+
+    edgeLightMeshes.set(donationId, { group, type, color, intensity, distance });
+    setEdgeLightMeshShadowEnabled(group, shadowEnabled);
+    scene.add(group);
+
+    if (readDonationTransform(donationId)) {
+      group.position.set(
+        tmpTransformPosition.x,
+        tmpTransformPosition.y - tmpTransformScale.y / 2,
+        tmpTransformPosition.z,
+      );
+    }
+  };
+
+  const setEdgeLightParams = (donationId: number, color: string, intensity: number) => {
+    const entry = edgeLightMeshes.get(donationId);
+    if (!entry) return;
+    entry.color = color;
+    entry.intensity = intensity;
+    updateEdgeLightMeshParams(entry.group, color, intensity);
+  };
+
   return {
     addDonation(value) {
       donations.push({ id: nextId++, value });
@@ -914,6 +993,9 @@ export function createDonationManager({
       }
       for (const [, entry] of signMeshes) {
         setSignMeshShadowEnabled(entry.group, enabled);
+      }
+      for (const [, entry] of edgeLightMeshes) {
+        setEdgeLightMeshShadowEnabled(entry.group, enabled);
       }
       if (focusHighlightMesh) {
         focusHighlightMesh.castShadow = enabled;
@@ -1020,6 +1102,10 @@ export function createDonationManager({
       const prevRooftop = donation.customization?.rooftopType ?? "none";
       const prevSignText = donation.customization?.signText ?? "";
       const prevSignSides = donation.customization?.signSides ?? 1;
+      const prevEdgeLightType = donation.customization?.edgeLightType ?? "none";
+      const prevEdgeLightColor = donation.customization?.edgeLightColor ?? "#00e5ff";
+      const prevEdgeLightIntensity = donation.customization?.edgeLightIntensity ?? 4.0;
+      const prevEdgeLightDistance = donation.customization?.edgeLightDistance ?? 0.07;
       donation.customization = customization;
 
       if (focusedDonationId === donationId && focusHighlightMesh) {
@@ -1041,6 +1127,16 @@ export function createDonationManager({
       if (customization.signText !== prevSignText || customization.signSides !== prevSignSides) {
         setSign(donationId, customization.signText, customization.signSides);
       }
+
+      // LED de arestas: type ou distance muda → rebuild; só cor ou intensity muda → mutação direta nos materiais.
+      if (customization.edgeLightType !== prevEdgeLightType || customization.edgeLightDistance !== prevEdgeLightDistance) {
+        setEdgeLight(donationId, customization.edgeLightType, customization.edgeLightColor, customization.edgeLightIntensity, customization.edgeLightDistance);
+      } else if (
+        customization.edgeLightType !== "none" &&
+        (customization.edgeLightColor !== prevEdgeLightColor || customization.edgeLightIntensity !== prevEdgeLightIntensity)
+      ) {
+        setEdgeLightParams(donationId, customization.edgeLightColor, customization.edgeLightIntensity);
+      }
     },
     dispose() {
       removeFocusHighlight();
@@ -1057,6 +1153,13 @@ export function createDonationManager({
         disposeSignMesh(entry.group);
       }
       signMeshes.clear();
+      // Limpar LEDs de arestas
+      for (const [, entry] of edgeLightMeshes) {
+        scene.remove(entry.group);
+        disposeEdgeLightMesh(entry.group);
+      }
+      edgeLightMeshes.clear();
+      disposeEdgeLightSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);

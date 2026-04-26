@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { PanelSection } from "./controls/PanelSection";
 import { ColorField } from "./controls/ColorField";
-import type { RooftopType } from "../../scene/types";
+import { RangeField } from "./controls/RangeField";
+import type { EdgeLightType, RooftopType } from "../../scene/types";
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
   { value: "none", label: "Nenhuma" },
   { value: "spotlights", label: "Holofotes" },
   { value: "helipad", label: "Heliponto" },
+];
+
+const EDGE_LIGHT_OPTIONS: { value: EdgeLightType; label: string }[] = [
+  { value: "none", label: "Desligado" },
+  { value: "led", label: "LED" },
 ];
 
 const SIDE_OPTIONS = [
@@ -22,10 +28,18 @@ type BuildingCustomizePanelProps = {
   initialRooftopType: RooftopType;
   initialSignText: string;
   initialSignSides: number;
+  initialEdgeLightType: EdgeLightType;
+  initialEdgeLightColor: string;
+  initialEdgeLightIntensity: number;
+  initialEdgeLightDistance: number;
   onColorChange: (donationId: number, color: string) => void;
   onRooftopChange: (donationId: number, rooftopType: RooftopType) => void;
   onSignTextChange: (donationId: number, signText: string) => void;
   onSignSidesChange: (donationId: number, signSides: number) => void;
+  onEdgeLightTypeChange: (donationId: number, edgeLightType: EdgeLightType) => void;
+  onEdgeLightColorChange: (donationId: number, edgeLightColor: string) => void;
+  onEdgeLightIntensityChange: (donationId: number, edgeLightIntensity: number) => void;
+  onEdgeLightDistanceChange: (donationId: number, edgeLightDistance: number) => void;
   onClose: () => void;
 };
 
@@ -35,16 +49,28 @@ export function BuildingCustomizePanel({
   initialRooftopType,
   initialSignText,
   initialSignSides,
+  initialEdgeLightType,
+  initialEdgeLightColor,
+  initialEdgeLightIntensity,
+  initialEdgeLightDistance,
   onColorChange,
   onRooftopChange,
   onSignTextChange,
   onSignSidesChange,
+  onEdgeLightTypeChange,
+  onEdgeLightColorChange,
+  onEdgeLightIntensityChange,
+  onEdgeLightDistanceChange,
   onClose,
 }: BuildingCustomizePanelProps) {
   const [color, setColor] = useState(initialColor);
   const [rooftopType, setRooftopType] = useState<RooftopType>(initialRooftopType);
   const [signText, setSignText] = useState(initialSignText);
   const [signSides, setSignSides] = useState(initialSignSides);
+  const [edgeLightType, setEdgeLightType] = useState<EdgeLightType>(initialEdgeLightType);
+  const [edgeLightColor, setEdgeLightColor] = useState(initialEdgeLightColor);
+  const [edgeLightIntensity, setEdgeLightIntensity] = useState(initialEdgeLightIntensity);
+  const [edgeLightDistance, setEdgeLightDistance] = useState(initialEdgeLightDistance);
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
@@ -64,6 +90,26 @@ export function BuildingCustomizePanel({
   const handleSignSidesChange = (sides: number) => {
     setSignSides(sides);
     onSignSidesChange(donationId, sides);
+  };
+
+  const handleEdgeLightTypeChange = (newType: EdgeLightType) => {
+    setEdgeLightType(newType);
+    onEdgeLightTypeChange(donationId, newType);
+  };
+
+  const handleEdgeLightColorChange = (newColor: string) => {
+    setEdgeLightColor(newColor);
+    onEdgeLightColorChange(donationId, newColor);
+  };
+
+  const handleEdgeLightIntensityChange = (newIntensity: number) => {
+    setEdgeLightIntensity(newIntensity);
+    onEdgeLightIntensityChange(donationId, newIntensity);
+  };
+
+  const handleEdgeLightDistanceChange = (newDistance: number) => {
+    setEdgeLightDistance(newDistance);
+    onEdgeLightDistanceChange(donationId, newDistance);
   };
 
   return (
@@ -141,6 +187,52 @@ export function BuildingCustomizePanel({
               </button>
             ))}
           </div>
+        </PanelSection>
+        <PanelSection title="LED de arestas">
+          <div className="grid grid-cols-2 gap-2">
+            {EDGE_LIGHT_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleEdgeLightTypeChange(option.value)}
+                className={`rounded-lg border px-3 py-2 text-xs transition-colors ${
+                  edgeLightType === option.value
+                    ? "border-white/40 bg-white/15 text-white"
+                    : "border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {edgeLightType !== "none" && (
+            <div className="mt-3">
+              <ColorField
+                label="Cor do LED"
+                value={edgeLightColor}
+                onChange={handleEdgeLightColorChange}
+              />
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <RangeField
+                  label="Intensidade"
+                  value={edgeLightIntensity}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  onChange={handleEdgeLightIntensityChange}
+                  valueLabel={edgeLightIntensity.toFixed(1)}
+                />
+                <RangeField
+                  label="Distância da Luz"
+                  value={edgeLightDistance}
+                  min={0.01}
+                  max={0.5}
+                  step={0.01}
+                  onChange={handleEdgeLightDistanceChange}
+                  valueLabel={edgeLightDistance.toFixed(2)}
+                />
+              </div>
+            </div>
+          )}
         </PanelSection>
       </div>
     </div>

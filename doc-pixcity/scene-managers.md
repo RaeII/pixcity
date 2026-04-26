@@ -178,6 +178,16 @@ Cada edifício pode ter um letreiro na fachada com o texto da marca/empresa do d
 - **Detecção de mudança:** `updateDonationCustomization` compara `signText` e `signSides` anteriores com os novos valores — recria só se houve mudança.
 - **Cleanup:** no `dispose()`, todos os sign meshes são removidos com `disposeSignMesh()`.
 
+#### LED de Arestas
+
+Cada edifício pode ter um efeito de **LED nas arestas** (4 arestas verticais nos cantos + 4 arestas no topo formando retângulo), gerenciado pelos campos `edgeLightType` e `edgeLightColor` em `BuildingCustomization`. O manager mantém um `Map<donationId, { group, type, color }>` com os `THREE.Group` criados por [[scene-builders#createEdgeLightMesh.ts|createEdgeLightMesh]].
+
+- **Posicionamento:** o grupo é colocado na **base** do edifício (`donationY − scale.y/2`); meshes internos cobrem de `y=0` (chão) até `y=height` (topo) com lift de `0.05` no topo para evitar conflito com `helipad`/`spotlights`.
+- **Reconstrução em rebuild:** ao contrário de rooftop/sign, `syncEdgeLights()` **reconstrói** todos os grupos existentes a cada `rebuildInstances`. Isso é necessário porque novas doações alteram a altura dos edifícios — a geometria do LED depende de `width`, `depth` **e** `height`.
+- **Mudança de cor sem rebuild:** quando apenas a cor muda (drag do color picker), `setEdgeLightColor(donationId, color)` chama `updateEdgeLightMeshColor` que mexe diretamente nos materiais clonados — sem destruir nada. Mudança de `type` (none ↔ led) sim reconstrói tudo via `setEdgeLight`.
+- **Sombras:** LEDs nunca projetam nem recebem sombra (são emissivos/aditivos). `setEdgeLightMeshShadowEnabled` é chamada por consistência, mas todas as `userData` de sombra ficam `false`.
+- **Cleanup:** no `dispose()`, todos os edge light meshes são removidos com `disposeEdgeLightMesh()` (libera materiais clonados) e `disposeEdgeLightSharedResources()` libera a `BoxGeometry` compartilhada do módulo.
+
 ---
 
 ### `createChunkManager.ts` _(referência arquitetural)_
