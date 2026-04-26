@@ -107,13 +107,14 @@ Carrega e configura o ambiente HDRI/skybox.
 
 ### `createRooftopMesh.ts`
 
-Factory para os holofotes de topo dos edifícios. Chamado pelo [[scene-managers|DonationManager]] quando o usuário personaliza um edifício via [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]].
+Factory para acessórios de topo dos edifícios. Chamado pelo [[scene-managers|DonationManager]] quando o usuário personaliza um edifício via [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]].
 
 **Opção disponível:**
 
 | Tipo | Geometria | Materiais | Descrição |
 |---|---|---|---|
 | `spotlights` | `CylinderGeometry` × 3 + `CircleGeometry` × 1 compartilhadas pelo módulo | `SPOTLIGHT_HOUSING_MATERIAL` + `SPOTLIGHT_LENS_MATERIAL` + `SPOTLIGHT_BEAM_MATERIAL` compartilhados | 4 holofotes nos cantos (±0.35, ±0.35) — base (0.08r) + corpo cônico (0.04–0.07r, 0.12h) + lente emissiva amarela + feixe cônico (0.22r, 10.0h) com vertex alpha gradiente (opaco na fonte, desvanece no topo via curva quadrática). Não cria luzes reais por edifício. |
+| `helipad` | `CylinderGeometry`, `TorusGeometry`, `RingGeometry`, `BoxGeometry` e pequenos cilindros compartilhados | Materiais de concreto escuro, aro metálico, pintura branca e lentes verdes emissivas | Heliponto proporcional ao topo do edifício, com base circular baixa, aro metálico, anéis pintados, “H” central, 12 luzes verdes de perímetro e escotilha técnica discreta. Não cria luzes reais por edifício. |
 
 **Recursos compartilhados (estáticos de módulo):**
 
@@ -122,19 +123,23 @@ Factory para os holofotes de topo dos edifícios. Chamado pelo [[scene-managers|
 | `SPOTLIGHT_HOUSING_MATERIAL` | `#222222` | 0.4 | 0.6 | Corpo escuro do holofote |
 | `SPOTLIGHT_LENS_MATERIAL` | `#ffffcc` | 0.1 | 0.0 | `emissive: #ffffaa`, `emissiveIntensity: 2.5` — lente amarela brilhante |
 | `SPOTLIGHT_BEAM_MATERIAL` | `#ffffdd` | — | — | `emissive: #ffffaa`, `emissiveIntensity: 1.25`, `vertexColors: true`, `transparent`, `DoubleSide`, `depthWrite: false` — feixe com alpha gradiente via vertex colors (curva quadrática: fonte opaca → topo transparente) |
+| `HELIPAD_DECK_MATERIAL` | `#2f3436` | 0.88 | 0.04 | Base circular escura e fosca |
+| `HELIPAD_RIM_MATERIAL` | `#3f4548` | 0.62 | 0.42 | Aro metálico baixo |
+| `HELIPAD_PAINT_MATERIAL` | `#e8edf1` | 0.78 | 0.0 | Pintura branca dos anéis e do “H” |
+| `HELIPAD_GREEN_LENS_MATERIAL` | `#bfffee` | 0.18 | 0.0 | Lentes verdes emissivas de perímetro |
 
 As geometrias de base, corpo, lente e feixe também são compartilhadas. `disposeRooftopMesh()` apenas libera as referências do grupo; o descarte de GPU dos recursos compartilhados acontece no dispose final.
 
 **API:**
 ```typescript
-createRooftopMesh(type: RooftopType): THREE.Group | null  // null se "none"
+createRooftopMesh(type: RooftopType, footprint?: { width: number; depth: number }): THREE.Group | null  // null se "none"
 setRooftopMeshShadowEnabled(group: THREE.Group, enabled: boolean): void
 disposeRooftopMesh(group: THREE.Group): void               // limpa referências do grupo
 disposeRooftopSharedResources(): void                       // limpa geometrias e materiais compartilhados
 ```
 
 > [!note] Sombras
-> Apenas as partes sólidas (`base` e `housing`) projetam/recebem sombra. Lentes emissivas e feixes transparentes não participam do shadow map para evitar custo desnecessário e artefatos.
+> Apenas as partes sólidas projetam/recebem sombra. Lentes emissivas, feixes transparentes e pinturas finas não participam do shadow map para evitar custo desnecessário e artefatos.
 
 ---
 

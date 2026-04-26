@@ -2,7 +2,8 @@ import * as THREE from "three";
 
 export type RooftopType =
   | "none"
-  | "spotlights";
+  | "spotlights"
+  | "helipad";
 
 export type BuildingCustomization = {
   color: string;

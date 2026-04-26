@@ -241,6 +241,7 @@ Tipos de estrutura que podem ser colocados no topo de um edifício:
 type RooftopType =
   | "none"           // sem estrutura
   | "spotlights"     // 4 holofotes com feixe de luz para cima
+  | "helipad"        // heliponto realista com pintura e luzes de perímetro
 ```
 
 ### `BuildingCustomization`
@@ -250,7 +251,7 @@ Personalização visual de um edifício individual:
 ```typescript
 type BuildingCustomization = {
   color: string;              // cor hex do edifício
-  rooftopType: RooftopType;   // holofotes no topo ou none
+  rooftopType: RooftopType;   // acessório de topo ou none
   signText: string;           // texto do letreiro na fachada (vazio = sem letreiro)
   signSides: number;          // quantos lados exibem o letreiro (1–4)
 }
@@ -261,7 +262,7 @@ Armazenada opcionalmente em cada `DonationEntry`. Cada campo controla um aspecto
 | Campo | Efeito | Implementação |
 |---|---|---|
 | `color` | Cor individual do edifício | `InstancedBufferAttribute` (instanceColor) sobrescrevendo a cor global do material |
-| `rooftopType` | Holofotes 3D no topo do edifício | `THREE.Group` criado por [[scene-builders#createRooftopMesh.ts\|createRooftopMesh]], posicionado no topo |
+| `rooftopType` | Acessório 3D no topo do edifício | `THREE.Group` criado por [[scene-builders#createRooftopMesh.ts\|createRooftopMesh]], posicionado no topo |
 | `signText` | Texto da marca/empresa na fachada | `CanvasTexture` + `PlaneGeometry` criados por [[scene-builders#createSignMesh.ts\|createSignMesh]] |
 | `signSides` | Em quantas fachadas o letreiro aparece | 1=frente, 2=+trás, 3=+direita, 4=todos os lados |
 
