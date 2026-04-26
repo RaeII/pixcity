@@ -20,7 +20,7 @@ import type {
   SceneStats,
 } from "../scene/types";
 
-const DEFAULT_EDGE_LIGHT_COLOR = "#00e5ff";
+const DEFAULT_EDGE_LIGHT_COLOR = "#ffca57";
 import { getLightMetrics } from "../scene/utils/lighting";
 
 export function CitySceneEditor() {
@@ -87,8 +87,9 @@ export function CitySceneEditor() {
         signSides: existing?.signSides ?? 1,
         edgeLightType: existing?.edgeLightType ?? "none" as const,
         edgeLightColor: existing?.edgeLightColor ?? DEFAULT_EDGE_LIGHT_COLOR,
-        edgeLightIntensity: existing?.edgeLightIntensity ?? 4.0,
-        edgeLightDistance: existing?.edgeLightDistance ?? 0.07,
+        edgeLightIntensity: existing?.edgeLightIntensity ?? 10.0,
+        edgeLightDistance: existing?.edgeLightDistance ?? 0.04,
+        edgeLightThickness: existing?.edgeLightThickness ?? 0.05,
       };
     },
     [buildingCustomizations, buildingSettings.color],
@@ -106,8 +107,9 @@ export function CitySceneEditor() {
           signSides: existing?.signSides ?? 1,
           edgeLightType: existing?.edgeLightType ?? "none",
           edgeLightColor: existing?.edgeLightColor ?? DEFAULT_EDGE_LIGHT_COLOR,
-          edgeLightIntensity: existing?.edgeLightIntensity ?? 4.0,
-          edgeLightDistance: existing?.edgeLightDistance ?? 0.07,
+          edgeLightIntensity: existing?.edgeLightIntensity ?? 10.0,
+          edgeLightDistance: existing?.edgeLightDistance ?? 0.04,
+          edgeLightThickness: existing?.edgeLightThickness ?? 0.05,
           ...patch,
         };
         next.set(donationId, updated);
@@ -162,6 +164,12 @@ export function CitySceneEditor() {
     [updateCustomization],
   );
 
+  const handleEdgeLightThicknessChange = useCallback(
+    (donationId: number, edgeLightThickness: number) =>
+      updateCustomization(donationId, { edgeLightThickness }),
+    [updateCustomization],
+  );
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#05070a]">
       <CitySceneCanvas
@@ -211,6 +219,7 @@ export function CitySceneEditor() {
             initialEdgeLightColor={c.edgeLightColor}
             initialEdgeLightIntensity={c.edgeLightIntensity}
             initialEdgeLightDistance={c.edgeLightDistance}
+            initialEdgeLightThickness={c.edgeLightThickness}
             onColorChange={handleBuildingColorChange}
             onRooftopChange={handleRooftopChange}
             onSignTextChange={handleSignTextChange}
@@ -219,6 +228,7 @@ export function CitySceneEditor() {
             onEdgeLightColorChange={handleEdgeLightColorChange}
             onEdgeLightIntensityChange={handleEdgeLightIntensityChange}
             onEdgeLightDistanceChange={handleEdgeLightDistanceChange}
+            onEdgeLightThicknessChange={handleEdgeLightThicknessChange}
             onClose={handleCloseCustomizePanel}
           />
         );

@@ -12,9 +12,9 @@ type EdgeLightFactory = (
   color: string,
   intensity: number,
   distance: number,
+  thickness: number,
 ) => THREE.Group;
 
-const CORE_THICKNESS = 0.02;
 const TOP_LIFT = 0.05;
 const HALO_OPACITY = 0.55;
 const HALO_OUTER_OPACITY = 0.22;
@@ -100,6 +100,7 @@ type EdgeMaterials = {
 
 function createEdgeMaterials(color: string, intensity: number): EdgeMaterials {
   const colorObj = new THREE.Color(color);
+  const haloColorObj = colorObj.clone().multiplyScalar(intensity / 4.0);
 
   const core = new THREE.MeshStandardMaterial({
     color: colorObj.clone(),
@@ -112,7 +113,7 @@ function createEdgeMaterials(color: string, intensity: number): EdgeMaterials {
 
   // vertexColors: true → o alpha dos vertex colors controla a dissolução do halo
   const halo = new THREE.MeshBasicMaterial({
-    color: colorObj.clone(),
+    color: haloColorObj.clone(),
     transparent: true,
     opacity: HALO_OPACITY,
     vertexColors: true,
@@ -122,7 +123,7 @@ function createEdgeMaterials(color: string, intensity: number): EdgeMaterials {
   });
 
   const haloOuter = new THREE.MeshBasicMaterial({
-    color: colorObj.clone(),
+    color: haloColorObj.clone(),
     transparent: true,
     opacity: HALO_OUTER_OPACITY,
     vertexColors: true,
@@ -154,17 +155,18 @@ function addEdgeSegment(
   axis: "x" | "y" | "z",
   length: number,
   distance: number,
+  thickness: number,
 ): void {
-  const buildScale = (thickness: number): THREE.Vector3 => {
-    if (axis === "x") return new THREE.Vector3(length, thickness, thickness);
-    if (axis === "z") return new THREE.Vector3(thickness, thickness, length);
-    return new THREE.Vector3(thickness, length, thickness);
+  const buildScale = (t: number): THREE.Vector3 => {
+    if (axis === "x") return new THREE.Vector3(length, t, t);
+    if (axis === "z") return new THREE.Vector3(t, t, length);
+    return new THREE.Vector3(t, length, t);
   };
 
   const haloGeo = HALO_GEOMETRY_FOR_AXIS[axis];
 
   const core = new THREE.Mesh(EDGE_CORE_GEOMETRY, materials.core);
-  core.scale.copy(buildScale(CORE_THICKNESS));
+  core.scale.copy(buildScale(thickness));
   core.position.copy(position);
   setShadowRole(core, false, false);
   group.add(core);
@@ -189,6 +191,7 @@ function createLed(
   color: string,
   intensity: number,
   distance: number,
+  thickness: number,
 ): THREE.Group {
   const group = new THREE.Group();
   const { width, depth, height } = footprint;
@@ -213,6 +216,7 @@ function createLed(
       "y",
       height,
       distance,
+      thickness,
     );
   }
 
@@ -220,10 +224,10 @@ function createLed(
   const topY = height + TOP_LIFT;
 
   for (const z of [-halfD, halfD]) {
-    addEdgeSegment(group, materials, new THREE.Vector3(0, topY, z), "x", width, distance);
+    addEdgeSegment(group, materials, new THREE.Vector3(0, topY, z), "x", width, distance, thickness);
   }
   for (const x of [-halfW, halfW]) {
-    addEdgeSegment(group, materials, new THREE.Vector3(x, topY, 0), "z", depth, distance);
+    addEdgeSegment(group, materials, new THREE.Vector3(x, topY, 0), "z", depth, distance, thickness);
   }
 
   return group;
@@ -244,10 +248,11 @@ export function createEdgeLightMesh(
   color: string,
   intensity: number,
   distance: number,
+  thickness: number,
 ): THREE.Group | null {
   if (type === "none") return null;
   const factory = FACTORIES[type];
-  const group = factory(footprint, color, intensity, distance);
+  const group = factory(footprint, color, intensity, distance, thickness);
   group.userData.edgeLightType = type;
   setEdgeLightMeshShadowEnabled(group, true);
   return group;
@@ -265,11 +270,12 @@ export function updateEdgeLightMeshParams(
   const materials = group.userData.edgeLightMaterials as EdgeMaterials | undefined;
   if (!materials) return;
   const colorObj = new THREE.Color(color);
+  const haloColorObj = colorObj.clone().multiplyScalar(intensity / 4.0);
   materials.core.color.copy(colorObj);
   materials.core.emissive.copy(colorObj);
   materials.core.emissiveIntensity = intensity;
-  materials.halo.color.copy(colorObj);
-  materials.haloOuter.color.copy(colorObj);
+  materials.halo.color.copy(haloColorObj);
+  materials.haloOuter.color.copy(haloColorObj);
 }
 
 export function setEdgeLightMeshShadowEnabled(

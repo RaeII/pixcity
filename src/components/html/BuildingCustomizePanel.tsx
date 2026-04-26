@@ -32,6 +32,7 @@ type BuildingCustomizePanelProps = {
   initialEdgeLightColor: string;
   initialEdgeLightIntensity: number;
   initialEdgeLightDistance: number;
+  initialEdgeLightThickness: number;
   onColorChange: (donationId: number, color: string) => void;
   onRooftopChange: (donationId: number, rooftopType: RooftopType) => void;
   onSignTextChange: (donationId: number, signText: string) => void;
@@ -40,6 +41,7 @@ type BuildingCustomizePanelProps = {
   onEdgeLightColorChange: (donationId: number, edgeLightColor: string) => void;
   onEdgeLightIntensityChange: (donationId: number, edgeLightIntensity: number) => void;
   onEdgeLightDistanceChange: (donationId: number, edgeLightDistance: number) => void;
+  onEdgeLightThicknessChange: (donationId: number, edgeLightThickness: number) => void;
   onClose: () => void;
 };
 
@@ -53,6 +55,7 @@ export function BuildingCustomizePanel({
   initialEdgeLightColor,
   initialEdgeLightIntensity,
   initialEdgeLightDistance,
+  initialEdgeLightThickness,
   onColorChange,
   onRooftopChange,
   onSignTextChange,
@@ -61,6 +64,7 @@ export function BuildingCustomizePanel({
   onEdgeLightColorChange,
   onEdgeLightIntensityChange,
   onEdgeLightDistanceChange,
+  onEdgeLightThicknessChange,
   onClose,
 }: BuildingCustomizePanelProps) {
   const [color, setColor] = useState(initialColor);
@@ -71,6 +75,7 @@ export function BuildingCustomizePanel({
   const [edgeLightColor, setEdgeLightColor] = useState(initialEdgeLightColor);
   const [edgeLightIntensity, setEdgeLightIntensity] = useState(initialEdgeLightIntensity);
   const [edgeLightDistance, setEdgeLightDistance] = useState(initialEdgeLightDistance);
+  const [edgeLightThickness, setEdgeLightThickness] = useState(initialEdgeLightThickness);
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
@@ -110,6 +115,11 @@ export function BuildingCustomizePanel({
   const handleEdgeLightDistanceChange = (newDistance: number) => {
     setEdgeLightDistance(newDistance);
     onEdgeLightDistanceChange(donationId, newDistance);
+  };
+
+  const handleEdgeLightThicknessChange = (newThickness: number) => {
+    setEdgeLightThickness(newThickness);
+    onEdgeLightThicknessChange(donationId, newThickness);
   };
 
   return (
@@ -216,7 +226,7 @@ export function BuildingCustomizePanel({
                   label="Intensidade"
                   value={edgeLightIntensity}
                   min={0}
-                  max={10}
+                  max={50}
                   step={0.1}
                   onChange={handleEdgeLightIntensityChange}
                   valueLabel={edgeLightIntensity.toFixed(1)}
@@ -229,6 +239,15 @@ export function BuildingCustomizePanel({
                   step={0.01}
                   onChange={handleEdgeLightDistanceChange}
                   valueLabel={edgeLightDistance.toFixed(2)}
+                />
+                <RangeField
+                  label="Espessura da Linha"
+                  value={edgeLightThickness}
+                  min={0.01}
+                  max={0.5}
+                  step={0.01}
+                  onChange={handleEdgeLightThicknessChange}
+                  valueLabel={edgeLightThickness.toFixed(2)}
                 />
               </div>
             </div>

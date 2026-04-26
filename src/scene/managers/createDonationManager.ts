@@ -871,10 +871,10 @@ export function createDonationManager({
     }
   };
 
-  // Mapa: donationId → { group, type, color, intensity, distance }
+  // Mapa: donationId → { group, type, color, intensity, distance, thickness }
   const edgeLightMeshes = new Map<
     number,
-    { group: THREE.Group; type: EdgeLightType; color: string; intensity: number; distance: number }
+    { group: THREE.Group; type: EdgeLightType; color: string; intensity: number; distance: number; thickness: number }
   >();
 
   // Reconstrói todos os LEDs existentes com as dimensões atuais do edifício.
@@ -882,13 +882,13 @@ export function createDonationManager({
   // de edifícios já com LED — o group precisa ser recriado para refletir scale.y.
   const syncEdgeLights = () => {
     if (edgeLightMeshes.size === 0) return;
-    const snapshot: Array<{ donationId: number; type: EdgeLightType; color: string; intensity: number; distance: number }> =
+    const snapshot: Array<{ donationId: number; type: EdgeLightType; color: string; intensity: number; distance: number; thickness: number }> =
       [];
     for (const [donId, entry] of edgeLightMeshes) {
-      snapshot.push({ donationId: donId, type: entry.type, color: entry.color, intensity: entry.intensity, distance: entry.distance });
+      snapshot.push({ donationId: donId, type: entry.type, color: entry.color, intensity: entry.intensity, distance: entry.distance, thickness: entry.thickness });
     }
     for (const item of snapshot) {
-      setEdgeLight(item.donationId, item.type, item.color, item.intensity, item.distance);
+      setEdgeLight(item.donationId, item.type, item.color, item.intensity, item.distance, item.thickness);
     }
   };
 
@@ -898,6 +898,7 @@ export function createDonationManager({
     color: string,
     intensity: number,
     distance: number,
+    thickness: number,
   ) => {
     const existing = edgeLightMeshes.get(donationId);
     if (existing) {
@@ -917,10 +918,11 @@ export function createDonationManager({
       color,
       intensity,
       distance,
+      thickness,
     );
     if (!group) return;
 
-    edgeLightMeshes.set(donationId, { group, type, color, intensity, distance });
+    edgeLightMeshes.set(donationId, { group, type, color, intensity, distance, thickness });
     setEdgeLightMeshShadowEnabled(group, shadowEnabled);
     scene.add(group);
 
@@ -1106,6 +1108,7 @@ export function createDonationManager({
       const prevEdgeLightColor = donation.customization?.edgeLightColor ?? "#00e5ff";
       const prevEdgeLightIntensity = donation.customization?.edgeLightIntensity ?? 4.0;
       const prevEdgeLightDistance = donation.customization?.edgeLightDistance ?? 0.07;
+      const prevEdgeLightThickness = donation.customization?.edgeLightThickness ?? 0.02;
       donation.customization = customization;
 
       if (focusedDonationId === donationId && focusHighlightMesh) {
@@ -1128,9 +1131,13 @@ export function createDonationManager({
         setSign(donationId, customization.signText, customization.signSides);
       }
 
-      // LED de arestas: type ou distance muda → rebuild; só cor ou intensity muda → mutação direta nos materiais.
-      if (customization.edgeLightType !== prevEdgeLightType || customization.edgeLightDistance !== prevEdgeLightDistance) {
-        setEdgeLight(donationId, customization.edgeLightType, customization.edgeLightColor, customization.edgeLightIntensity, customization.edgeLightDistance);
+      // LED de arestas: type, distance ou thickness muda → rebuild; só cor ou intensity muda → mutação direta nos materiais.
+      if (
+        customization.edgeLightType !== prevEdgeLightType || 
+        customization.edgeLightDistance !== prevEdgeLightDistance ||
+        customization.edgeLightThickness !== prevEdgeLightThickness
+      ) {
+        setEdgeLight(donationId, customization.edgeLightType, customization.edgeLightColor, customization.edgeLightIntensity, customization.edgeLightDistance, customization.edgeLightThickness);
       } else if (
         customization.edgeLightType !== "none" &&
         (customization.edgeLightColor !== prevEdgeLightColor || customization.edgeLightIntensity !== prevEdgeLightIntensity)

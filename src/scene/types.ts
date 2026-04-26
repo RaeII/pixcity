@@ -18,6 +18,7 @@ export type BuildingCustomization = {
   edgeLightColor: string;
   edgeLightIntensity: number;
   edgeLightDistance: number;
+  edgeLightThickness: number;
 };
 
 export type DonationEntry = {
