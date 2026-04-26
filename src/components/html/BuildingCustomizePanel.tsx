@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { PanelSection } from "./controls/PanelSection";
 import { ColorField } from "./controls/ColorField";
-import { RangeField } from "./controls/RangeField";
 import type { EdgeLightType, RooftopType } from "../../scene/types";
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
@@ -29,19 +28,11 @@ type BuildingCustomizePanelProps = {
   initialSignText: string;
   initialSignSides: number;
   initialEdgeLightType: EdgeLightType;
-  initialEdgeLightColor: string;
-  initialEdgeLightIntensity: number;
-  initialEdgeLightDistance: number;
-  initialEdgeLightThickness: number;
   onColorChange: (donationId: number, color: string) => void;
   onRooftopChange: (donationId: number, rooftopType: RooftopType) => void;
   onSignTextChange: (donationId: number, signText: string) => void;
   onSignSidesChange: (donationId: number, signSides: number) => void;
   onEdgeLightTypeChange: (donationId: number, edgeLightType: EdgeLightType) => void;
-  onEdgeLightColorChange: (donationId: number, edgeLightColor: string) => void;
-  onEdgeLightIntensityChange: (donationId: number, edgeLightIntensity: number) => void;
-  onEdgeLightDistanceChange: (donationId: number, edgeLightDistance: number) => void;
-  onEdgeLightThicknessChange: (donationId: number, edgeLightThickness: number) => void;
   onClose: () => void;
 };
 
@@ -52,19 +43,11 @@ export function BuildingCustomizePanel({
   initialSignText,
   initialSignSides,
   initialEdgeLightType,
-  initialEdgeLightColor,
-  initialEdgeLightIntensity,
-  initialEdgeLightDistance,
-  initialEdgeLightThickness,
   onColorChange,
   onRooftopChange,
   onSignTextChange,
   onSignSidesChange,
   onEdgeLightTypeChange,
-  onEdgeLightColorChange,
-  onEdgeLightIntensityChange,
-  onEdgeLightDistanceChange,
-  onEdgeLightThicknessChange,
   onClose,
 }: BuildingCustomizePanelProps) {
   const [color, setColor] = useState(initialColor);
@@ -72,10 +55,6 @@ export function BuildingCustomizePanel({
   const [signText, setSignText] = useState(initialSignText);
   const [signSides, setSignSides] = useState(initialSignSides);
   const [edgeLightType, setEdgeLightType] = useState<EdgeLightType>(initialEdgeLightType);
-  const [edgeLightColor, setEdgeLightColor] = useState(initialEdgeLightColor);
-  const [edgeLightIntensity, setEdgeLightIntensity] = useState(initialEdgeLightIntensity);
-  const [edgeLightDistance, setEdgeLightDistance] = useState(initialEdgeLightDistance);
-  const [edgeLightThickness, setEdgeLightThickness] = useState(initialEdgeLightThickness);
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
@@ -100,26 +79,6 @@ export function BuildingCustomizePanel({
   const handleEdgeLightTypeChange = (newType: EdgeLightType) => {
     setEdgeLightType(newType);
     onEdgeLightTypeChange(donationId, newType);
-  };
-
-  const handleEdgeLightColorChange = (newColor: string) => {
-    setEdgeLightColor(newColor);
-    onEdgeLightColorChange(donationId, newColor);
-  };
-
-  const handleEdgeLightIntensityChange = (newIntensity: number) => {
-    setEdgeLightIntensity(newIntensity);
-    onEdgeLightIntensityChange(donationId, newIntensity);
-  };
-
-  const handleEdgeLightDistanceChange = (newDistance: number) => {
-    setEdgeLightDistance(newDistance);
-    onEdgeLightDistanceChange(donationId, newDistance);
-  };
-
-  const handleEdgeLightThicknessChange = (newThickness: number) => {
-    setEdgeLightThickness(newThickness);
-    onEdgeLightThicknessChange(donationId, newThickness);
   };
 
   return (
@@ -214,44 +173,7 @@ export function BuildingCustomizePanel({
               </button>
             ))}
           </div>
-          {edgeLightType !== "none" && (
-            <div className="mt-3">
-              <ColorField
-                label="Cor do LED"
-                value={edgeLightColor}
-                onChange={handleEdgeLightColorChange}
-              />
-              <div className="mt-4 border-t border-white/10 pt-4">
-                <RangeField
-                  label="Intensidade"
-                  value={edgeLightIntensity}
-                  min={0}
-                  max={50}
-                  step={0.1}
-                  onChange={handleEdgeLightIntensityChange}
-                  valueLabel={edgeLightIntensity.toFixed(1)}
-                />
-                <RangeField
-                  label="Distância da Luz"
-                  value={edgeLightDistance}
-                  min={0.01}
-                  max={0.5}
-                  step={0.01}
-                  onChange={handleEdgeLightDistanceChange}
-                  valueLabel={edgeLightDistance.toFixed(2)}
-                />
-                <RangeField
-                  label="Espessura da Linha"
-                  value={edgeLightThickness}
-                  min={0.01}
-                  max={0.5}
-                  step={0.01}
-                  onChange={handleEdgeLightThicknessChange}
-                  valueLabel={edgeLightThickness.toFixed(2)}
-                />
-              </div>
-            </div>
-          )}
+
         </PanelSection>
       </div>
     </div>

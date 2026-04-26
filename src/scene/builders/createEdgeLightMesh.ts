@@ -7,12 +7,13 @@ type EdgeLightFootprint = {
   height: number;
 };
 
+export const DEFAULT_EDGE_LIGHT_COLOR = "#ffca57";
+export const DEFAULT_EDGE_LIGHT_INTENSITY = 10;
+export const DEFAULT_EDGE_LIGHT_DISTANCE = 0.04;
+export const DEFAULT_EDGE_LIGHT_THICKNESS = 0.05;
+
 type EdgeLightFactory = (
   footprint: EdgeLightFootprint,
-  color: string,
-  intensity: number,
-  distance: number,
-  thickness: number,
 ) => THREE.Group;
 
 const TOP_LIFT = 0.05;
@@ -188,17 +189,13 @@ function addEdgeSegment(
 
 function createLed(
   footprint: EdgeLightFootprint,
-  color: string,
-  intensity: number,
-  distance: number,
-  thickness: number,
 ): THREE.Group {
   const group = new THREE.Group();
   const { width, depth, height } = footprint;
   const halfW = width / 2;
   const halfD = depth / 2;
 
-  const materials = createEdgeMaterials(color, intensity);
+  const materials = createEdgeMaterials(DEFAULT_EDGE_LIGHT_COLOR, DEFAULT_EDGE_LIGHT_INTENSITY);
   group.userData.edgeLightMaterials = materials;
 
   // 4 arestas verticais (cantos), do chão ao topo
@@ -215,8 +212,8 @@ function createLed(
       new THREE.Vector3(x, height / 2, z),
       "y",
       height,
-      distance,
-      thickness,
+      DEFAULT_EDGE_LIGHT_DISTANCE,
+      DEFAULT_EDGE_LIGHT_THICKNESS,
     );
   }
 
@@ -224,10 +221,10 @@ function createLed(
   const topY = height + TOP_LIFT;
 
   for (const z of [-halfD, halfD]) {
-    addEdgeSegment(group, materials, new THREE.Vector3(0, topY, z), "x", width, distance, thickness);
+    addEdgeSegment(group, materials, new THREE.Vector3(0, topY, z), "x", width, DEFAULT_EDGE_LIGHT_DISTANCE, DEFAULT_EDGE_LIGHT_THICKNESS);
   }
   for (const x of [-halfW, halfW]) {
-    addEdgeSegment(group, materials, new THREE.Vector3(x, topY, 0), "z", depth, distance, thickness);
+    addEdgeSegment(group, materials, new THREE.Vector3(x, topY, 0), "z", depth, DEFAULT_EDGE_LIGHT_DISTANCE, DEFAULT_EDGE_LIGHT_THICKNESS);
   }
 
   return group;
@@ -245,38 +242,16 @@ const FACTORIES: Record<Exclude<EdgeLightType, "none">, EdgeLightFactory> = {
 export function createEdgeLightMesh(
   type: EdgeLightType,
   footprint: EdgeLightFootprint,
-  color: string,
-  intensity: number,
-  distance: number,
-  thickness: number,
 ): THREE.Group | null {
   if (type === "none") return null;
   const factory = FACTORIES[type];
-  const group = factory(footprint, color, intensity, distance, thickness);
+  const group = factory(footprint);
   group.userData.edgeLightType = type;
   setEdgeLightMeshShadowEnabled(group, true);
   return group;
 }
 
-/**
- * Atualiza a cor do LED sem reconstruir geometria/materiais.
- * Usado para color picker contínuo (drag do <input type="color">).
- */
-export function updateEdgeLightMeshParams(
-  group: THREE.Group,
-  color: string,
-  intensity: number,
-): void {
-  const materials = group.userData.edgeLightMaterials as EdgeMaterials | undefined;
-  if (!materials) return;
-  const colorObj = new THREE.Color(color);
-  const haloColorObj = colorObj.clone().multiplyScalar(intensity / 4.0);
-  materials.core.color.copy(colorObj);
-  materials.core.emissive.copy(colorObj);
-  materials.core.emissiveIntensity = intensity;
-  materials.halo.color.copy(haloColorObj);
-  materials.haloOuter.color.copy(haloColorObj);
-}
+
 
 export function setEdgeLightMeshShadowEnabled(
   group: THREE.Group,

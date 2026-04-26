@@ -15,10 +15,6 @@ export type BuildingCustomization = {
   signText: string;
   signSides: number; // 1–4 lados com letreiro
   edgeLightType: EdgeLightType;
-  edgeLightColor: string;
-  edgeLightIntensity: number;
-  edgeLightDistance: number;
-  edgeLightThickness: number;
 };
 
 export type DonationEntry = {
