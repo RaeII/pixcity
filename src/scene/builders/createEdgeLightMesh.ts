@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { BuildingShape, EdgeLightType } from "../types";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
+import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
 type EdgeLightFootprint = {
@@ -15,6 +16,7 @@ type EdgeLightFootprint = {
 // (cada segmento gera core + 2 halos). A geometria do prédio usa 24 — é seguro
 // usar metade pois o LED é fino e a aproximação por segmentos curtos é menos visível.
 const LED_TWIST_SEGMENTS = 12;
+const LED_TAPER_SEGMENTS = 12;
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 export const DEFAULT_EDGE_LIGHT_COLOR = "#ffca57";
@@ -418,6 +420,75 @@ function createLed(
         center,
         dir,
         len,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
+    }
+
+    return group;
+  }
+
+  if (shape === "tapered") {
+    const safeHeight = Math.max(height, 1e-6);
+    const corners: Array<[number, number]> = [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ];
+
+    const tmpDir = new THREE.Vector3();
+    for (const [sx, sz] of corners) {
+      for (let i = 0; i < LED_TAPER_SEGMENTS; i++) {
+        const y0 = (i / LED_TAPER_SEGMENTS) * height;
+        const y1 = ((i + 1) / LED_TAPER_SEGMENTS) * height;
+        const s0 = getTaperedFootprintScaleAtHeightRatio(y0 / safeHeight);
+        const s1 = getTaperedFootprintScaleAtHeightRatio(y1 / safeHeight);
+
+        const x0 = sx * (width * s0) / 2;
+        const z0 = sz * (depth * s0) / 2;
+        const x1 = sx * (width * s1) / 2;
+        const z1 = sz * (depth * s1) / 2;
+
+        tmpDir.set(x1 - x0, y1 - y0, z1 - z0);
+        const segmentLength = tmpDir.length();
+        if (segmentLength <= 1e-6) continue;
+        tmpDir.divideScalar(segmentLength);
+
+        addOrientedEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
+          tmpDir.clone(),
+          segmentLength,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+    }
+
+    const topScale = getTaperedFootprintScaleAtHeightRatio(1);
+    const topW = width * topScale;
+    const topD = depth * topScale;
+    const topY = height + TOP_LIFT;
+    for (const z of [-topD / 2, topD / 2]) {
+      addEdgeSegment(
+        group,
+        materials,
+        new THREE.Vector3(0, topY, z),
+        "x",
+        topW,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
+    }
+    for (const x of [-topW / 2, topW / 2]) {
+      addEdgeSegment(
+        group,
+        materials,
+        new THREE.Vector3(x, topY, 0),
+        "z",
+        topD,
         DEFAULT_EDGE_LIGHT_DISTANCE,
         DEFAULT_EDGE_LIGHT_THICKNESS,
       );
