@@ -38,6 +38,10 @@ import {
   createSetbackBuildingMesh,
   disposeSetbackBuildingSharedResources,
 } from "../builders/createSetbackBuildingMesh";
+import {
+  createTaperedBuildingMesh,
+  disposeTaperedBuildingSharedResources,
+} from "../builders/createTaperedBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -810,7 +814,7 @@ export function createDonationManager({
     // Aplicar cores individuais (customização) por instância
     applyInstanceColors();
 
-    // Reposicionar/criar prédios com formato customizado (twisted)
+    // Reposicionar/criar prédios com formato customizado
     syncCustomShapes();
 
     // Reposicionar acessórios de topo e letreiros
@@ -1144,6 +1148,8 @@ export function createDonationManager({
           sceneMesh = createOctagonalBuildingMesh(facadeMat, topMat);
         } else if (shape === "setback") {
           sceneMesh = createSetbackBuildingMesh(facadeMat, topMat);
+        } else if (shape === "tapered") {
+          sceneMesh = createTaperedBuildingMesh(facadeMat, topMat);
         } else {
           // Formato default mas precisa de mesh próprio (ex: tiling customizado).
           sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
@@ -1408,6 +1414,7 @@ export function createDonationManager({
       disposeTwistedBuildingSharedResources();
       disposeOctagonalBuildingSharedResources();
       disposeSetbackBuildingSharedResources();
+      disposeTaperedBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);

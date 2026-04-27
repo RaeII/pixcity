@@ -70,7 +70,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 |---|---|---|
 | `donationId` | `number` | ID da doação selecionada |
 | `initialColor` | `string` | Cor atual do edifício (customizada ou global) |
-| `initialBuildingShape` | `BuildingShape` | Formato atual (`"default"`, `"twisted"`, `"octagonal"` ou `"setback"`) |
+| `initialBuildingShape` | `BuildingShape` | Formato atual (`"default"`, `"twisted"`, `"octagonal"`, `"setback"` ou `"tapered"`) |
 | `initialTilingScale` | `number` | Multiplicador de tiling da textura (1.0 = sem alteração) |
 | `initialRooftopType` | `RooftopType` | Estado atual do acessório de topo |
 | `initialSignText` | `string` | Texto atual do letreiro na fachada |
@@ -90,7 +90,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 | Seção | Controles | Descrição |
 |---|---|---|
 | **Aparência** | `ColorField` | Cor individual do edifício (hex) |
-| **Formato** | Botões | Opções: padrão (caixa), torre torcida (estilo Cayan Tower, 90° de twist), torre octogonal ou torre setback |
+| **Formato** | Botões | Opções: padrão (caixa), torre torcida (estilo Cayan Tower, 90° de twist), torre octogonal, torre setback ou torre afunilada |
 | **Texturas** | `RangeField` | Tiling Scale (0.25× – 4×) — ajusta a repetição da textura **só nesse edifício**. Valores ≠ 1.0 fazem o prédio sair do `InstancedMesh` |
 | **Letreiro** | Input de texto + seletor de lados | Marca/empresa na fachada (máx 30 chars). Seletor de lados (1–4) aparece quando há texto |
 | **Topo** | Botões | Opções: nenhum, holofotes ou heliponto |
@@ -101,14 +101,14 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 
 > [!tip] Onde cada personalização é aplicada
 > - **Cor** → `InstancedBufferAttribute` (instanceColor) quando o prédio fica no `InstancedMesh`; clone de material quando o prédio vira mesh próprio
-> - **Formato** → `Mesh` próprio via [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]], [[scene-builders#createOctagonalBuildingMesh.ts|createOctagonalBuildingMesh]] ou [[scene-builders#createSetbackBuildingMesh.ts|createSetbackBuildingMesh]] (pula alocação no `InstancedMesh`)
+> - **Formato** → `Mesh` próprio via [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]], [[scene-builders#createOctagonalBuildingMesh.ts|createOctagonalBuildingMesh]], [[scene-builders#createSetbackBuildingMesh.ts|createSetbackBuildingMesh]] ou [[scene-builders#createTaperedBuildingMesh.ts|createTaperedBuildingMesh]] (pula alocação no `InstancedMesh`)
 > - **Texturas (Tiling)** → uniform `uTilingMultiplier` por material clonado; valores ≠ 1.0 movem o prédio para `customShapeMeshes` (ver [[scene-managers#Customizações que exigem Mesh próprio (`needsCustomMesh`)|needsCustomMesh]])
 > - **Letreiro** → `CanvasTexture` + `PlaneGeometry` via [[scene-builders#createSignMesh.ts|createSignMesh]]
 > - **Topo** → `THREE.Group` via [[scene-builders#createRooftopMesh.ts|createRooftopMesh]]
 > - **LED de arestas** → `THREE.Group` (core emissivo + halo aditivo) via [[scene-builders#createEdgeLightMesh.ts|createEdgeLightMesh]]
 
 > [!warning] Limitação: acessórios em formatos customizados
-> Letreiros e LEDs possuem tratamento específico para `twisted`, `octagonal` e `setback`, mas holofotes/heliponto ainda usam a **caixa lógica** (`width/depth/height` da bounding box). Em formatos com topo não retangular, acessórios de topo podem ocupar a área da bounding box, não exatamente a silhueta da cobertura.
+> Letreiros e LEDs possuem tratamento específico para `twisted`, `octagonal`, `setback` e `tapered`, mas holofotes/heliponto ainda usam a **caixa lógica** (`width/depth/height` da bounding box). Em formatos com topo não retangular, acessórios de topo podem ocupar a área da bounding box, não exatamente a silhueta da cobertura.
 
 ---
 

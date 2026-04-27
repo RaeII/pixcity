@@ -330,6 +330,28 @@ getSetbackTierFootprints(width?: number, depth?: number, height?: number): Setba
 
 ---
 
+### `createTaperedBuildingMesh.ts`
+
+Cria um `THREE.Mesh` com afunilamento contínuo (estilo **supertall**) para edifícios com `BuildingShape === "tapered"`.
+
+**Responsabilidades:**
+- Construir `BoxGeometry(1, 1, 1, 1, 24, 1)` e aplicar afunilamento progressivo no plano XZ ao longo da altura
+- Preservar atributos `aProjPosition` e `aProjNormal` axis-aligned para projeção triplanar estável
+- Reaplicar split de materiais (`materialIndex`: topo → 1, demais → 0)
+- Compartilhar `BufferGeometry` entre todas as torres afuniladas
+
+**API:**
+```typescript
+createTaperedBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Material): THREE.Mesh
+disposeTaperedBuildingSharedResources(): void
+getTaperedFootprintScaleAtHeightRatio(heightRatio: number): number
+```
+
+> [!note] Acessórios
+> `createSignMesh` usa `getTaperedFootprintScaleAtHeightRatio` para calcular a largura/offset do letreiro próximo ao topo. `createEdgeLightMesh` segmenta as arestas verticais para acompanhar a inclinação da fachada até o footprint reduzido no topo.
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:
