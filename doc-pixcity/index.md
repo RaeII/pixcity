@@ -96,6 +96,7 @@ src/
       devAssertions.ts
 doc-pixcity/
   index.md
+  building-shape-ideas.md
   html-components.md
   three-components.md
   scene-config.md
