@@ -38,6 +38,14 @@ import {
   createSetbackBuildingMesh,
   disposeSetbackBuildingSharedResources,
 } from "../builders/createSetbackBuildingMesh";
+import {
+  createTaperedBuildingMesh,
+  disposeTaperedBuildingSharedResources,
+} from "../builders/createTaperedBuildingMesh";
+import {
+  createChryslerBuildingMesh,
+  disposeChryslerBuildingSharedResources,
+} from "../builders/createChryslerBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -1144,6 +1152,10 @@ export function createDonationManager({
           sceneMesh = createOctagonalBuildingMesh(facadeMat, topMat);
         } else if (shape === "setback") {
           sceneMesh = createSetbackBuildingMesh(facadeMat, topMat);
+        } else if (shape === "tapered") {
+          sceneMesh = createTaperedBuildingMesh(facadeMat, topMat);
+        } else if (shape === "chrysler") {
+          sceneMesh = createChryslerBuildingMesh(facadeMat, topMat);
         } else {
           // Formato default mas precisa de mesh próprio (ex: tiling customizado).
           sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
@@ -1408,6 +1420,8 @@ export function createDonationManager({
       disposeTwistedBuildingSharedResources();
       disposeOctagonalBuildingSharedResources();
       disposeSetbackBuildingSharedResources();
+      disposeTaperedBuildingSharedResources();
+      disposeChryslerBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);
