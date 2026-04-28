@@ -3,7 +3,6 @@ import type { BuildingShape } from "../types";
 import { getChryslerFootprintScaleAtHeightRatio } from "./createChryslerBuildingMesh";
 import { OCTAGON_FLAT_SIDE_RATIO } from "./createOctagonalBuildingMesh";
 import { getSetbackFootprintScaleAtHeightRatio } from "./createSetbackBuildingMesh";
-import { getPagodaFootprintScaleAtHeightRatio } from "./createPagodaBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
@@ -61,7 +60,6 @@ export function createSignMesh(
   const isSetback = shape === "setback" && buildingH > 0;
   const isTapered = shape === "tapered" && buildingH > 0;
   const isChrysler = shape === "chrysler" && buildingH > 0;
-  const isPagoda = shape === "pagoda" && buildingH > 0;
   const setbackScale = isSetback
     ? getSetbackFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
     : 1;
@@ -70,9 +68,6 @@ export function createSignMesh(
     : 1;
   const chryslerScale = isChrysler
     ? getChryslerFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
-    : 1;
-  const pagodaScale = isPagoda
-    ? getPagodaFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
     : 1;
   const twistAngle = isTwisted
     ? (yOffset / buildingH + 0.5) * TWIST_TOTAL_ANGLE
@@ -132,8 +127,6 @@ export function createSignMesh(
       faceWorldW = cfg.faceW * taperedScale;
     } else if (isChrysler) {
       faceWorldW = cfg.faceW * chryslerScale;
-    } else if (isPagoda) {
-      faceWorldW = cfg.faceW * OCTAGON_FLAT_SIDE_RATIO * pagodaScale;
     } else {
       faceWorldW = cfg.faceW;
     }
@@ -232,9 +225,7 @@ export function createSignMesh(
           ? taperedScale
           : isChrysler
             ? chryslerScale
-            : isPagoda
-              ? pagodaScale
-              : 1;
+            : 1;
       const footprintW = buildingW * footprintScale;
       const footprintD = buildingD * footprintScale;
       const normalOffset = cfg.offsetZ !== 0 ? footprintD / 2 : footprintW / 2;
