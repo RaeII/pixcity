@@ -15,7 +15,8 @@ export type BuildingShape =
   | "octagonal"
   | "setback"
   | "tapered"
-  | "chrysler";
+  | "chrysler"
+  | "pagoda";
 
 export type BuildingCustomization = {
   color: string;
