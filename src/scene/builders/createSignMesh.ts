@@ -59,11 +59,15 @@ export function createSignMesh(
   const isOctagonal = shape === "octagonal";
   const isSetback = shape === "setback" && buildingH > 0;
   const isTapered = shape === "tapered" && buildingH > 0;
+  const isChrysler = shape === "chrysler" && buildingH > 0;
   const setbackScale = isSetback
     ? getSetbackFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
     : 1;
   const taperedScale = isTapered
     ? getTaperedFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
+    : 1;
+  const chryslerScale = isChrysler
+    ? getChryslerFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
     : 1;
   const twistAngle = isTwisted
     ? (yOffset / buildingH + 0.5) * TWIST_TOTAL_ANGLE
@@ -121,6 +125,8 @@ export function createSignMesh(
       faceWorldW = cfg.faceW * setbackScale;
     } else if (isTapered) {
       faceWorldW = cfg.faceW * taperedScale;
+    } else if (isChrysler) {
+      faceWorldW = cfg.faceW * chryslerScale;
     } else {
       faceWorldW = cfg.faceW;
     }
@@ -213,7 +219,13 @@ export function createSignMesh(
         backPush: BACK_PUSH,
       };
     } else {
-      const footprintScale = isSetback ? setbackScale : isTapered ? taperedScale : 1;
+      const footprintScale = isSetback
+        ? setbackScale
+        : isTapered
+          ? taperedScale
+          : isChrysler
+            ? chryslerScale
+            : 1;
       const footprintW = buildingW * footprintScale;
       const footprintD = buildingD * footprintScale;
       const normalOffset = cfg.offsetZ !== 0 ? footprintD / 2 : footprintW / 2;

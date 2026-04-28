@@ -10,6 +10,7 @@ const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "octagonal", label: "Torre octogonal" },
   { value: "setback", label: "Torre setback" },
   { value: "tapered", label: "Torre afunilada" },
+  { value: "chrysler", label: "Chrysler (NY)" },
 ];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
