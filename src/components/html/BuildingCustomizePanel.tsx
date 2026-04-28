@@ -11,7 +11,7 @@ const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "setback", label: "Torre setback" },
   { value: "tapered", label: "Torre afunilada" },
   { value: "chrysler", label: "Chrysler (NY)" },
-  { value: "pagoda", label: "Pagoda (Jin Mao)" },
+  { value: "pagoda", label: "Pagoda" },
 ];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [

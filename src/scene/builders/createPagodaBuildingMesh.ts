@@ -13,47 +13,24 @@ export type PagodaTierFootprint = {
   depth: number;
 };
 
-// Inspirado na silhueta da Jin Mao Tower (Shanghai):
-// corpo alto com recuos progressivos suaves + coroa piramidal + pináculo.
-const PAGODA_BODY_TIERS: PagodaTier[] = [
-  { bottom: 0.0, top: 0.16, footprintScale: 1.0 },
-  { bottom: 0.16, top: 0.32, footprintScale: 0.93 },
-  { bottom: 0.32, top: 0.47, footprintScale: 0.87 },
-  { bottom: 0.47, top: 0.61, footprintScale: 0.81 },
-  { bottom: 0.61, top: 0.73, footprintScale: 0.75 },
-  { bottom: 0.73, top: 0.83, footprintScale: 0.69 },
-  { bottom: 0.83, top: 0.9, footprintScale: 0.63 },
+const PAGODA_TIERS: PagodaTier[] = [
+  { bottom: 0.0, top: 0.2, footprintScale: 1.0 },
+  { bottom: 0.2, top: 0.4, footprintScale: 0.84 },
+  { bottom: 0.4, top: 0.6, footprintScale: 0.69 },
+  { bottom: 0.6, top: 0.8, footprintScale: 0.55 },
+  { bottom: 0.8, top: 1.0, footprintScale: 0.42 },
 ];
 
-const CROWN_LOWER_BOTTOM = 0.9;
-const CROWN_LOWER_TOP = 0.96;
-const CROWN_UPPER_TOP = 1.0;
-const CROWN_LOWER_BOTTOM_SCALE = 0.63;
-const CROWN_LOWER_TOP_SCALE = 0.34;
-const CROWN_UPPER_TOP_SCALE = 0.12;
-const EAVE_OVERHANG = 0.028;
+const EAVE_OVERHANG = 0.08;
 
 let sharedPagodaGeometry: THREE.BufferGeometry | null = null;
 
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
-
-function sampleCrownScale(heightRatio: number): number {
-  const t = clamp01((heightRatio - CROWN_LOWER_BOTTOM) / (CROWN_UPPER_TOP - CROWN_LOWER_BOTTOM));
-  // Queda mais agressiva perto do topo para uma coroa pontuda.
-  return THREE.MathUtils.lerp(CROWN_LOWER_BOTTOM_SCALE, CROWN_UPPER_TOP_SCALE, Math.pow(t, 1.35));
-}
-
 export function getPagodaFootprintScaleAtHeightRatio(heightRatio: number): number {
-  const clamped = clamp01(heightRatio);
-
-  const bodyTier =
-    PAGODA_BODY_TIERS.find(({ bottom, top }) => clamped >= bottom && clamped <= top) ?? null;
-
-  if (bodyTier) return bodyTier.footprintScale;
-
-  return sampleCrownScale(clamped);
+  const clamped = Math.max(0, Math.min(1, heightRatio));
+  const tier =
+    PAGODA_TIERS.find(({ bottom, top }) => clamped >= bottom && clamped <= top) ??
+    PAGODA_TIERS[PAGODA_TIERS.length - 1];
+  return tier.footprintScale;
 }
 
 export function getPagodaTierFootprints(
@@ -61,28 +38,12 @@ export function getPagodaTierFootprints(
   depth = 1,
   height = 1,
 ): PagodaTierFootprint[] {
-  const body = PAGODA_BODY_TIERS.map((tier) => ({
+  return PAGODA_TIERS.map((tier) => ({
     bottomY: tier.bottom * height,
     topY: tier.top * height,
     width: width * tier.footprintScale,
     depth: depth * tier.footprintScale,
   }));
-
-  const crownLower: PagodaTierFootprint = {
-    bottomY: CROWN_LOWER_BOTTOM * height,
-    topY: CROWN_LOWER_TOP * height,
-    width: width * CROWN_LOWER_BOTTOM_SCALE,
-    depth: depth * CROWN_LOWER_BOTTOM_SCALE,
-  };
-
-  const crownUpper: PagodaTierFootprint = {
-    bottomY: CROWN_LOWER_TOP * height,
-    topY: CROWN_UPPER_TOP * height,
-    width: width * CROWN_LOWER_TOP_SCALE,
-    depth: depth * CROWN_LOWER_TOP_SCALE,
-  };
-
-  return [...body, crownLower, crownUpper];
 }
 
 function pushVertex(
@@ -125,7 +86,7 @@ function pushQuad(
   }
 }
 
-function addVerticalTierFaces(
+function addTierVerticalFaces(
   positions: number[],
   normals: number[],
   projectionPositions: number[],
@@ -191,7 +152,31 @@ function addVerticalTierFaces(
   );
 }
 
-function addTopRing(
+function addTopRect(
+  positions: number[],
+  normals: number[],
+  projectionPositions: number[],
+  projectionNormals: number[],
+  halfW: number,
+  halfD: number,
+  y: number,
+): void {
+  pushQuad(
+    positions,
+    normals,
+    projectionPositions,
+    projectionNormals,
+    [
+      [-halfW, y, -halfD],
+      [-halfW, y, halfD],
+      [halfW, y, halfD],
+      [halfW, y, -halfD],
+    ],
+    new THREE.Vector3(0, 1, 0),
+  );
+}
+
+function addPagodaEaveRing(
   positions: number[],
   normals: number[],
   projectionPositions: number[],
@@ -204,8 +189,11 @@ function addTopRing(
   const outerD = (outerScale + EAVE_OVERHANG) / 2;
   const innerW = innerScale / 2;
   const innerD = innerScale / 2;
-  const topNormal = new THREE.Vector3(0, 1, 0);
 
+  const topNormal = new THREE.Vector3(0, 1, 0);
+  const downNormal = new THREE.Vector3(0, -1, 0);
+
+  // Laje superior do "beiral"
   pushQuad(
     positions,
     normals,
@@ -258,130 +246,21 @@ function addTopRing(
     ],
     topNormal,
   );
-}
 
-function addCrownFrustum(
-  positions: number[],
-  normals: number[],
-  projectionPositions: number[],
-  projectionNormals: number[],
-  yBottom: number,
-  yTop: number,
-  bottomScale: number,
-  topScale: number,
-): void {
-  const hbW = bottomScale / 2;
-  const hbD = bottomScale / 2;
-  const htW = topScale / 2;
-  const htD = topScale / 2;
-
-  const y0 = yBottom - 0.5;
-  const y1 = yTop - 0.5;
-
-  // Frente
+  // Ligeiro intradorso para dar leitura de "telhado em degrau" na silhueta.
+  const soffitY = y - 0.01;
   pushQuad(
     positions,
     normals,
     projectionPositions,
     projectionNormals,
     [
-      [-hbW, y0, hbD],
-      [hbW, y0, hbD],
-      [htW, y1, htD],
-      [-htW, y1, htD],
+      [-outerW, soffitY, outerD],
+      [-outerW, soffitY, innerD],
+      [outerW, soffitY, innerD],
+      [outerW, soffitY, outerD],
     ],
-    new THREE.Vector3(0, 0.32, 1).normalize(),
-  );
-  // Trás
-  pushQuad(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    [
-      [hbW, y0, -hbD],
-      [-hbW, y0, -hbD],
-      [-htW, y1, -htD],
-      [htW, y1, -htD],
-    ],
-    new THREE.Vector3(0, 0.32, -1).normalize(),
-  );
-  // Direita
-  pushQuad(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    [
-      [hbW, y0, hbD],
-      [hbW, y0, -hbD],
-      [htW, y1, -htD],
-      [htW, y1, htD],
-    ],
-    new THREE.Vector3(1, 0.32, 0).normalize(),
-  );
-  // Esquerda
-  pushQuad(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    [
-      [-hbW, y0, -hbD],
-      [-hbW, y0, hbD],
-      [-htW, y1, htD],
-      [-htW, y1, -htD],
-    ],
-    new THREE.Vector3(-1, 0.32, 0).normalize(),
-  );
-}
-
-function addTopRect(
-  positions: number[],
-  normals: number[],
-  projectionPositions: number[],
-  projectionNormals: number[],
-  halfW: number,
-  halfD: number,
-  y: number,
-): void {
-  pushQuad(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    [
-      [-halfW, y, -halfD],
-      [-halfW, y, halfD],
-      [halfW, y, halfD],
-      [halfW, y, -halfD],
-    ],
-    new THREE.Vector3(0, 1, 0),
-  );
-}
-
-function addSpire(
-  positions: number[],
-  normals: number[],
-  projectionPositions: number[],
-  projectionNormals: number[],
-): void {
-  const spireHalf = 0.015;
-  const y0 = 0.5;
-  const y1 = 0.68;
-
-  pushQuad(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    [
-      [-spireHalf, y0, spireHalf],
-      [spireHalf, y0, spireHalf],
-      [spireHalf, y1, spireHalf],
-      [-spireHalf, y1, spireHalf],
-    ],
-    new THREE.Vector3(0, 0, 1),
+    downNormal,
   );
   pushQuad(
     positions,
@@ -389,48 +268,12 @@ function addSpire(
     projectionPositions,
     projectionNormals,
     [
-      [spireHalf, y0, -spireHalf],
-      [-spireHalf, y0, -spireHalf],
-      [-spireHalf, y1, -spireHalf],
-      [spireHalf, y1, -spireHalf],
+      [-outerW, soffitY, -innerD],
+      [-outerW, soffitY, -outerD],
+      [outerW, soffitY, -outerD],
+      [outerW, soffitY, -innerD],
     ],
-    new THREE.Vector3(0, 0, -1),
-  );
-  pushQuad(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    [
-      [spireHalf, y0, spireHalf],
-      [spireHalf, y0, -spireHalf],
-      [spireHalf, y1, -spireHalf],
-      [spireHalf, y1, spireHalf],
-    ],
-    new THREE.Vector3(1, 0, 0),
-  );
-  pushQuad(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    [
-      [-spireHalf, y0, -spireHalf],
-      [-spireHalf, y0, spireHalf],
-      [-spireHalf, y1, spireHalf],
-      [-spireHalf, y1, -spireHalf],
-    ],
-    new THREE.Vector3(-1, 0, 0),
-  );
-
-  addTopRect(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    spireHalf,
-    spireHalf,
-    y1,
+    downNormal,
   );
 }
 
@@ -442,8 +285,8 @@ function buildPagodaGeometry(): THREE.BufferGeometry {
   const projectionNormals: number[] = [];
 
   const sideStart = 0;
-  for (const tier of PAGODA_BODY_TIERS) {
-    addVerticalTierFaces(
+  for (const tier of PAGODA_TIERS) {
+    addTierVerticalFaces(
       positions,
       normals,
       projectionPositions,
@@ -454,10 +297,10 @@ function buildPagodaGeometry(): THREE.BufferGeometry {
   const sideCount = positions.length / 3 - sideStart;
 
   const topStart = positions.length / 3;
-  for (let i = 0; i < PAGODA_BODY_TIERS.length - 1; i++) {
-    const current = PAGODA_BODY_TIERS[i];
-    const next = PAGODA_BODY_TIERS[i + 1];
-    addTopRing(
+  for (let i = 0; i < PAGODA_TIERS.length - 1; i++) {
+    const current = PAGODA_TIERS[i];
+    const next = PAGODA_TIERS[i + 1];
+    addPagodaEaveRing(
       positions,
       normals,
       projectionPositions,
@@ -468,36 +311,16 @@ function buildPagodaGeometry(): THREE.BufferGeometry {
     );
   }
 
-  addCrownFrustum(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    CROWN_LOWER_BOTTOM,
-    CROWN_LOWER_TOP,
-    CROWN_LOWER_BOTTOM_SCALE,
-    CROWN_LOWER_TOP_SCALE,
-  );
-  addCrownFrustum(
-    positions,
-    normals,
-    projectionPositions,
-    projectionNormals,
-    CROWN_LOWER_TOP,
-    CROWN_UPPER_TOP,
-    CROWN_LOWER_TOP_SCALE,
-    CROWN_UPPER_TOP_SCALE,
-  );
+  const topTier = PAGODA_TIERS[PAGODA_TIERS.length - 1];
   addTopRect(
     positions,
     normals,
     projectionPositions,
     projectionNormals,
-    CROWN_UPPER_TOP_SCALE / 2,
-    CROWN_UPPER_TOP_SCALE / 2,
+    topTier.footprintScale / 2,
+    topTier.footprintScale / 2,
     0.5,
   );
-  addSpire(positions, normals, projectionPositions, projectionNormals);
   const topCount = positions.length / 3 - topStart;
 
   const bottomStart = positions.length / 3;
