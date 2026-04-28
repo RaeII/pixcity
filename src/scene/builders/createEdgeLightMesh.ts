@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { BuildingShape, EdgeLightType } from "../types";
+import { getChryslerTierFootprints } from "./createChryslerBuildingMesh";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
@@ -492,6 +493,87 @@ function createLed(
         DEFAULT_EDGE_LIGHT_DISTANCE,
         DEFAULT_EDGE_LIGHT_THICKNESS,
       );
+    }
+
+    return group;
+  }
+
+  if (shape === "chrysler") {
+    const tiers = getChryslerTierFootprints(width, depth, height);
+    for (const tier of tiers) {
+      const halfW = tier.width / 2;
+      const halfD = tier.depth / 2;
+      const segmentHeight = tier.topY - tier.bottomY;
+      const centerY = tier.bottomY + segmentHeight / 2;
+      const corners: Array<[number, number]> = [
+        [-halfW, -halfD],
+        [halfW, -halfD],
+        [halfW, halfD],
+        [-halfW, halfD],
+      ];
+
+      for (const [x, z] of corners) {
+        addEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(x, centerY, z),
+          "y",
+          segmentHeight,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+
+      // Nos tiers de coroa, adiciona reforço horizontal extra para destacar
+      // o escalonamento metálico do topo (leitura visual art déco).
+      const topY = tier.topY + TOP_LIFT;
+      for (const z of [-halfD, halfD]) {
+        addEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(0, topY, z),
+          "x",
+          tier.width,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+      for (const x of [-halfW, halfW]) {
+        addEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(x, topY, 0),
+          "z",
+          tier.depth,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+    }
+
+    const crownTop = tiers[tiers.length - 1];
+    if (crownTop) {
+      const spireY0 = crownTop.topY + TOP_LIFT;
+      const spireY1 = height + TOP_LIFT;
+      const halfW = crownTop.width * 0.09;
+      const halfD = crownTop.depth * 0.09;
+      const spireLen = Math.max(0.05, spireY1 - spireY0);
+      for (const [x, z] of [
+        [-halfW, -halfD],
+        [halfW, -halfD],
+        [halfW, halfD],
+        [-halfW, halfD],
+      ] as Array<[number, number]>) {
+        addEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(x, spireY0 + spireLen / 2, z),
+          "y",
+          spireLen,
+          DEFAULT_EDGE_LIGHT_DISTANCE * 0.85,
+          DEFAULT_EDGE_LIGHT_THICKNESS * 0.8,
+        );
+      }
     }
 
     return group;

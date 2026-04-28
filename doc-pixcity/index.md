@@ -20,11 +20,11 @@ PixCity é uma cena 3D de cidade procedural feita com `React 19`, `Three.js`, `T
 
 O projeto é dividido em 3 grandes partes:
 
-| Pasta | Responsabilidade |
-|---|---|
-| `src/components` | Interface React — editor, painel lateral e canvas |
-| `src/scene` | Lógica 3D — tipos, configs, utils, builders, managers, hooks e runtime |
-| `doc-pixcity` | Documentação da estrutura |
+| Pasta            | Responsabilidade                                                       |
+| ---------------- | ---------------------------------------------------------------------- |
+| `src/components` | Interface React — editor, painel lateral e canvas                      |
+| `src/scene`      | Lógica 3D — tipos, configs, utils, builders, managers, hooks e runtime |
+| `doc-pixcity`    | Documentação da estrutura                                              |
 
 ## Estrutura de Arquivos
 
@@ -128,15 +128,20 @@ Ele guarda todos os estados:
 - `sceneStats`, `hoverInfo`
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered), acessório de topo, letreiro e LED de arestas
+  <<<<<<< HEAD
+- # `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered), acessório de topo, letreiro e LED de arestas
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler), acessório de topo, letreiro e LED de arestas
+  > > > > > > > codex/suggest-building-designs-for-customization-dthloe
 
 E entrega para:
+
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
 - [[html-components|CityControlPanel]] — mostra os controles (toggle via botão de engrenagem)
 - [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]] — personalização do edifício selecionado
 - [[html-components#BuildingHeightInput.tsx|BuildingHeightInput]] — input de doação e layout
 
 Também gerencia:
+
 - Doações via `canvasRef.addDonation(value)` e `canvasRef.addDonations(values)`
 - Foco em edifício via `canvasRef.focusOnDonation(id)` e `canvasRef.clearFocus()`
 - Personalização via `canvasRef.updateDonationCustomization(id, customization)`
@@ -202,6 +207,7 @@ flowchart LR
     DM --> |formato octagonal| OC[createOctagonalBuildingMesh]
     DM --> |formato setback| SB[createSetbackBuildingMesh]
     DM --> |formato tapered| TP[createTaperedBuildingMesh]
+    DM --> |formato chrysler| CH[createChryslerBuildingMesh]
     DM --> |topo| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
     DM --> |LED| EL[createEdgeLightMesh]
@@ -209,25 +215,31 @@ flowchart LR
 
 ## Onde Mexer?
 
-| Objetivo | Arquivo |
-|---|---|
-| Alterar valor padrão dos prédios | [[scene-config]] |
-| Alterar a UI do painel de configuração | [[html-components#CityControlPanel.tsx]] |
-| Alterar a UI de personalização de edifício | [[html-components#BuildingCustomizePanel.tsx]] |
-| Alterar o canvas ou a ligação com o hook | [[three-components]] |
-| Alterar fórmulas de luz, clamp ou material | [[scene-utils]] |
-| Alterar criação do chão, grid, luzes ou ambiente | [[scene-builders]] |
-| Alterar acessórios de topo | [[scene-builders#createRooftopMesh.ts]] |
-| Alterar letreiros de fachada (signs) | [[scene-builders#createSignMesh.ts]] |
-| Alterar LED de arestas | [[scene-builders#createEdgeLightMesh.ts]] |
-| Alterar torre torcida (twisted) | [[scene-builders#createTwistedBuildingMesh.ts]] |
-| Alterar torre octogonal (octagonal) | [[scene-builders#createOctagonalBuildingMesh.ts]] |
-| Alterar torre setback (setback) | [[scene-builders#createSetbackBuildingMesh.ts]] |
-| Alterar torre afunilada (tapered) | [[scene-builders#createTaperedBuildingMesh.ts]] |
-| Alterar geração dos prédios de doação | [[scene-managers]] |
-| Alterar o ciclo completo da cena | [[scene-runtime]] |
-| Entender o contrato dos dados | [[scene-types]] |
-| Entender como React sincroniza com Three.js | [[scene-hooks]] |
+| Objetivo                                         | Arquivo                                           |
+| ------------------------------------------------ | ------------------------------------------------- |
+| Alterar valor padrão dos prédios                 | [[scene-config]]                                  |
+| Alterar a UI do painel de configuração           | [[html-components#CityControlPanel.tsx]]          |
+| Alterar a UI de personalização de edifício       | [[html-components#BuildingCustomizePanel.tsx]]    |
+| Alterar o canvas ou a ligação com o hook         | [[three-components]]                              |
+| Alterar fórmulas de luz, clamp ou material       | [[scene-utils]]                                   |
+| Alterar criação do chão, grid, luzes ou ambiente | [[scene-builders]]                                |
+| Alterar acessórios de topo                       | [[scene-builders#createRooftopMesh.ts]]           |
+| Alterar letreiros de fachada (signs)             | [[scene-builders#createSignMesh.ts]]              |
+| Alterar LED de arestas                           | [[scene-builders#createEdgeLightMesh.ts]]         |
+| Alterar torre torcida (twisted)                  | [[scene-builders#createTwistedBuildingMesh.ts]]   |
+| Alterar torre octogonal (octagonal)              | [[scene-builders#createOctagonalBuildingMesh.ts]] |
+| Alterar torre setback (setback)                  | [[scene-builders#createSetbackBuildingMesh.ts]]   |
+| Alterar torre afunilada (tapered)                | [[scene-builders#createTaperedBuildingMesh.ts]]   |
+
+# <<<<<<< HEAD
+
+| Alterar torre Chrysler (chrysler) | [[scene-builders#createChryslerBuildingMesh.ts]] |
+
+> > > > > > > codex/suggest-building-designs-for-customization-dthloe
+> > > > > > > | Alterar geração dos prédios de doação | [[scene-managers]] |
+> > > > > > > | Alterar o ciclo completo da cena | [[scene-runtime]] |
+> > > > > > > | Entender o contrato dos dados | [[scene-types]] |
+> > > > > > > | Entender como React sincroniza com Three.js | [[scene-hooks]] |
 
 ## Ordem de Leitura Recomendada
 
@@ -257,6 +269,7 @@ hooks    → ponte React ↔ runtime
 ```
 
 > [!tip] Padrões do projeto
+>
 > - **Factory functions** em vez de classes (`create*()`)
 > - **Dispose explícito** — todo recurso Three.js tem cleanup
 > - **InstancedMesh** para performance nos prédios

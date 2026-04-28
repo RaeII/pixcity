@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { BuildingShape } from "../types";
+import { getChryslerFootprintScaleAtHeightRatio } from "./createChryslerBuildingMesh";
 import { OCTAGON_FLAT_SIDE_RATIO } from "./createOctagonalBuildingMesh";
 import { getSetbackFootprintScaleAtHeightRatio } from "./createSetbackBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
