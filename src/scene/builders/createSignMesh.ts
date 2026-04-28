@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import type { BuildingShape } from "../types";
 import { OCTAGON_FLAT_SIDE_RATIO } from "./createOctagonalBuildingMesh";
+import { getChryslerFootprintScaleAtHeightRatio } from "./createChryslerBuildingMesh";
 import { getSetbackFootprintScaleAtHeightRatio } from "./createSetbackBuildingMesh";
+import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
 // Margem lateral dentro da placa (fração da largura do canvas)
@@ -56,8 +58,16 @@ export function createSignMesh(
   const isTwisted = shape === "twisted" && buildingH > 0;
   const isOctagonal = shape === "octagonal";
   const isSetback = shape === "setback" && buildingH > 0;
+  const isTapered = shape === "tapered" && buildingH > 0;
+  const isChrysler = shape === "chrysler" && buildingH > 0;
   const setbackScale = isSetback
     ? getSetbackFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
+    : 1;
+  const taperedScale = isTapered
+    ? getTaperedFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
+    : 1;
+  const chryslerScale = isChrysler
+    ? getChryslerFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
     : 1;
   const twistAngle = isTwisted
     ? (yOffset / buildingH + 0.5) * TWIST_TOTAL_ANGLE
@@ -113,6 +123,10 @@ export function createSignMesh(
       faceWorldW = cfg.faceW * OCTAGON_FLAT_SIDE_RATIO;
     } else if (isSetback) {
       faceWorldW = cfg.faceW * setbackScale;
+    } else if (isTapered) {
+      faceWorldW = cfg.faceW * taperedScale;
+    } else if (isChrysler) {
+      faceWorldW = cfg.faceW * chryslerScale;
     } else {
       faceWorldW = cfg.faceW;
     }
@@ -205,8 +219,15 @@ export function createSignMesh(
         backPush: BACK_PUSH,
       };
     } else {
-      const footprintW = buildingW * setbackScale;
-      const footprintD = buildingD * setbackScale;
+      const footprintScale = isSetback
+        ? setbackScale
+        : isTapered
+          ? taperedScale
+          : isChrysler
+            ? chryslerScale
+            : 1;
+      const footprintW = buildingW * footprintScale;
+      const footprintD = buildingD * footprintScale;
       const normalOffset = cfg.offsetZ !== 0 ? footprintD / 2 : footprintW / 2;
       const dist = normalOffset + 0.02;
       px = cfg.offsetX * dist;
