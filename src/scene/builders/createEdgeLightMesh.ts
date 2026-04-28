@@ -2,7 +2,6 @@ import * as THREE from "three";
 import type { BuildingShape, EdgeLightType } from "../types";
 import { getChryslerTierFootprints } from "./createChryslerBuildingMesh";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
-import { getPagodaTierFootprints } from "./createPagodaBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
@@ -573,61 +572,6 @@ function createLed(
           spireLen,
           DEFAULT_EDGE_LIGHT_DISTANCE * 0.85,
           DEFAULT_EDGE_LIGHT_THICKNESS * 0.8,
-        );
-      }
-    }
-
-    return group;
-  }
-
-  if (shape === "pagoda") {
-    const tiers = getPagodaTierFootprints(width, depth, height);
-    for (const tier of tiers) {
-      const halfBodyW = tier.bodyWidth / 2;
-      const halfBodyD = tier.bodyDepth / 2;
-      const bodyHeight = tier.topY - tier.bottomY;
-      const centerY = tier.bottomY + bodyHeight / 2;
-
-      for (const [x, z] of [
-        [-halfBodyW, -halfBodyD],
-        [halfBodyW, -halfBodyD],
-        [halfBodyW, halfBodyD],
-        [-halfBodyW, halfBodyD],
-      ] as Array<[number, number]>) {
-        addEdgeSegment(
-          group,
-          materials,
-          new THREE.Vector3(x, centerY, z),
-          "y",
-          bodyHeight,
-          DEFAULT_EDGE_LIGHT_DISTANCE,
-          DEFAULT_EDGE_LIGHT_THICKNESS,
-        );
-      }
-
-      const topY = tier.topY + TOP_LIFT;
-      const halfRoofW = tier.roofWidth / 2;
-      const halfRoofD = tier.roofDepth / 2;
-      for (const z of [-halfRoofD, halfRoofD]) {
-        addEdgeSegment(
-          group,
-          materials,
-          new THREE.Vector3(0, topY, z),
-          "x",
-          tier.roofWidth,
-          DEFAULT_EDGE_LIGHT_DISTANCE,
-          DEFAULT_EDGE_LIGHT_THICKNESS,
-        );
-      }
-      for (const x of [-halfRoofW, halfRoofW]) {
-        addEdgeSegment(
-          group,
-          materials,
-          new THREE.Vector3(x, topY, 0),
-          "z",
-          tier.roofDepth,
-          DEFAULT_EDGE_LIGHT_DISTANCE,
-          DEFAULT_EDGE_LIGHT_THICKNESS,
         );
       }
     }
