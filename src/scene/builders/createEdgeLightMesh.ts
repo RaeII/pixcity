@@ -3,6 +3,8 @@ import type { BuildingShape, EdgeLightType } from "../types";
 import { getChryslerTierFootprints } from "./createChryslerBuildingMesh";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
+import { getPagodaTierFootprints } from "./createPagodaBuildingMesh";
+import { getHearstFootprintPoints } from "./createHearstBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
@@ -337,8 +339,10 @@ function createLed(
     return group;
   }
 
-  if (shape === "setback") {
-    const tiers = getSetbackTierFootprints(width, depth, height);
+  if (shape === "setback" || shape === "pagoda") {
+    const tiers = shape === "setback"
+      ? getSetbackTierFootprints(width, depth, height)
+      : getPagodaTierFootprints(width, depth, height);
 
     for (const tier of tiers) {
       const halfW = tier.width / 2;
@@ -387,6 +391,46 @@ function createLed(
           DEFAULT_EDGE_LIGHT_THICKNESS,
         );
       }
+    }
+
+    return group;
+  }
+
+
+
+  if (shape === "hearst") {
+    const cornersBottom = getHearstFootprintPoints(width, depth, 0.4);
+
+    for (const { x, z } of cornersBottom) {
+      addEdgeSegment(
+        group,
+        materials,
+        new THREE.Vector3(x, height / 2, z),
+        "y",
+        height,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
+    }
+
+    const cornersTop = getHearstFootprintPoints(width, depth, 1);
+    const topY = height + TOP_LIFT;
+    for (let i = 0; i < cornersTop.length; i++) {
+      const a = cornersTop[i];
+      const b = cornersTop[(i + 1) % cornersTop.length];
+      const center = new THREE.Vector3((a.x + b.x) / 2, topY, (a.z + b.z) / 2);
+      const dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z);
+      const len = dir.length();
+      dir.divideScalar(len);
+      addOrientedEdgeSegment(
+        group,
+        materials,
+        center,
+        dir,
+        len,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
     }
 
     return group;
