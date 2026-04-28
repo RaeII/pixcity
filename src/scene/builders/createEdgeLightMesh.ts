@@ -3,7 +3,6 @@ import type { BuildingShape, EdgeLightType } from "../types";
 import { getChryslerTierFootprints } from "./createChryslerBuildingMesh";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
-import { getPagodaTierFootprints } from "./createPagodaBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
@@ -338,10 +337,8 @@ function createLed(
     return group;
   }
 
-  if (shape === "setback" || shape === "pagoda") {
-    const tiers = shape === "setback"
-      ? getSetbackTierFootprints(width, depth, height)
-      : getPagodaTierFootprints(width, depth, height);
+  if (shape === "setback") {
+    const tiers = getSetbackTierFootprints(width, depth, height);
 
     for (const tier of tiers) {
       const halfW = tier.width / 2;

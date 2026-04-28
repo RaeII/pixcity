@@ -46,10 +46,6 @@ import {
   createChryslerBuildingMesh,
   disposeChryslerBuildingSharedResources,
 } from "../builders/createChryslerBuildingMesh";
-import {
-  createPagodaBuildingMesh,
-  disposePagodaBuildingSharedResources,
-} from "../builders/createPagodaBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -1160,8 +1156,6 @@ export function createDonationManager({
           sceneMesh = createTaperedBuildingMesh(facadeMat, topMat);
         } else if (shape === "chrysler") {
           sceneMesh = createChryslerBuildingMesh(facadeMat, topMat);
-        } else if (shape === "pagoda") {
-          sceneMesh = createPagodaBuildingMesh(facadeMat, topMat);
         } else {
           // Formato default mas precisa de mesh próprio (ex: tiling customizado).
           sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
@@ -1428,7 +1422,6 @@ export function createDonationManager({
       disposeSetbackBuildingSharedResources();
       disposeTaperedBuildingSharedResources();
       disposeChryslerBuildingSharedResources();
-      disposePagodaBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);
