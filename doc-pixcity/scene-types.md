@@ -264,9 +264,12 @@ type BuildingShape =
   | "twisted"        // torre torcida (estilo Cayan Tower) — 90° de twist do chão ao topo
   | "octagonal"      // torre com planta octogonal regular
   | "setback"        // torre em patamares recuados
+  | "tapered"        // torre afunilada
+  | "chrysler"       // torre art déco inspirada no Chrysler Building
+  | "hearst"         // torre facetada com diagrid inspirada na Hearst Tower
 ```
 
-Quando `buildingShape !== "default"`, a doação é desenhada como um `Mesh` próprio (ver [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]], [[scene-builders#createOctagonalBuildingMesh.ts|createOctagonalBuildingMesh]] e [[scene-builders#createSetbackBuildingMesh.ts|createSetbackBuildingMesh]]) e pula a alocação no `InstancedMesh`. O manager mantém clones de material (facade + top) por edifício customizado.
+Quando `buildingShape !== "default"`, a doação é desenhada como um `Mesh` próprio (ver [[scene-builders]]) e pula a alocação no `InstancedMesh`. O manager mantém clones de material (facade + top) por edifício customizado.
 
 ### `BuildingCustomization`
 
@@ -275,7 +278,7 @@ Personalização visual de um edifício individual:
 ```typescript
 type BuildingCustomization = {
   color: string;              // cor hex do edifício
-  buildingShape: BuildingShape; // formato volumétrico (default, twisted, octagonal ou setback)
+  buildingShape: BuildingShape; // formato volumétrico
   tilingScale: number;        // multiplicador de tiling da textura (1.0 = global, 2.0 = texturas 2× menores, etc)
   rooftopType: RooftopType;   // acessório de topo ou none
   signText: string;           // texto do letreiro na fachada (vazio = sem letreiro)
@@ -289,7 +292,7 @@ Armazenada opcionalmente em cada `DonationEntry`. Cada campo controla um aspecto
 | Campo | Efeito | Implementação |
 |---|---|---|
 | `color` | Cor individual do edifício | `InstancedBufferAttribute` (instanceColor) quando o prédio fica no `InstancedMesh`; cor direta no clone do material quando vira mesh próprio |
-| `buildingShape` | Formato volumétrico do edifício | `default`: caixa padrão; `twisted`: torre torcida via [[scene-builders#createTwistedBuildingMesh.ts\|createTwistedBuildingMesh]]; `octagonal`: torre octogonal via [[scene-builders#createOctagonalBuildingMesh.ts\|createOctagonalBuildingMesh]]; `setback`: torre em patamares via [[scene-builders#createSetbackBuildingMesh.ts\|createSetbackBuildingMesh]] |
+| `buildingShape` | Formato volumétrico do edifício | `default`: caixa padrão; demais valores usam builders dedicados em [[scene-builders]] |
 | `tilingScale` | Multiplicador de tiling da textura aplicado **só nesse edifício** | Faz o prédio sair do `InstancedMesh` (quando ≠ 1.0) e virar `Mesh` próprio com clone de material e uniform `uTilingMultiplier` dedicado |
 | `rooftopType` | Acessório 3D no topo do edifício | `THREE.Group` criado por [[scene-builders#createRooftopMesh.ts\|createRooftopMesh]], posicionado no topo |
 | `signText` | Texto da marca/empresa na fachada | `CanvasTexture` + `PlaneGeometry` criados por [[scene-builders#createSignMesh.ts\|createSignMesh]] |

@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import type { BuildingShape, EdgeLightType } from "../types";
 import { getChryslerTierFootprints } from "./createChryslerBuildingMesh";
+import {
+  HEARST_RING_COUNT,
+  getHearstRingFootprintPoints,
+} from "./createHearstBuildingMesh";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
@@ -574,6 +578,58 @@ function createLed(
           DEFAULT_EDGE_LIGHT_THICKNESS * 0.8,
         );
       }
+    }
+
+    return group;
+  }
+
+  if (shape === "hearst") {
+    const rings = Array.from({ length: HEARST_RING_COUNT + 1 }, (_, ringIndex) => {
+      const y = (ringIndex / HEARST_RING_COUNT) * height;
+      return getHearstRingFootprintPoints(width, depth, ringIndex).map(
+        ({ x, z }) => new THREE.Vector3(x, y, z),
+      );
+    });
+
+    const tmpDir = new THREE.Vector3();
+    for (let corner = 0; corner < rings[0].length; corner++) {
+      for (let ring = 0; ring < HEARST_RING_COUNT; ring++) {
+        const a = rings[ring][corner];
+        const b = rings[ring + 1][corner];
+        tmpDir.subVectors(b, a);
+        const len = tmpDir.length();
+        if (len <= 1e-6) continue;
+        tmpDir.divideScalar(len);
+        addOrientedEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3().copy(a).add(b).multiplyScalar(0.5),
+          tmpDir.clone(),
+          len,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+    }
+
+    const top = rings[HEARST_RING_COUNT];
+    const topLift = new THREE.Vector3(0, TOP_LIFT, 0);
+    for (let i = 0; i < top.length; i++) {
+      const a = new THREE.Vector3().copy(top[i]).add(topLift);
+      const b = new THREE.Vector3().copy(top[(i + 1) % top.length]).add(topLift);
+      tmpDir.subVectors(b, a);
+      const len = tmpDir.length();
+      if (len <= 1e-6) continue;
+      tmpDir.divideScalar(len);
+      addOrientedEdgeSegment(
+        group,
+        materials,
+        new THREE.Vector3().copy(a).add(b).multiplyScalar(0.5),
+        tmpDir.clone(),
+        len,
+        DEFAULT_EDGE_LIGHT_DISTANCE,
+        DEFAULT_EDGE_LIGHT_THICKNESS,
+      );
     }
 
     return group;

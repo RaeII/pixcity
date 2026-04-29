@@ -330,6 +330,31 @@ getSetbackTierFootprints(width?: number, depth?: number, height?: number): Setba
 
 ---
 
+### `createHearstBuildingMesh.ts`
+
+Cria um `THREE.Mesh` com torre facetada e diagrid inspirada na **Hearst Tower** para edifícios com `BuildingShape === "hearst"`.
+
+**Responsabilidades:**
+- Construir uma `BufferGeometry` unitária centralizada em `1×1×1`, com planta octogonal chanfrada e anéis alternando chanfragem rasa/profunda
+- Gerar a malha principal da fachada com `facadeMaterial` e a tampa/diagrid com `topMaterial`, preservando o contrato de textura PBR do manager
+- Recriar o diagrid da referência como cilindros embutidos na mesma geometria compartilhada, sem portar câmera/luzes/cena
+- Declarar `aProjPosition` e `aProjNormal` em todas as partes para o shader triplanar
+- Exportar helpers usados por letreiros e LEDs para acompanhar a planta facetada
+
+**API:**
+```typescript
+createHearstBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Material): THREE.Mesh
+disposeHearstBuildingSharedResources(): void
+getHearstRingFootprintPoints(width?: number, depth?: number, ringIndex?: number): Array<{ x: number; z: number }>
+getHearstFaceSpanRatio(axis: "x" | "z", heightRatio: number): number
+HEARST_RING_COUNT: number
+```
+
+> [!note] Acessórios
+> `createSignMesh` reduz a largura do letreiro conforme a face reta da Hearst na altura de instalação. `createEdgeLightMesh` segmenta as arestas verticais pelos mesmos anéis da torre e contorna o topo chanfrado.
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

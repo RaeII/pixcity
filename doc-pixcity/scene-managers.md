@@ -160,13 +160,13 @@ Ao chamar `setFocusedDonation(null)`, a opacidade é restaurada a 1.0, o mesh is
 
 Quando um edifício recebe uma customização via `updateDonationCustomization`, a cor é armazenada em `DonationEntry.customization` e aplicada via `InstancedBufferAttribute` (instanceColor). Edifícios sem customização usam a cor global do material. O sistema é reativado a cada `rebuildInstances` ou mudança de `BuildingSettings`.
 
-Para edifícios com `buildingShape === "twisted"`, a cor é aplicada diretamente nos materiais clonados (sem instanceColor) via `updateCustomShapeColor`.
+Para edifícios com `buildingShape !== "default"`, a cor é aplicada diretamente nos materiais clonados (sem instanceColor) via `updateCustomShapeColor`.
 
 #### Customizações que exigem Mesh próprio (`needsCustomMesh`)
 
 Algumas personalizações precisam de **estado de material próprio** por edifício e não cabem no `InstancedMesh` (que compartilha um único material). O helper `needsCustomMesh(customization)` define quando uma doação sai do InstancedMesh e passa a ser desenhada como `Mesh` dedicado em `customShapeMeshes`:
 
-- `buildingShape !== "default"` (ex: torre torcida, octogonal ou setback)
+- `buildingShape !== "default"` (ex: torre torcida, octogonal, setback, tapered, Chrysler ou Hearst)
 - `Math.abs(tilingScale - 1) > 0.001` (tiling de textura customizado por edifício)
 
 Quando a flag transiciona (entra ou sai do `customShapeMeshes`), `updateDonationCustomization` chama `rebuildInstances()` e re-aplica `applyFocus(focusedDonationId)`. Mudanças que não atravessam essa fronteira (ex: ajustar tiling de 2.0 → 2.5 num prédio que já é custom) atualizam direto o uniform `uTilingMultiplier` do material — sem rebuild.
@@ -180,6 +180,9 @@ Para cada doação custom, `syncCustomShapes()`:
    - `shape === "twisted"` → [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]] (geometria espiralada compartilhada).
    - `shape === "octagonal"` → [[scene-builders#createOctagonalBuildingMesh.ts|createOctagonalBuildingMesh]] (geometria octogonal compartilhada).
    - `shape === "setback"` → [[scene-builders#createSetbackBuildingMesh.ts|createSetbackBuildingMesh]] (geometria em patamares compartilhada).
+   - `shape === "tapered"` → [[scene-builders#createTaperedBuildingMesh.ts|createTaperedBuildingMesh]] (geometria afunilada compartilhada).
+   - `shape === "chrysler"` → [[scene-builders#createChryslerBuildingMesh.ts|createChryslerBuildingMesh]] (geometria art déco compartilhada).
+   - `shape === "hearst"` → [[scene-builders#createHearstBuildingMesh.ts|createHearstBuildingMesh]] (geometria facetada com diagrid compartilhada).
    - `shape === "default"` → `THREE.Mesh(buildingGeometry, [facadeMat, topMat])` (mesma `BoxGeometry` do InstancedMesh).
 5. Adiciona à cena, registra em `customShapeMeshes` e seta `userData.donationId`/`userData.donationValue` para suportar raycast.
 

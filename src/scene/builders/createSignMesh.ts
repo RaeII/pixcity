@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { BuildingShape } from "../types";
 import { getChryslerFootprintScaleAtHeightRatio } from "./createChryslerBuildingMesh";
+import { getHearstFaceSpanRatio } from "./createHearstBuildingMesh";
 import { OCTAGON_FLAT_SIDE_RATIO } from "./createOctagonalBuildingMesh";
 import { getSetbackFootprintScaleAtHeightRatio } from "./createSetbackBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
@@ -60,14 +61,22 @@ export function createSignMesh(
   const isSetback = shape === "setback" && buildingH > 0;
   const isTapered = shape === "tapered" && buildingH > 0;
   const isChrysler = shape === "chrysler" && buildingH > 0;
+  const isHearst = shape === "hearst" && buildingH > 0;
+  const heightRatio = yOffset / buildingH + 0.5;
   const setbackScale = isSetback
-    ? getSetbackFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
+    ? getSetbackFootprintScaleAtHeightRatio(heightRatio)
     : 1;
   const taperedScale = isTapered
-    ? getTaperedFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
+    ? getTaperedFootprintScaleAtHeightRatio(heightRatio)
     : 1;
   const chryslerScale = isChrysler
-    ? getChryslerFootprintScaleAtHeightRatio(yOffset / buildingH + 0.5)
+    ? getChryslerFootprintScaleAtHeightRatio(heightRatio)
+    : 1;
+  const hearstXSpanRatio = isHearst
+    ? getHearstFaceSpanRatio("x", heightRatio)
+    : 1;
+  const hearstZSpanRatio = isHearst
+    ? getHearstFaceSpanRatio("z", heightRatio)
     : 1;
   const twistAngle = isTwisted
     ? (yOffset / buildingH + 0.5) * TWIST_TOTAL_ANGLE
@@ -127,6 +136,8 @@ export function createSignMesh(
       faceWorldW = cfg.faceW * taperedScale;
     } else if (isChrysler) {
       faceWorldW = cfg.faceW * chryslerScale;
+    } else if (isHearst) {
+      faceWorldW = cfg.faceW * (cfg.offsetZ !== 0 ? hearstXSpanRatio : hearstZSpanRatio);
     } else {
       faceWorldW = cfg.faceW;
     }
