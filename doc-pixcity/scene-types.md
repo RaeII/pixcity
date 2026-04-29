@@ -267,6 +267,7 @@ type BuildingShape =
   | "tapered"        // torre afunilada
   | "chrysler"       // torre art déco inspirada no Chrysler Building
   | "hearst"         // torre facetada com diagrid inspirada na Hearst Tower
+  | "empire"         // torre art déco inspirada no Empire State Building
 ```
 
 Quando `buildingShape !== "default"`, a doação é desenhada como um `Mesh` próprio (ver [[scene-builders]]) e pula a alocação no `InstancedMesh`. O manager mantém clones de material (facade + top) por edifício customizado.

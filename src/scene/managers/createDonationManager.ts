@@ -50,6 +50,11 @@ import {
   createHearstBuildingMesh,
   disposeHearstBuildingSharedResources,
 } from "../builders/createHearstBuildingMesh";
+import {
+  createEmpireBuildingMesh,
+  disposeEmpireBuildingSharedResources,
+  setEmpireBuildingMeshColor,
+} from "../builders/createEmpireBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -172,6 +177,10 @@ function loadDataTexture(src: string): THREE.Texture {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   return texture;
+}
+
+function isTexturelessMaterial(material: THREE.Material): boolean {
+  return material.userData.textureless === true;
 }
 
 export function createDonationManager({
@@ -531,7 +540,8 @@ export function createDonationManager({
   const applyTextureToFacade = (settings: TextureSettings) => {
     const targets = getAllFacadeMaterials();
     for (const mat of targets) {
-      if (settings.enabled) {
+      const textureless = isTexturelessMaterial(mat);
+      if (settings.enabled && !textureless) {
         mat.map = colorMap;
         mat.normalMap = normalMap;
         mat.normalScale.set(settings.normalScale, settings.normalScale);
@@ -548,13 +558,15 @@ export function createDonationManager({
         mat.normalMap = null;
         mat.roughnessMap = null;
         mat.metalnessMap = null;
-        mat.bumpMap = displacementMap;
-        mat.displacementMap = displacementMap;
+        mat.bumpMap = textureless ? null : displacementMap;
+        mat.displacementMap = textureless ? null : displacementMap;
         mat.displacementScale = 0;
         mat.emissiveMap = null;
       }
-      mat.emissiveIntensity = settings.emissiveIntensity;
-      mat.envMapIntensity = settings.envMapIntensity;
+      mat.emissiveIntensity = textureless ? 0 : settings.emissiveIntensity;
+      if (!textureless) {
+        mat.envMapIntensity = settings.envMapIntensity;
+      }
       mat.needsUpdate = true;
     }
   };
@@ -563,7 +575,8 @@ export function createDonationManager({
     const top = settings.top;
     const targets = getAllTopMaterials();
     for (const mat of targets) {
-      if (settings.enabled) {
+      const textureless = isTexturelessMaterial(mat);
+      if (settings.enabled && !textureless) {
         mat.map = concreteColorMap;
         mat.normalMap = concreteNormalMap;
         mat.normalScale.set(top.normalScale, top.normalScale);
@@ -577,11 +590,13 @@ export function createDonationManager({
         mat.map = null;
         mat.normalMap = null;
         mat.roughnessMap = null;
-        mat.bumpMap = concreteDisplacementMap;
-        mat.displacementMap = concreteDisplacementMap;
+        mat.bumpMap = textureless ? null : concreteDisplacementMap;
+        mat.displacementMap = textureless ? null : concreteDisplacementMap;
         mat.displacementScale = 0;
       }
-      mat.envMapIntensity = top.envMapIntensity;
+      if (!textureless) {
+        mat.envMapIntensity = top.envMapIntensity;
+      }
       mat.needsUpdate = true;
     }
   };
@@ -844,10 +859,22 @@ export function createDonationManager({
     }
   };
 
-  const setMatOpacity = (mat: THREE.MeshPhysicalMaterial, opacity: number) => {
+  const setMatOpacity = (mat: THREE.Material, opacity: number) => {
     mat.transparent = opacity < 1;
     mat.opacity = opacity;
     mat.needsUpdate = true;
+  };
+
+  const getCustomShapeMaterials = (entry: CustomShapeEntry): THREE.Material[] => {
+    return Array.from(
+      new Set(Array.isArray(entry.mesh.material) ? entry.mesh.material : [entry.mesh.material]),
+    );
+  };
+
+  const setCustomShapeOpacity = (entry: CustomShapeEntry, opacity: number) => {
+    for (const material of getCustomShapeMaterials(entry)) {
+      setMatOpacity(material, opacity);
+    }
   };
 
   const applyFocus = (donationId: number | null) => {
@@ -858,8 +885,7 @@ export function createDonationManager({
       setMatOpacity(facadeMaterial, 1);
       setMatOpacity(topMaterial, 1);
       for (const entry of customShapeMeshes.values()) {
-        setMatOpacity(entry.facadeMat, 1);
-        setMatOpacity(entry.topMat, 1);
+        setCustomShapeOpacity(entry, 1);
       }
       applyInstanceColors();
       return;
@@ -871,8 +897,7 @@ export function createDonationManager({
 
     for (const [donId, entry] of customShapeMeshes) {
       const opacity = donId === donationId ? 1 : 0.15;
-      setMatOpacity(entry.facadeMat, opacity);
-      setMatOpacity(entry.topMat, opacity);
+      setCustomShapeOpacity(entry, opacity);
     }
 
     if (customShapeMeshes.has(donationId)) return;
@@ -1107,10 +1132,25 @@ export function createDonationManager({
   const updateCustomShapeColor = (donationId: number, color: string) => {
     const entry = customShapeMeshes.get(donationId);
     if (!entry) return;
+    if (entry.shape === "empire") {
+      setEmpireBuildingMeshColor(entry.mesh, color);
+      return;
+    }
     entry.facadeMat.color.set(color);
     entry.topMat.color.set(color);
     entry.facadeMat.needsUpdate = true;
     entry.topMat.needsUpdate = true;
+  };
+
+  const disposeCustomShapeEntry = (entry: CustomShapeEntry) => {
+    scene.remove(entry.mesh);
+    for (const material of getCustomShapeMaterials(entry)) {
+      if (material !== entry.facadeMat && material !== entry.topMat) {
+        material.dispose();
+      }
+    }
+    entry.facadeMat.dispose();
+    entry.topMat.dispose();
   };
 
   // Garante que cada doação com customização que exige estado de material próprio
@@ -1131,9 +1171,7 @@ export function createDonationManager({
 
       if (!entry || entry.shape !== shape) {
         if (entry) {
-          scene.remove(entry.mesh);
-          entry.facadeMat.dispose();
-          entry.topMat.dispose();
+          disposeCustomShapeEntry(entry);
           customShapeMeshes.delete(donation.id);
         }
 
@@ -1162,6 +1200,12 @@ export function createDonationManager({
           sceneMesh = createChryslerBuildingMesh(facadeMat, topMat);
         } else if (shape === "hearst") {
           sceneMesh = createHearstBuildingMesh(facadeMat, topMat);
+        } else if (shape === "empire") {
+          sceneMesh = createEmpireBuildingMesh(facadeMat, topMat);
+          tmpColor.set(customization.color);
+          if (!tmpColor.equals(currentBuildingColor)) {
+            setEmpireBuildingMeshColor(sceneMesh, customization.color);
+          }
         } else {
           // Formato default mas precisa de mesh próprio (ex: tiling customizado).
           sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
@@ -1186,9 +1230,7 @@ export function createDonationManager({
 
     for (const [donId, entry] of customShapeMeshes) {
       if (!validIds.has(donId)) {
-        scene.remove(entry.mesh);
-        entry.facadeMat.dispose();
-        entry.topMat.dispose();
+        disposeCustomShapeEntry(entry);
         customShapeMeshes.delete(donId);
       }
     }
@@ -1418,9 +1460,7 @@ export function createDonationManager({
       disposeEdgeLightSharedResources();
       // Limpar prédios com formato customizado
       for (const [, entry] of customShapeMeshes) {
-        scene.remove(entry.mesh);
-        entry.facadeMat.dispose();
-        entry.topMat.dispose();
+        disposeCustomShapeEntry(entry);
       }
       customShapeMeshes.clear();
       disposeTwistedBuildingSharedResources();
@@ -1429,6 +1469,7 @@ export function createDonationManager({
       disposeTaperedBuildingSharedResources();
       disposeChryslerBuildingSharedResources();
       disposeHearstBuildingSharedResources();
+      disposeEmpireBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);

@@ -16,7 +16,8 @@ export type BuildingShape =
   | "setback"
   | "tapered"
   | "chrysler"
-  | "hearst";
+  | "hearst"
+  | "empire";
 
 export type BuildingCustomization = {
   color: string;

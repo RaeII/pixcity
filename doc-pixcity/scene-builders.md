@@ -355,6 +355,28 @@ HEARST_RING_COUNT: number
 
 ---
 
+### `createEmpireBuildingMesh.ts`
+
+Cria um `THREE.Mesh` com volumetria inspirada no **Empire State Building** para edifícios com `BuildingShape === "empire"`.
+
+**Responsabilidades:**
+- Construir uma `BufferGeometry` unitária centralizada em `1×1×1`, usando apenas a criação do edifício do protótipo `EmpireState.md`
+- Recriar base larga, eixo vertical, setbacks, coroa, mastros, janelas e pilastras como uma geometria compartilhada
+- Usar materiais próprios sem texturas PBR; o `DonationManager` marca os materiais como textureless para impedir aplicação de mapas
+- Declarar `aProjPosition` e `aProjNormal` para manter compatibilidade com o shader triplanar do manager
+- Exportar helpers usados por letreiros e LEDs para acompanhar os recuos principais
+
+**API:**
+```typescript
+createEmpireBuildingMesh(facadeMaterial: THREE.Material, roofMaterial: THREE.Material): THREE.Mesh
+disposeEmpireBuildingSharedResources(): void
+setEmpireBuildingMeshColor(mesh: THREE.Mesh, color: string): void
+getEmpireFootprintScaleAtHeightRatio(heightRatio: number): { x: number; z: number }
+getEmpireTierFootprints(width?: number, depth?: number, height?: number): EmpireTierFootprint[]
+```
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { BuildingShape } from "../types";
 import { getChryslerFootprintScaleAtHeightRatio } from "./createChryslerBuildingMesh";
+import { getEmpireFootprintScaleAtHeightRatio } from "./createEmpireBuildingMesh";
 import { getHearstFaceSpanRatio } from "./createHearstBuildingMesh";
 import { OCTAGON_FLAT_SIDE_RATIO } from "./createOctagonalBuildingMesh";
 import { getSetbackFootprintScaleAtHeightRatio } from "./createSetbackBuildingMesh";
@@ -45,9 +46,10 @@ export function createSignMesh(
 
   const group = new THREE.Group();
   const clampedSides = Math.max(1, Math.min(4, Math.round(sides)));
+  const isEmpire = shape === "empire" && buildingH > 0;
 
-  // yOffset: bem perto do topo (45% acima do centro = ~95% da altura)
-  const yOffset = buildingH * 0.45;
+  // Empire tem mastros estreitos no topo; o letreiro fica no corpo principal.
+  const yOffset = buildingH * (isEmpire ? 0.1 : 0.45);
 
   // Altura do letreiro consistente em todos os lados
   const signH = Math.max(buildingW, buildingD) * SIGN_HEIGHT_RATIO;
@@ -78,6 +80,9 @@ export function createSignMesh(
   const hearstZSpanRatio = isHearst
     ? getHearstFaceSpanRatio("z", heightRatio)
     : 1;
+  const empireScale = isEmpire
+    ? getEmpireFootprintScaleAtHeightRatio(heightRatio)
+    : { x: 1, z: 1 };
   const twistAngle = isTwisted
     ? (yOffset / buildingH + 0.5) * TWIST_TOTAL_ANGLE
     : 0;
@@ -138,6 +143,8 @@ export function createSignMesh(
       faceWorldW = cfg.faceW * chryslerScale;
     } else if (isHearst) {
       faceWorldW = cfg.faceW * (cfg.offsetZ !== 0 ? hearstXSpanRatio : hearstZSpanRatio);
+    } else if (isEmpire) {
+      faceWorldW = cfg.faceW * (cfg.offsetZ !== 0 ? empireScale.x : empireScale.z);
     } else {
       faceWorldW = cfg.faceW;
     }
@@ -230,15 +237,28 @@ export function createSignMesh(
         backPush: BACK_PUSH,
       };
     } else {
-      const footprintScale = isSetback
-        ? setbackScale
-        : isTapered
-          ? taperedScale
-          : isChrysler
-            ? chryslerScale
-            : 1;
-      const footprintW = buildingW * footprintScale;
-      const footprintD = buildingD * footprintScale;
+      const footprintW = isEmpire
+        ? buildingW * empireScale.x
+        : buildingW * (
+            isSetback
+              ? setbackScale
+              : isTapered
+                ? taperedScale
+                : isChrysler
+                  ? chryslerScale
+                  : 1
+          );
+      const footprintD = isEmpire
+        ? buildingD * empireScale.z
+        : buildingD * (
+            isSetback
+              ? setbackScale
+              : isTapered
+                ? taperedScale
+                : isChrysler
+                  ? chryslerScale
+                  : 1
+          );
       const normalOffset = cfg.offsetZ !== 0 ? footprintD / 2 : footprintW / 2;
       const dist = normalOffset + 0.02;
       px = cfg.offsetX * dist;

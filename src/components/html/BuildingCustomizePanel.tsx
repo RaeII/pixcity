@@ -12,6 +12,7 @@ const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "tapered", label: "Torre afunilada" },
   { value: "chrysler", label: "Chrysler (NY)" },
   { value: "hearst", label: "Hearst Tower" },
+  { value: "empire", label: "Empire State" },
 ];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [

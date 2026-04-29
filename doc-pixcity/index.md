@@ -81,6 +81,7 @@ src/
       createSetbackBuildingMesh.ts
       createTaperedBuildingMesh.ts
       createHearstBuildingMesh.ts
+      createEmpireBuildingMesh.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
@@ -130,8 +131,8 @@ Ele guarda todos os estados:
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
   <<<<<<< HEAD
-- # `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/hearst), acessório de topo, letreiro e LED de arestas
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst), acessório de topo, letreiro e LED de arestas
+- # `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/hearst/empire), acessório de topo, letreiro e LED de arestas
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire), acessório de topo, letreiro e LED de arestas
   > > > > > > > codex/suggest-building-designs-for-customization-dthloe
 
 E entrega para:
@@ -188,6 +189,7 @@ flowchart TD
     M --> V[createSetbackBuildingMesh]
     M --> W[createTaperedBuildingMesh]
     M --> X[createHearstBuildingMesh]
+    M --> Y[createEmpireBuildingMesh]
     E --> C
     P --> C
 ```
@@ -211,6 +213,7 @@ flowchart LR
     DM --> |formato tapered| TP[createTaperedBuildingMesh]
     DM --> |formato chrysler| CH[createChryslerBuildingMesh]
     DM --> |formato hearst| HT[createHearstBuildingMesh]
+    DM --> |formato empire| EM[createEmpireBuildingMesh]
     DM --> |topo| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
     DM --> |LED| EL[createEdgeLightMesh]
@@ -234,6 +237,7 @@ flowchart LR
 | Alterar torre setback (setback)                  | [[scene-builders#createSetbackBuildingMesh.ts]]   |
 | Alterar torre afunilada (tapered)                | [[scene-builders#createTaperedBuildingMesh.ts]]   |
 | Alterar torre Hearst (hearst)                    | [[scene-builders#createHearstBuildingMesh.ts]]    |
+| Alterar torre Empire State (empire)              | [[scene-builders#createEmpireBuildingMesh.ts]]    |
 
 # <<<<<<< HEAD
 
