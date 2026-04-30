@@ -377,6 +377,28 @@ getEmpireTierFootprints(width?: number, depth?: number, height?: number): Empire
 
 ---
 
+### `createTaipeiBuildingMesh.ts`
+
+Cria um `THREE.Mesh` com volumetria inspirada no **Taipei 101** para edifícios com `BuildingShape === "taipei"`.
+
+**Responsabilidades:**
+- Construir uma `BufferGeometry` unitária centralizada em `1×1×1`, usando apenas a criação do edifício do protótipo `taipei.md`
+- Recriar base, módulos empilhados chanfrados, beirais, detalhes de quina, coroa e pináculo como geometria compartilhada
+- Usar os materiais `facadeMaterial` e `topMaterial` recebidos do `DonationManager`, preservando as texturas PBR e o controle de cor/tiling do projeto
+- Declarar `aProjPosition` e `aProjNormal` em todas as partes para manter compatibilidade com o shader triplanar
+- Exportar helpers usados por letreiros e LEDs para acompanhar o corpo principal e os níveis do topo
+
+**API:**
+```typescript
+createTaipeiBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Material): THREE.Mesh
+disposeTaipeiBuildingSharedResources(): void
+getTaipeiFootprintScaleAtHeightRatio(heightRatio: number): number
+getTaipeiTierFootprints(width?: number, depth?: number, height?: number): TaipeiTierFootprint[]
+TAIPEI_SIGN_Y_OFFSET_RATIO: number
+```
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

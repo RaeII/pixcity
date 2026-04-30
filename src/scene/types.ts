@@ -17,7 +17,8 @@ export type BuildingShape =
   | "tapered"
   | "chrysler"
   | "hearst"
-  | "empire";
+  | "empire"
+  | "taipei";
 
 export type BuildingCustomization = {
   color: string;

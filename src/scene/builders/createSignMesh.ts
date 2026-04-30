@@ -5,6 +5,10 @@ import { getEmpireFootprintScaleAtHeightRatio } from "./createEmpireBuildingMesh
 import { getHearstFaceSpanRatio } from "./createHearstBuildingMesh";
 import { OCTAGON_FLAT_SIDE_RATIO } from "./createOctagonalBuildingMesh";
 import { getSetbackFootprintScaleAtHeightRatio } from "./createSetbackBuildingMesh";
+import {
+  TAIPEI_SIGN_Y_OFFSET_RATIO,
+  getTaipeiFootprintScaleAtHeightRatio,
+} from "./createTaipeiBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
 import { TWIST_TOTAL_ANGLE } from "./createTwistedBuildingMesh";
 
@@ -47,9 +51,10 @@ export function createSignMesh(
   const group = new THREE.Group();
   const clampedSides = Math.max(1, Math.min(4, Math.round(sides)));
   const isEmpire = shape === "empire" && buildingH > 0;
+  const isTaipei = shape === "taipei" && buildingH > 0;
 
-  // Empire tem mastros estreitos no topo; o letreiro fica no corpo principal.
-  const yOffset = buildingH * (isEmpire ? 0.1 : 0.45);
+  // Empire e Taipei tem mastros estreitos no topo; o letreiro fica no corpo principal.
+  const yOffset = buildingH * (isEmpire ? 0.1 : isTaipei ? TAIPEI_SIGN_Y_OFFSET_RATIO : 0.45);
 
   // Altura do letreiro consistente em todos os lados
   const signH = Math.max(buildingW, buildingD) * SIGN_HEIGHT_RATIO;
@@ -73,6 +78,9 @@ export function createSignMesh(
     : 1;
   const chryslerScale = isChrysler
     ? getChryslerFootprintScaleAtHeightRatio(heightRatio)
+    : 1;
+  const taipeiScale = isTaipei
+    ? getTaipeiFootprintScaleAtHeightRatio(heightRatio)
     : 1;
   const hearstXSpanRatio = isHearst
     ? getHearstFaceSpanRatio("x", heightRatio)
@@ -141,6 +149,8 @@ export function createSignMesh(
       faceWorldW = cfg.faceW * taperedScale;
     } else if (isChrysler) {
       faceWorldW = cfg.faceW * chryslerScale;
+    } else if (isTaipei) {
+      faceWorldW = cfg.faceW * taipeiScale;
     } else if (isHearst) {
       faceWorldW = cfg.faceW * (cfg.offsetZ !== 0 ? hearstXSpanRatio : hearstZSpanRatio);
     } else if (isEmpire) {
@@ -244,8 +254,10 @@ export function createSignMesh(
               ? setbackScale
               : isTapered
                 ? taperedScale
-                : isChrysler
-                  ? chryslerScale
+              : isChrysler
+                ? chryslerScale
+                : isTaipei
+                  ? taipeiScale
                   : 1
           );
       const footprintD = isEmpire
@@ -255,8 +267,10 @@ export function createSignMesh(
               ? setbackScale
               : isTapered
                 ? taperedScale
-                : isChrysler
-                  ? chryslerScale
+              : isChrysler
+                ? chryslerScale
+                : isTaipei
+                  ? taipeiScale
                   : 1
           );
       const normalOffset = cfg.offsetZ !== 0 ? footprintD / 2 : footprintW / 2;

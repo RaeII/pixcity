@@ -70,7 +70,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 |---|---|---|
 | `donationId` | `number` | ID da doação selecionada |
 | `initialColor` | `string` | Cor atual do edifício (customizada ou global) |
-| `initialBuildingShape` | `BuildingShape` | Formato atual (`"default"`, `"twisted"`, `"octagonal"`, `"setback"`, `"tapered"`, `"chrysler"`, `"hearst"` ou `"empire"`) |
+| `initialBuildingShape` | `BuildingShape` | Formato atual (`"default"`, `"twisted"`, `"octagonal"`, `"setback"`, `"tapered"`, `"chrysler"`, `"hearst"`, `"empire"` ou `"taipei"`) |
 | `initialTilingScale` | `number` | Multiplicador de tiling da textura (1.0 = sem alteração) |
 | `initialRooftopType` | `RooftopType` | Estado atual do acessório de topo |
 | `initialSignText` | `string` | Texto atual do letreiro na fachada |
@@ -90,7 +90,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 | Seção | Controles | Descrição |
 |---|---|---|
 | **Aparência** | `ColorField` | Cor individual do edifício (hex) |
-| **Formato** | Botões | Opções: padrão (caixa), torre torcida, torre octogonal, torre setback, torre afunilada, Chrysler, Hearst Tower ou Empire State |
+| **Formato** | Botões | Opções: padrão (caixa), torre torcida, torre octogonal, torre setback, torre afunilada, Chrysler, Hearst Tower, Empire State ou Taipei 101 |
 | **Texturas** | `RangeField` | Tiling Scale (0.25× – 4×) — ajusta a repetição da textura **só nesse edifício**. Valores ≠ 1.0 fazem o prédio sair do `InstancedMesh` |
 | **Letreiro** | Input de texto + seletor de lados | Marca/empresa na fachada (máx 30 chars). Seletor de lados (1–4) aparece quando há texto |
 | **Topo** | Botões | Opções: nenhum, holofotes ou heliponto |

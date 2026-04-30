@@ -13,6 +13,7 @@ const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "chrysler", label: "Chrysler (NY)" },
   { value: "hearst", label: "Hearst Tower" },
   { value: "empire", label: "Empire State" },
+  { value: "taipei", label: "Taipei 101" },
 ];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [

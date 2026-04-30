@@ -55,6 +55,10 @@ import {
   disposeEmpireBuildingSharedResources,
   setEmpireBuildingMeshColor,
 } from "../builders/createEmpireBuildingMesh";
+import {
+  createTaipeiBuildingMesh,
+  disposeTaipeiBuildingSharedResources,
+} from "../builders/createTaipeiBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -1206,6 +1210,8 @@ export function createDonationManager({
           if (!tmpColor.equals(currentBuildingColor)) {
             setEmpireBuildingMeshColor(sceneMesh, customization.color);
           }
+        } else if (shape === "taipei") {
+          sceneMesh = createTaipeiBuildingMesh(facadeMat, topMat);
         } else {
           // Formato default mas precisa de mesh próprio (ex: tiling customizado).
           sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
@@ -1470,6 +1476,7 @@ export function createDonationManager({
       disposeChryslerBuildingSharedResources();
       disposeHearstBuildingSharedResources();
       disposeEmpireBuildingSharedResources();
+      disposeTaipeiBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);
