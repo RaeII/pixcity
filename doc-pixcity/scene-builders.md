@@ -399,6 +399,28 @@ TAIPEI_SIGN_Y_OFFSET_RATIO: number
 
 ---
 
+### `createOneTradeBuildingMesh.ts`
+
+Cria um `THREE.Mesh` para o modelo **One Trade**.
+
+**Responsabilidades:**
+- Construir uma `BufferGeometry` unitária centralizada em `1×1×1`, usando apenas a criação do edifício do protótipo `One_World_Trade.md`
+- Recriar base chanfrada, torre facetada afunilada, ribs verticais, faixas horizontais, parapeto e pináculo como geometria compartilhada
+- Usar os materiais `facadeMaterial` e `topMaterial` recebidos do `DonationManager`, preservando as texturas PBR padrão do sistema
+- Declarar `aProjPosition` e `aProjNormal` em todas as partes para manter compatibilidade com o shader triplanar
+- Exportar helpers usados por letreiros e LEDs para acompanhar a largura efetiva do corpo principal
+
+**API:**
+```typescript
+createOneTradeBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Material): THREE.Mesh
+disposeOneTradeBuildingSharedResources(): void
+getOneTradeFootprintScaleAtHeightRatio(heightRatio: number): number
+getOneTradeTierFootprints(width?: number, depth?: number, height?: number): OneTradeTierFootprint[]
+ONE_TRADE_SIGN_Y_OFFSET_RATIO: number
+```
+
+---
+
 ## O que Builders NÃO Fazem
 
 Builders não decidem:

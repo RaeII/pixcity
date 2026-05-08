@@ -83,6 +83,7 @@ src/
       createHearstBuildingMesh.ts
       createEmpireBuildingMesh.ts
       createTaipeiBuildingMesh.ts
+      createOneTradeBuildingMesh.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
@@ -132,8 +133,8 @@ Ele guarda todos os estados:
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
   <<<<<<< HEAD
-- # `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei), acessório de topo, letreiro e LED de arestas
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei), acessório de topo, letreiro e LED de arestas
+- # `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo, letreiro e LED de arestas
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo, letreiro e LED de arestas
   > > > > > > > codex/suggest-building-designs-for-customization-dthloe
 
 E entrega para:
@@ -192,6 +193,7 @@ flowchart TD
     M --> X[createHearstBuildingMesh]
     M --> Y[createEmpireBuildingMesh]
     M --> Z[createTaipeiBuildingMesh]
+    M --> OT[createOneTradeBuildingMesh]
     E --> C
     P --> C
 ```
@@ -217,6 +219,7 @@ flowchart LR
     DM --> |formato hearst| HT[createHearstBuildingMesh]
     DM --> |formato empire| EM[createEmpireBuildingMesh]
     DM --> |formato taipei| TP101[createTaipeiBuildingMesh]
+    DM --> |formato one-trade| OT[createOneTradeBuildingMesh]
     DM --> |topo| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
     DM --> |LED| EL[createEdgeLightMesh]
@@ -242,6 +245,7 @@ flowchart LR
 | Alterar torre Hearst (hearst)                    | [[scene-builders#createHearstBuildingMesh.ts]]    |
 | Alterar torre Empire State (empire)              | [[scene-builders#createEmpireBuildingMesh.ts]]    |
 | Alterar torre Taipei 101 (taipei)                | [[scene-builders#createTaipeiBuildingMesh.ts]]    |
+| Alterar torre One Trade (one-trade)              | [[scene-builders#createOneTradeBuildingMesh.ts]]  |
 
 # <<<<<<< HEAD
 

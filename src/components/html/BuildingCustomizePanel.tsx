@@ -2,7 +2,12 @@ import { useState } from "react";
 import { PanelSection } from "./controls/PanelSection";
 import { ColorField } from "./controls/ColorField";
 import { RangeField } from "./controls/RangeField";
-import type { BuildingShape, EdgeLightType, RooftopType } from "../../scene/types";
+import type {
+  BuildingShape,
+  BuildingTextureTransform,
+  EdgeLightType,
+  RooftopType,
+} from "../../scene/types";
 
 const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "default", label: "Padrão" },
@@ -14,6 +19,7 @@ const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "hearst", label: "Hearst Tower" },
   { value: "empire", label: "Empire State" },
   { value: "taipei", label: "Taipei 101" },
+  { value: "one-trade", label: "One Trade" },
 ];
 
 const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
@@ -39,6 +45,7 @@ type BuildingCustomizePanelProps = {
   initialColor: string;
   initialBuildingShape: BuildingShape;
   initialTilingScale: number;
+  initialTextureTransform: BuildingTextureTransform;
   initialRooftopType: RooftopType;
   initialSignText: string;
   initialSignSides: number;
@@ -46,6 +53,10 @@ type BuildingCustomizePanelProps = {
   onColorChange: (donationId: number, color: string) => void;
   onBuildingShapeChange: (donationId: number, shape: BuildingShape) => void;
   onTilingScaleChange: (donationId: number, tilingScale: number) => void;
+  onTextureTransformChange: (
+    donationId: number,
+    textureTransform: BuildingTextureTransform,
+  ) => void;
   onRooftopChange: (donationId: number, rooftopType: RooftopType) => void;
   onSignTextChange: (donationId: number, signText: string) => void;
   onSignSidesChange: (donationId: number, signSides: number) => void;
@@ -58,6 +69,7 @@ export function BuildingCustomizePanel({
   initialColor,
   initialBuildingShape,
   initialTilingScale,
+  initialTextureTransform,
   initialRooftopType,
   initialSignText,
   initialSignSides,
@@ -65,6 +77,7 @@ export function BuildingCustomizePanel({
   onColorChange,
   onBuildingShapeChange,
   onTilingScaleChange,
+  onTextureTransformChange,
   onRooftopChange,
   onSignTextChange,
   onSignSidesChange,
@@ -74,6 +87,7 @@ export function BuildingCustomizePanel({
   const [color, setColor] = useState(initialColor);
   const [buildingShape, setBuildingShape] = useState<BuildingShape>(initialBuildingShape);
   const [tilingScale, setTilingScale] = useState(initialTilingScale);
+  const [textureTransform, setTextureTransform] = useState(initialTextureTransform);
   const [rooftopType, setRooftopType] = useState<RooftopType>(initialRooftopType);
   const [signText, setSignText] = useState(initialSignText);
   const [signSides, setSignSides] = useState(initialSignSides);
@@ -92,6 +106,12 @@ export function BuildingCustomizePanel({
   const handleTilingScaleChange = (newScale: number) => {
     setTilingScale(newScale);
     onTilingScaleChange(donationId, newScale);
+  };
+
+  const handleTextureTransformChange = (patch: Partial<BuildingTextureTransform>) => {
+    const next = { ...textureTransform, ...patch };
+    setTextureTransform(next);
+    onTextureTransformChange(donationId, next);
   };
 
   const handleRooftopChange = (newType: RooftopType) => {
@@ -166,6 +186,42 @@ export function BuildingCustomizePanel({
             step={0.05}
             onChange={handleTilingScaleChange}
             valueLabel={`${tilingScale.toFixed(2)}×`}
+          />
+          <RangeField
+            label="Escala X"
+            value={textureTransform.scaleX}
+            min={0.25}
+            max={4}
+            step={0.05}
+            onChange={(scaleX) => handleTextureTransformChange({ scaleX })}
+            valueLabel={`${textureTransform.scaleX.toFixed(2)}×`}
+          />
+          <RangeField
+            label="Escala Y"
+            value={textureTransform.scaleY}
+            min={0.25}
+            max={4}
+            step={0.05}
+            onChange={(scaleY) => handleTextureTransformChange({ scaleY })}
+            valueLabel={`${textureTransform.scaleY.toFixed(2)}×`}
+          />
+          <RangeField
+            label="Offset X"
+            value={textureTransform.offsetX}
+            min={-2}
+            max={2}
+            step={0.01}
+            onChange={(offsetX) => handleTextureTransformChange({ offsetX })}
+            valueLabel={textureTransform.offsetX.toFixed(2)}
+          />
+          <RangeField
+            label="Offset Y"
+            value={textureTransform.offsetY}
+            min={-2}
+            max={2}
+            step={0.01}
+            onChange={(offsetY) => handleTextureTransformChange({ offsetY })}
+            valueLabel={textureTransform.offsetY.toFixed(2)}
           />
         </PanelSection>
         <PanelSection title="Letreiro">

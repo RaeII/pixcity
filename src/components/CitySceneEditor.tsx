@@ -16,11 +16,13 @@ import { createDefaultHorizonSettings } from "../scene/config/horizonConfig";
 import type {
   BuildingCustomization,
   BuildingShape,
+  BuildingTextureTransform,
   CameraDebugInfo,
   EdgeLightType,
   RooftopType,
   SceneStats,
 } from "../scene/types";
+import { DEFAULT_BUILDING_TEXTURE_TRANSFORM } from "../scene/types";
 import { getLightMetrics } from "../scene/utils/lighting";
 
 const INITIAL_TEST_DONATIONS = [
@@ -42,6 +44,7 @@ const createInitialTwistedCustomization = (): BuildingCustomization => ({
   color: createDefaultBuildingSettings().color,
   buildingShape: "twisted",
   tilingScale: 1,
+  textureTransform: { ...DEFAULT_BUILDING_TEXTURE_TRANSFORM },
   rooftopType: "none",
   signText: "",
   signSides: 1,
@@ -121,6 +124,7 @@ export function CitySceneEditor() {
         color: existing?.color ?? buildingSettings.color,
         buildingShape: existing?.buildingShape ?? "default" as const,
         tilingScale: existing?.tilingScale ?? 1,
+        textureTransform: existing?.textureTransform ?? { ...DEFAULT_BUILDING_TEXTURE_TRANSFORM },
         rooftopType: existing?.rooftopType ?? "none" as const,
         signText: existing?.signText ?? "",
         signSides: existing?.signSides ?? 1,
@@ -139,6 +143,7 @@ export function CitySceneEditor() {
           color: existing?.color ?? buildingSettings.color,
           buildingShape: existing?.buildingShape ?? "default",
           tilingScale: existing?.tilingScale ?? 1,
+          textureTransform: existing?.textureTransform ?? { ...DEFAULT_BUILDING_TEXTURE_TRANSFORM },
           rooftopType: existing?.rooftopType ?? "none",
           signText: existing?.signText ?? "",
           signSides: existing?.signSides ?? 1,
@@ -188,6 +193,12 @@ export function CitySceneEditor() {
   const handleTilingScaleChange = useCallback(
     (donationId: number, tilingScale: number) =>
       updateCustomization(donationId, { tilingScale }),
+    [updateCustomization],
+  );
+
+  const handleTextureTransformChange = useCallback(
+    (donationId: number, textureTransform: BuildingTextureTransform) =>
+      updateCustomization(donationId, { textureTransform }),
     [updateCustomization],
   );
 
@@ -254,6 +265,7 @@ export function CitySceneEditor() {
             initialColor={c.color}
             initialBuildingShape={c.buildingShape}
             initialTilingScale={c.tilingScale}
+            initialTextureTransform={c.textureTransform}
             initialRooftopType={c.rooftopType}
             initialSignText={c.signText}
             initialSignSides={c.signSides}
@@ -261,6 +273,7 @@ export function CitySceneEditor() {
             onColorChange={handleBuildingColorChange}
             onBuildingShapeChange={handleBuildingShapeChange}
             onTilingScaleChange={handleTilingScaleChange}
+            onTextureTransformChange={handleTextureTransformChange}
             onRooftopChange={handleRooftopChange}
             onSignTextChange={handleSignTextChange}
             onSignSidesChange={handleSignSidesChange}

@@ -7,6 +7,7 @@ import {
   getHearstRingFootprintPoints,
 } from "./createHearstBuildingMesh";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
+import { getOneTradeTierFootprints } from "./createOneTradeBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
 import { getTaipeiTierFootprints } from "./createTaipeiBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
@@ -641,6 +642,60 @@ function createLed(
 
   if (shape === "taipei") {
     const tiers = getTaipeiTierFootprints(width, depth, height);
+    for (const tier of tiers) {
+      const halfW = tier.width / 2;
+      const halfD = tier.depth / 2;
+      const segmentHeight = tier.topY - tier.bottomY;
+      const centerY = tier.bottomY + segmentHeight / 2;
+      const corners: Array<[number, number]> = [
+        [-halfW, -halfD],
+        [halfW, -halfD],
+        [halfW, halfD],
+        [-halfW, halfD],
+      ];
+
+      for (const [x, z] of corners) {
+        addEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(x, centerY, z),
+          "y",
+          segmentHeight,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+
+      const topY = tier.topY + TOP_LIFT;
+      for (const z of [-halfD, halfD]) {
+        addEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(0, topY, z),
+          "x",
+          tier.width,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+      for (const x of [-halfW, halfW]) {
+        addEdgeSegment(
+          group,
+          materials,
+          new THREE.Vector3(x, topY, 0),
+          "z",
+          tier.depth,
+          DEFAULT_EDGE_LIGHT_DISTANCE,
+          DEFAULT_EDGE_LIGHT_THICKNESS,
+        );
+      }
+    }
+
+    return group;
+  }
+
+  if (shape === "one-trade") {
+    const tiers = getOneTradeTierFootprints(width, depth, height);
     for (const tier of tiers) {
       const halfW = tier.width / 2;
       const halfD = tier.depth / 2;

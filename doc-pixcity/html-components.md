@@ -70,8 +70,9 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 |---|---|---|
 | `donationId` | `number` | ID da doação selecionada |
 | `initialColor` | `string` | Cor atual do edifício (customizada ou global) |
-| `initialBuildingShape` | `BuildingShape` | Formato atual (`"default"`, `"twisted"`, `"octagonal"`, `"setback"`, `"tapered"`, `"chrysler"`, `"hearst"`, `"empire"` ou `"taipei"`) |
+| `initialBuildingShape` | `BuildingShape` | Formato atual (`"default"`, `"twisted"`, `"octagonal"`, `"setback"`, `"tapered"`, `"chrysler"`, `"hearst"`, `"empire"`, `"taipei"` ou `"one-trade"`) |
 | `initialTilingScale` | `number` | Multiplicador de tiling da textura (1.0 = sem alteração) |
+| `initialTextureTransform` | `BuildingTextureTransform` | Ajuste manual de escala/offset da textura |
 | `initialRooftopType` | `RooftopType` | Estado atual do acessório de topo |
 | `initialSignText` | `string` | Texto atual do letreiro na fachada |
 | `initialSignSides` | `number` | Quantidade de lados com letreiro (1–4) |
@@ -79,6 +80,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 | `onColorChange` | `(id: number, color: string) => void` | Callback de troca de cor |
 | `onBuildingShapeChange` | `(id: number, shape: BuildingShape) => void` | Callback de troca de formato |
 | `onTilingScaleChange` | `(id: number, tilingScale: number) => void` | Callback de troca de tiling |
+| `onTextureTransformChange` | `(id: number, textureTransform: BuildingTextureTransform) => void` | Callback de ajuste manual da textura |
 | `onRooftopChange` | `(id: number, type: RooftopType) => void` | Callback de troca do acessório de topo |
 | `onSignTextChange` | `(id: number, text: string) => void` | Callback de troca de texto do letreiro |
 | `onSignSidesChange` | `(id: number, sides: number) => void` | Callback de troca de lados do letreiro |
@@ -90,8 +92,8 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 | Seção | Controles | Descrição |
 |---|---|---|
 | **Aparência** | `ColorField` | Cor individual do edifício (hex) |
-| **Formato** | Botões | Opções: padrão (caixa), torre torcida, torre octogonal, torre setback, torre afunilada, Chrysler, Hearst Tower, Empire State ou Taipei 101 |
-| **Texturas** | `RangeField` | Tiling Scale (0.25× – 4×) — ajusta a repetição da textura **só nesse edifício**. Valores ≠ 1.0 fazem o prédio sair do `InstancedMesh` |
+| **Formato** | Botões | Opções: padrão (caixa), torre torcida, torre octogonal, torre setback, torre afunilada, Chrysler, Hearst Tower, Empire State, Taipei 101 ou One Trade |
+| **Texturas** | `RangeField` | Tiling Scale, escala X/Y e offset X/Y — ajusta a repetição/alinhamento da textura **só nesse edifício**. Valores diferentes do padrão fazem o prédio sair do `InstancedMesh` |
 | **Letreiro** | Input de texto + seletor de lados | Marca/empresa na fachada (máx 30 chars). Seletor de lados (1–4) aparece quando há texto |
 | **Topo** | Botões | Opções: nenhum, holofotes ou heliponto |
 | **LED de arestas** | Botões | Liga/desliga o LED nas arestas verticais e topo |

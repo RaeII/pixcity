@@ -1,8 +1,10 @@
 import * as THREE from "three";
+import { DEFAULT_BUILDING_TEXTURE_TRANSFORM } from "../types";
 import type {
   BlockLayoutSettings,
   BuildingCustomization,
   BuildingShape,
+  BuildingTextureTransform,
   BuildingSettings,
   DonationEntry,
   EdgeLightType,
@@ -59,6 +61,10 @@ import {
   createTaipeiBuildingMesh,
   disposeTaipeiBuildingSharedResources,
 } from "../builders/createTaipeiBuildingMesh";
+import {
+  createOneTradeBuildingMesh,
+  disposeOneTradeBuildingSharedResources,
+} from "../builders/createOneTradeBuildingMesh";
 import { seeded } from "../utils/random";
 
 import colorTextureSrc from "../../assets/texture/Facade006_1K-mirrored-PNG/Facade006_1K-PNG_Color.png";
@@ -246,16 +252,27 @@ export function createDonationManager({
     tiling: { value: number },
   ) => {
     const tilingMultiplier = { value: 1.0 };
+    const textureTransform = {
+      value: new THREE.Vector4(
+        DEFAULT_BUILDING_TEXTURE_TRANSFORM.scaleX,
+        DEFAULT_BUILDING_TEXTURE_TRANSFORM.scaleY,
+        DEFAULT_BUILDING_TEXTURE_TRANSFORM.offsetX,
+        DEFAULT_BUILDING_TEXTURE_TRANSFORM.offsetY,
+      ),
+    };
     material.userData.tilingMultiplier = tilingMultiplier;
+    material.userData.textureTransform = textureTransform;
     material.customProgramCacheKey = () => cacheKey;
     material.onBeforeCompile = (shader) => {
       shader.uniforms.uTiling = tiling;
       shader.uniforms.uTilingMultiplier = tilingMultiplier;
+      shader.uniforms.uTextureTransform = textureTransform;
       shader.vertexShader = shader.vertexShader.replace(
         "#include <common>",
         `#include <common>
         uniform float uTiling;
         uniform float uTilingMultiplier;
+        uniform vec4 uTextureTransform;
         attribute vec3 aProjPosition;
         attribute vec3 aProjNormal;
         varying vec3 vTriplanarWorldPos;
@@ -285,6 +302,7 @@ export function createDonationManager({
           triUV = triWp.xy;
         }
         triUV *= uTiling * uTilingMultiplier;
+        triUV = triUV * uTextureTransform.xy + uTextureTransform.zw;
         #ifdef USE_MAP
           vMapUv = triUV;
         #endif
@@ -638,7 +656,48 @@ export function createDonationManager({
     if (!c) return false;
     if (c.buildingShape !== "default") return true;
     if (Math.abs(c.tilingScale - 1) > 0.001) return true;
+    if (!isDefaultTextureTransform(c.textureTransform)) return true;
     return false;
+  };
+
+  const isDefaultTextureTransform = (textureTransform?: BuildingTextureTransform): boolean => {
+    const transform = textureTransform ?? DEFAULT_BUILDING_TEXTURE_TRANSFORM;
+    return (
+      Math.abs(transform.scaleX - DEFAULT_BUILDING_TEXTURE_TRANSFORM.scaleX) <= 0.001 &&
+      Math.abs(transform.scaleY - DEFAULT_BUILDING_TEXTURE_TRANSFORM.scaleY) <= 0.001 &&
+      Math.abs(transform.offsetX - DEFAULT_BUILDING_TEXTURE_TRANSFORM.offsetX) <= 0.001 &&
+      Math.abs(transform.offsetY - DEFAULT_BUILDING_TEXTURE_TRANSFORM.offsetY) <= 0.001
+    );
+  };
+
+  const sameTextureTransform = (
+    a?: BuildingTextureTransform,
+    b?: BuildingTextureTransform,
+  ): boolean => {
+    const ta = a ?? DEFAULT_BUILDING_TEXTURE_TRANSFORM;
+    const tb = b ?? DEFAULT_BUILDING_TEXTURE_TRANSFORM;
+    return (
+      Math.abs(ta.scaleX - tb.scaleX) <= 0.001 &&
+      Math.abs(ta.scaleY - tb.scaleY) <= 0.001 &&
+      Math.abs(ta.offsetX - tb.offsetX) <= 0.001 &&
+      Math.abs(ta.offsetY - tb.offsetY) <= 0.001
+    );
+  };
+
+  const setMaterialTextureTransform = (
+    material: THREE.MeshPhysicalMaterial,
+    textureTransform?: BuildingTextureTransform,
+  ) => {
+    const transform = textureTransform ?? DEFAULT_BUILDING_TEXTURE_TRANSFORM;
+    const uniform = material.userData.textureTransform as
+      | { value: THREE.Vector4 }
+      | undefined;
+    uniform?.value.set(
+      transform.scaleX,
+      transform.scaleY,
+      transform.offsetX,
+      transform.offsetY,
+    );
   };
 
   const recordTransform = (donationId: number) => {
@@ -1190,6 +1249,8 @@ export function createDonationManager({
         topMat.color.set(customization.color);
         facadeMat.userData.tilingMultiplier.value = customization.tilingScale;
         topMat.userData.tilingMultiplier.value = customization.tilingScale;
+        setMaterialTextureTransform(facadeMat, customization.textureTransform);
+        setMaterialTextureTransform(topMat, customization.textureTransform);
 
         let sceneMesh: THREE.Mesh;
         if (shape === "twisted") {
@@ -1212,6 +1273,8 @@ export function createDonationManager({
           }
         } else if (shape === "taipei") {
           sceneMesh = createTaipeiBuildingMesh(facadeMat, topMat);
+        } else if (shape === "one-trade") {
+          sceneMesh = createOneTradeBuildingMesh(facadeMat, topMat);
         } else {
           // Formato default mas precisa de mesh próprio (ex: tiling customizado).
           sceneMesh = new THREE.Mesh(buildingGeometry, [facadeMat, topMat]);
@@ -1390,6 +1453,8 @@ export function createDonationManager({
       const prevEdgeLightType = prevCustomization?.edgeLightType ?? "none";
       const prevShape = prevCustomization?.buildingShape ?? "default";
       const prevTilingScale = prevCustomization?.tilingScale ?? 1;
+      const prevTextureTransform = prevCustomization?.textureTransform ??
+        DEFAULT_BUILDING_TEXTURE_TRANSFORM;
       donation.customization = customization;
 
       const prevNeedsCustom = needsCustomMesh(prevCustomization);
@@ -1412,6 +1477,14 @@ export function createDonationManager({
         if (entry) {
           entry.facadeMat.userData.tilingMultiplier.value = customization.tilingScale;
           entry.topMat.userData.tilingMultiplier.value = customization.tilingScale;
+        }
+      }
+
+      if (!sameTextureTransform(customization.textureTransform, prevTextureTransform)) {
+        const entry = customShapeMeshes.get(donationId);
+        if (entry) {
+          setMaterialTextureTransform(entry.facadeMat, customization.textureTransform);
+          setMaterialTextureTransform(entry.topMat, customization.textureTransform);
         }
       }
 
@@ -1477,6 +1550,7 @@ export function createDonationManager({
       disposeHearstBuildingSharedResources();
       disposeEmpireBuildingSharedResources();
       disposeTaipeiBuildingSharedResources();
+      disposeOneTradeBuildingSharedResources();
       focusFacadeMaterial.dispose();
       focusTopMaterial.dispose();
       scene.remove(mesh);

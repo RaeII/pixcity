@@ -9,6 +9,20 @@ export type EdgeLightType =
   | "none"
   | "led";
 
+export type BuildingTextureTransform = {
+  scaleX: number;
+  scaleY: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+export const DEFAULT_BUILDING_TEXTURE_TRANSFORM: BuildingTextureTransform = {
+  scaleX: 1,
+  scaleY: 1,
+  offsetX: 0,
+  offsetY: 0,
+};
+
 export type BuildingShape =
   | "default"
   | "twisted"
@@ -18,7 +32,8 @@ export type BuildingShape =
   | "chrysler"
   | "hearst"
   | "empire"
-  | "taipei";
+  | "taipei"
+  | "one-trade";
 
 export type BuildingCustomization = {
   color: string;
@@ -28,6 +43,7 @@ export type BuildingCustomization = {
   edgeLightType: EdgeLightType;
   buildingShape: BuildingShape;
   tilingScale: number; // multiplicador da textura por edifício (1.0 = sem alteração)
+  textureTransform: BuildingTextureTransform; // ajuste manual da textura por edifício
 };
 
 export type DonationEntry = {

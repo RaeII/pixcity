@@ -269,6 +269,7 @@ type BuildingShape =
   | "hearst"         // torre facetada com diagrid inspirada na Hearst Tower
   | "empire"         // torre art déco inspirada no Empire State Building
   | "taipei"         // torre em módulos empilhados inspirada no Taipei 101
+  | "one-trade"      // torre facetada com base chanfrada e pináculo One Trade
 ```
 
 Quando `buildingShape !== "default"`, a doação é desenhada como um `Mesh` próprio (ver [[scene-builders]]) e pula a alocação no `InstancedMesh`. O manager mantém clones de material (facade + top) por edifício customizado.
@@ -282,6 +283,12 @@ type BuildingCustomization = {
   color: string;              // cor hex do edifício
   buildingShape: BuildingShape; // formato volumétrico
   tilingScale: number;        // multiplicador de tiling da textura (1.0 = global, 2.0 = texturas 2× menores, etc)
+  textureTransform: {
+    scaleX: number;           // escala horizontal da textura no edifício
+    scaleY: number;           // escala vertical da textura no edifício
+    offsetX: number;          // deslocamento horizontal da textura
+    offsetY: number;          // deslocamento vertical da textura
+  };
   rooftopType: RooftopType;   // acessório de topo ou none
   signText: string;           // texto do letreiro na fachada (vazio = sem letreiro)
   signSides: number;          // quantos lados exibem o letreiro (1–4)
@@ -296,6 +303,7 @@ Armazenada opcionalmente em cada `DonationEntry`. Cada campo controla um aspecto
 | `color` | Cor individual do edifício | `InstancedBufferAttribute` (instanceColor) quando o prédio fica no `InstancedMesh`; cor direta no clone do material quando vira mesh próprio |
 | `buildingShape` | Formato volumétrico do edifício | `default`: caixa padrão; demais valores usam builders dedicados em [[scene-builders]] |
 | `tilingScale` | Multiplicador de tiling da textura aplicado **só nesse edifício** | Faz o prédio sair do `InstancedMesh` (quando ≠ 1.0) e virar `Mesh` próprio com clone de material e uniform `uTilingMultiplier` dedicado |
+| `textureTransform` | Ajuste manual da textura aplicado **só nesse edifício** | Faz o prédio sair do `InstancedMesh` quando diferente do padrão e ajusta `scaleX`, `scaleY`, `offsetX`, `offsetY` via uniform dedicado |
 | `rooftopType` | Acessório 3D no topo do edifício | `THREE.Group` criado por [[scene-builders#createRooftopMesh.ts\|createRooftopMesh]], posicionado no topo |
 | `signText` | Texto da marca/empresa na fachada | `CanvasTexture` + `PlaneGeometry` criados por [[scene-builders#createSignMesh.ts\|createSignMesh]] |
 | `signSides` | Em quantas fachadas o letreiro aparece | 1=frente, 2=+trás, 3=+direita, 4=todos os lados |

@@ -109,7 +109,7 @@ Quando há mais de um bloco (`r > 0`), `rebuildRoads(r, blockSpacing, streetWidt
 > Prédios dentro do mesmo `InstancedMesh` têm alturas diferentes. O shader triplanar garante que a textura de fachada seja aplicada corretamente sem distorção, independente da escala de cada instância.
 
 > [!note] Atributos `aProjPosition` / `aProjNormal`
-> O shader não usa `position`/`objectNormal` diretamente — usa atributos customizados `aProjPosition`/`aProjNormal` para selecionar a projeção (XY/ZY/XZ) e calcular o UV. Na geometria default eles são cópias de `position`/`normal` (comportamento idêntico). Na geometria torcida ([[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]]) eles preservam os valores **pré-twist** (axis-aligned), evitando que a normal twisted atravesse a fronteira entre projeções no meio do prédio. Na geometria octogonal ([[scene-builders#createOctagonalBuildingMesh.ts|createOctagonalBuildingMesh]]), as faces diagonais usam normais de projeção cardinalizadas para evitar ambiguidade entre projeções X/Z. Na geometria setback ([[scene-builders#createSetbackBuildingMesh.ts|createSetbackBuildingMesh]]), cada patamar grava normais cardinais/lajes horizontais para manter a textura estável nos recuos. Na geometria Taipei ([[scene-builders#createTaipeiBuildingMesh.ts|createTaipeiBuildingMesh]]), módulos chanfrados, bordas e pináculo também gravam esses atributos para manter a textura triplanar do projeto.
+> O shader não usa `position`/`objectNormal` diretamente — usa atributos customizados `aProjPosition`/`aProjNormal` para selecionar a projeção (XY/ZY/XZ) e calcular o UV. Na geometria default eles são cópias de `position`/`normal` (comportamento idêntico). Na geometria torcida ([[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]]) eles preservam os valores **pré-twist** (axis-aligned), evitando que a normal twisted atravesse a fronteira entre projeções no meio do prédio. Na geometria octogonal ([[scene-builders#createOctagonalBuildingMesh.ts|createOctagonalBuildingMesh]]), as faces diagonais usam normais de projeção cardinalizadas para evitar ambiguidade entre projeções X/Z. Na geometria setback ([[scene-builders#createSetbackBuildingMesh.ts|createSetbackBuildingMesh]]), cada patamar grava normais cardinais/lajes horizontais para manter a textura estável nos recuos. Na geometria Taipei ([[scene-builders#createTaipeiBuildingMesh.ts|createTaipeiBuildingMesh]]) e One Trade ([[scene-builders#createOneTradeBuildingMesh.ts|createOneTradeBuildingMesh]]), módulos chanfrados, bordas e pináculos também gravam esses atributos para manter a textura triplanar do projeto.
 
 #### Métodos Públicos
 
@@ -166,8 +166,9 @@ Para edifícios com `buildingShape !== "default"`, a cor é aplicada diretamente
 
 Algumas personalizações precisam de **estado de material próprio** por edifício e não cabem no `InstancedMesh` (que compartilha um único material). O helper `needsCustomMesh(customization)` define quando uma doação sai do InstancedMesh e passa a ser desenhada como `Mesh` dedicado em `customShapeMeshes`:
 
-- `buildingShape !== "default"` (ex: torre torcida, octogonal, setback, tapered, Chrysler, Hearst, Empire ou Taipei)
+- `buildingShape !== "default"` (ex: torre torcida, octogonal, setback, tapered, Chrysler, Hearst, Empire, Taipei ou One Trade)
 - `Math.abs(tilingScale - 1) > 0.001` (tiling de textura customizado por edifício)
+- `textureTransform` diferente do padrão `{ scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 }` (ajuste manual de textura por edifício)
 
 Quando a flag transiciona (entra ou sai do `customShapeMeshes`), `updateDonationCustomization` chama `rebuildInstances()` e re-aplica `applyFocus(focusedDonationId)`. Mudanças que não atravessam essa fronteira (ex: ajustar tiling de 2.0 → 2.5 num prédio que já é custom) atualizam direto o uniform `uTilingMultiplier` do material — sem rebuild.
 
@@ -175,7 +176,7 @@ Para cada doação custom, `syncCustomShapes()`:
 
 1. Clona `facadeMaterial`/`topMaterial`.
 2. **Re-aplica `applyTriplanarShader` no clone** para que ele tenha seu próprio `uTilingMultiplier` (default 1.0). Sem isso, o clone herdaria o `onBeforeCompile` do original, apontando para o uniform compartilhado.
-3. Define cor (`customization.color`) e tiling (`customization.tilingScale`) no clone.
+3. Define cor (`customization.color`), tiling (`customization.tilingScale`) e ajuste manual de textura (`customization.textureTransform`) no clone.
 4. Cria o mesh:
    - `shape === "twisted"` → [[scene-builders#createTwistedBuildingMesh.ts|createTwistedBuildingMesh]] (geometria espiralada compartilhada).
    - `shape === "octagonal"` → [[scene-builders#createOctagonalBuildingMesh.ts|createOctagonalBuildingMesh]] (geometria octogonal compartilhada).
@@ -185,6 +186,7 @@ Para cada doação custom, `syncCustomShapes()`:
    - `shape === "hearst"` → [[scene-builders#createHearstBuildingMesh.ts|createHearstBuildingMesh]] (geometria facetada com diagrid compartilhada).
    - `shape === "empire"` → [[scene-builders#createEmpireBuildingMesh.ts|createEmpireBuildingMesh]] (geometria art déco textureless compartilhada).
    - `shape === "taipei"` → [[scene-builders#createTaipeiBuildingMesh.ts|createTaipeiBuildingMesh]] (geometria modular compartilhada inspirada no Taipei 101).
+   - `shape === "one-trade"` → [[scene-builders#createOneTradeBuildingMesh.ts|createOneTradeBuildingMesh]] (geometria facetada com base chanfrada e pináculo, usando texturas PBR padrão).
    - `shape === "default"` → `THREE.Mesh(buildingGeometry, [facadeMat, topMat])` (mesma `BoxGeometry` do InstancedMesh).
 5. Adiciona à cena, registra em `customShapeMeshes` e seta `userData.donationId`/`userData.donationValue` para suportar raycast.
 
