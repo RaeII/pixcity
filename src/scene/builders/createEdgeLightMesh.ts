@@ -7,7 +7,7 @@ import {
   getHearstRingFootprintPoints,
 } from "./createHearstBuildingMesh";
 import { getOctagonalFootprintPoints } from "./createOctagonalBuildingMesh";
-import { getOneTradeTierFootprints } from "./createOneTradeBuildingMesh";
+import { getOneTradeLedFootprintRings } from "./createOneTradeBuildingMesh";
 import { getSetbackTierFootprints } from "./createSetbackBuildingMesh";
 import { getTaipeiTierFootprints } from "./createTaipeiBuildingMesh";
 import { getTaperedFootprintScaleAtHeightRatio } from "./createTaperedBuildingMesh";
@@ -695,50 +695,54 @@ function createLed(
   }
 
   if (shape === "one-trade") {
-    const tiers = getOneTradeTierFootprints(width, depth, height);
-    for (const tier of tiers) {
-      const halfW = tier.width / 2;
-      const halfD = tier.depth / 2;
-      const segmentHeight = tier.topY - tier.bottomY;
-      const centerY = tier.bottomY + segmentHeight / 2;
-      const corners: Array<[number, number]> = [
-        [-halfW, -halfD],
-        [halfW, -halfD],
-        [halfW, halfD],
-        [-halfW, halfD],
-      ];
+    const rings = getOneTradeLedFootprintRings(width, depth, height);
+    const tmpDir = new THREE.Vector3();
 
-      for (const [x, z] of corners) {
-        addEdgeSegment(
+    for (let corner = 0; corner < rings[0].points.length; corner++) {
+      for (let ring = 0; ring < rings.length - 1; ring++) {
+        const current = rings[ring];
+        const next = rings[ring + 1];
+        if (Math.abs(next.y - current.y) <= 1e-6) continue;
+
+        const a = current.points[corner];
+        const b = next.points[corner];
+        const start = new THREE.Vector3(a.x, current.y, a.z);
+        const end = new THREE.Vector3(b.x, next.y, b.z);
+        tmpDir.subVectors(end, start);
+        const len = tmpDir.length();
+        if (len <= 1e-6) continue;
+        tmpDir.divideScalar(len);
+
+        addOrientedEdgeSegment(
           group,
           materials,
-          new THREE.Vector3(x, centerY, z),
-          "y",
-          segmentHeight,
+          new THREE.Vector3().copy(start).add(end).multiplyScalar(0.5),
+          tmpDir.clone(),
+          len,
           DEFAULT_EDGE_LIGHT_DISTANCE,
           DEFAULT_EDGE_LIGHT_THICKNESS,
         );
       }
+    }
 
-      const topY = tier.topY + TOP_LIFT;
-      for (const z of [-halfD, halfD]) {
-        addEdgeSegment(
+    for (const ring of [rings[1], rings[rings.length - 1]]) {
+      const y = ring.y + TOP_LIFT;
+      for (let i = 0; i < ring.points.length; i++) {
+        const a = ring.points[i];
+        const b = ring.points[(i + 1) % ring.points.length];
+        const start = new THREE.Vector3(a.x, y, a.z);
+        const end = new THREE.Vector3(b.x, y, b.z);
+        tmpDir.subVectors(end, start);
+        const len = tmpDir.length();
+        if (len <= 1e-6) continue;
+        tmpDir.divideScalar(len);
+
+        addOrientedEdgeSegment(
           group,
           materials,
-          new THREE.Vector3(0, topY, z),
-          "x",
-          tier.width,
-          DEFAULT_EDGE_LIGHT_DISTANCE,
-          DEFAULT_EDGE_LIGHT_THICKNESS,
-        );
-      }
-      for (const x of [-halfW, halfW]) {
-        addEdgeSegment(
-          group,
-          materials,
-          new THREE.Vector3(x, topY, 0),
-          "z",
-          tier.depth,
+          new THREE.Vector3().copy(start).add(end).multiplyScalar(0.5),
+          tmpDir.clone(),
+          len,
           DEFAULT_EDGE_LIGHT_DISTANCE,
           DEFAULT_EDGE_LIGHT_THICKNESS,
         );

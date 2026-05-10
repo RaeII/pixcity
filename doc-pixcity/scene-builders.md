@@ -416,6 +416,7 @@ createOneTradeBuildingMesh(facadeMaterial: THREE.Material, topMaterial: THREE.Ma
 disposeOneTradeBuildingSharedResources(): void
 getOneTradeFootprintScaleAtHeightRatio(heightRatio: number): number
 getOneTradeTierFootprints(width?: number, depth?: number, height?: number): OneTradeTierFootprint[]
+getOneTradeLedFootprintRings(width?: number, depth?: number, height?: number): OneTradeLedFootprintRing[]
 ONE_TRADE_SIGN_Y_OFFSET_RATIO: number
 ```
 

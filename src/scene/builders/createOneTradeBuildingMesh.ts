@@ -21,6 +21,11 @@ export type OneTradeTierFootprint = {
   depth: number;
 };
 
+export type OneTradeLedFootprintRing = {
+  y: number;
+  points: Array<{ x: number; z: number }>;
+};
+
 const ONE_TRADE_MATERIAL = {
   facade: 0,
   trim: 1,
@@ -756,6 +761,52 @@ export function getOneTradeTierFootprints(
       depth: depth * scale * (ONE_TRADE_NORMALIZE_WIDTH / ONE_TRADE_NORMALIZE_DEPTH),
     };
   });
+}
+
+function getScaledOneTradePoints(
+  points: THREE.Vector3[],
+  width: number,
+  depth: number,
+): Array<{ x: number; z: number }> {
+  return points.map((point) => ({
+    x: (point.x / ONE_TRADE_NORMALIZE_WIDTH) * width,
+    z: (point.z / ONE_TRADE_NORMALIZE_DEPTH) * depth,
+  }));
+}
+
+export function getOneTradeLedFootprintRings(
+  width = 1,
+  depth = 1,
+  height = 1,
+): OneTradeLedFootprintRing[] {
+  const baseFootprint = footprintFromChamferHalf(45, 0.02);
+  const rings: OneTradeLedFootprintRing[] = [
+    {
+      y: 0,
+      points: getScaledOneTradePoints(baseFootprint, width, depth),
+    },
+    {
+      y: (BASE_HEIGHT / ONE_TRADE_RAW_HEIGHT) * height,
+      points: getScaledOneTradePoints(baseFootprint, width, depth),
+    },
+  ];
+
+  const towerSegments = 14;
+  for (let i = 0; i <= towerSegments; i++) {
+    const t = i / towerSegments;
+    rings.push({
+      y: ((TOWER_BASE_Y + TOWER_HEIGHT * t) / ONE_TRADE_RAW_HEIGHT) * height,
+      points: getScaledOneTradePoints(oneTradeCrossSection(t), width, depth),
+    });
+  }
+
+  const parapetFootprint = footprintFromChamferHalf(35.9, 0.975);
+  rings.push({
+    y: ((TOWER_TOP_Y + 8.2) / ONE_TRADE_RAW_HEIGHT) * height,
+    points: getScaledOneTradePoints(parapetFootprint, width, depth),
+  });
+
+  return rings;
 }
 
 export function createOneTradeBuildingMesh(
