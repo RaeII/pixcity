@@ -16,7 +16,6 @@ import { createDefaultHorizonSettings } from "../scene/config/horizonConfig";
 import type {
   BuildingCustomization,
   BuildingShape,
-  BuildingTextureTransform,
   CameraDebugInfo,
   EdgeLightType,
   RooftopType,
@@ -123,8 +122,6 @@ export function CitySceneEditor() {
       return {
         color: existing?.color ?? buildingSettings.color,
         buildingShape: existing?.buildingShape ?? "default" as const,
-        tilingScale: existing?.tilingScale ?? 1,
-        textureTransform: existing?.textureTransform ?? { ...DEFAULT_BUILDING_TEXTURE_TRANSFORM },
         rooftopType: existing?.rooftopType ?? "none" as const,
         signText: existing?.signText ?? "",
         signSides: existing?.signSides ?? 1,
@@ -190,19 +187,6 @@ export function CitySceneEditor() {
     [updateCustomization],
   );
 
-  const handleTilingScaleChange = useCallback(
-    (donationId: number, tilingScale: number) =>
-      updateCustomization(donationId, { tilingScale }),
-    [updateCustomization],
-  );
-
-  const handleTextureTransformChange = useCallback(
-    (donationId: number, textureTransform: BuildingTextureTransform) =>
-      updateCustomization(donationId, { textureTransform }),
-    [updateCustomization],
-  );
-
-
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#05070a]">
       <CitySceneCanvas
@@ -264,16 +248,12 @@ export function CitySceneEditor() {
             donationId={selectedBuildingId}
             initialColor={c.color}
             initialBuildingShape={c.buildingShape}
-            initialTilingScale={c.tilingScale}
-            initialTextureTransform={c.textureTransform}
             initialRooftopType={c.rooftopType}
             initialSignText={c.signText}
             initialSignSides={c.signSides}
             initialEdgeLightType={c.edgeLightType}
             onColorChange={handleBuildingColorChange}
             onBuildingShapeChange={handleBuildingShapeChange}
-            onTilingScaleChange={handleTilingScaleChange}
-            onTextureTransformChange={handleTextureTransformChange}
             onRooftopChange={handleRooftopChange}
             onSignTextChange={handleSignTextChange}
             onSignSidesChange={handleSignSidesChange}

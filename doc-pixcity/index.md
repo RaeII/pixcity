@@ -141,7 +141,7 @@ E entrega para:
 
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
 - [[html-components|CityControlPanel]] — mostra os controles (toggle via botão de engrenagem)
-- [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]] — personalização do edifício selecionado
+- [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]] — personalização do edifício selecionado com cor, formato, letreiro, topo e LED, sem controles de textura
 - [[html-components#BuildingHeightInput.tsx|BuildingHeightInput]] — input de doação e layout
 
 Também gerencia:
