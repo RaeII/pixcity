@@ -84,6 +84,7 @@ src/
       createEmpireBuildingMesh.ts
       createTaipeiBuildingMesh.ts
       createOneTradeBuildingMesh.ts
+      createHologramMesh.ts
       loadEnvironment.ts
     managers/
       createDonationManager.ts
@@ -134,14 +135,14 @@ Ele guarda todos os estados:
 - `selectedBuildingId` — edifício selecionado para personalização
   <<<<<<< HEAD
 - # `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo, letreiro e LED de arestas
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo, letreiro e LED de arestas
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo, letreiro, LED de arestas e holograma cyberpunk
   > > > > > > > codex/suggest-building-designs-for-customization-dthloe
 
 E entrega para:
 
 - [[three-components|CitySceneCanvas]] — monta a cena 3D
 - [[html-components|CityControlPanel]] — mostra os controles (toggle via botão de engrenagem)
-- [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]] — personalização do edifício selecionado com cor, formato, letreiro, topo e LED, sem controles de textura
+- [[html-components#BuildingCustomizePanel.tsx|BuildingCustomizePanel]] — personalização do edifício selecionado com cor, formato, letreiro, topo, LED e holograma (upload de imagem ou GIF), sem controles de textura
 - [[html-components#BuildingHeightInput.tsx|BuildingHeightInput]] — input de doação e layout
 
 Também gerencia:
@@ -194,6 +195,7 @@ flowchart TD
     M --> Y[createEmpireBuildingMesh]
     M --> Z[createTaipeiBuildingMesh]
     M --> OT[createOneTradeBuildingMesh]
+    M --> HG[createHologramMesh]
     E --> C
     P --> C
 ```
@@ -208,6 +210,7 @@ flowchart LR
     Panel --> |formato| UC
     Panel --> |letreiro| UC
     Panel --> |topo| UC
+    Panel --> |holograma| UC
     UC --> Runtime[runtime.updateDonationCustomization]
     Runtime --> DM[donationManager]
     DM --> |cor| IC[instanceColor]
@@ -223,6 +226,7 @@ flowchart LR
     DM --> |topo| RM[createRooftopMesh]
     DM --> |sign| SM[createSignMesh]
     DM --> |LED| EL[createEdgeLightMesh]
+    DM --> |holograma| HM[createHologramMesh]
 ```
 
 ## Onde Mexer?
@@ -238,6 +242,7 @@ flowchart LR
 | Alterar acessórios de topo                       | [[scene-builders#createRooftopMesh.ts]]           |
 | Alterar letreiros de fachada (signs)             | [[scene-builders#createSignMesh.ts]]              |
 | Alterar LED de arestas                           | [[scene-builders#createEdgeLightMesh.ts]]         |
+| Alterar holograma cyberpunk                      | [[scene-builders#createHologramMesh.ts]]          |
 | Alterar torre torcida (twisted)                  | [[scene-builders#createTwistedBuildingMesh.ts]]   |
 | Alterar torre octogonal (octagonal)              | [[scene-builders#createOctagonalBuildingMesh.ts]] |
 | Alterar torre setback (setback)                  | [[scene-builders#createSetbackBuildingMesh.ts]]   |

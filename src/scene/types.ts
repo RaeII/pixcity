@@ -44,7 +44,13 @@ export type BuildingCustomization = {
   buildingShape: BuildingShape;
   tilingScale: number; // multiplicador da textura por edifício (1.0 = sem alteração)
   textureTransform: BuildingTextureTransform; // ajuste manual da textura por edifício
+  hologramImage: string | null; // data URL (PNG/JPG/GIF). null = sem holograma
+  hologramColor: string; // tint cyberpunk aplicado sobre a imagem
+  hologramOpacity: number; // 0–1, multiplica brilho/alpha do holograma
 };
+
+export const DEFAULT_HOLOGRAM_COLOR = "#73f2ff";
+export const DEFAULT_HOLOGRAM_OPACITY = 0.78;
 
 export type DonationEntry = {
   id: number;

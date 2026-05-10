@@ -21,7 +21,11 @@ import type {
   RooftopType,
   SceneStats,
 } from "../scene/types";
-import { DEFAULT_BUILDING_TEXTURE_TRANSFORM } from "../scene/types";
+import {
+  DEFAULT_BUILDING_TEXTURE_TRANSFORM,
+  DEFAULT_HOLOGRAM_COLOR,
+  DEFAULT_HOLOGRAM_OPACITY,
+} from "../scene/types";
 import { getLightMetrics } from "../scene/utils/lighting";
 
 const INITIAL_TEST_DONATIONS = [
@@ -48,6 +52,9 @@ const createInitialTwistedCustomization = (): BuildingCustomization => ({
   signText: "",
   signSides: 1,
   edgeLightType: "none",
+  hologramImage: null,
+  hologramColor: DEFAULT_HOLOGRAM_COLOR,
+  hologramOpacity: DEFAULT_HOLOGRAM_OPACITY,
 });
 
 const createInitialBuildingCustomizations = () =>
@@ -126,6 +133,9 @@ export function CitySceneEditor() {
         signText: existing?.signText ?? "",
         signSides: existing?.signSides ?? 1,
         edgeLightType: existing?.edgeLightType ?? "none" as const,
+        hologramImage: existing?.hologramImage ?? null,
+        hologramColor: existing?.hologramColor ?? DEFAULT_HOLOGRAM_COLOR,
+        hologramOpacity: existing?.hologramOpacity ?? DEFAULT_HOLOGRAM_OPACITY,
       };
     },
     [buildingCustomizations, buildingSettings.color],
@@ -145,6 +155,9 @@ export function CitySceneEditor() {
           signText: existing?.signText ?? "",
           signSides: existing?.signSides ?? 1,
           edgeLightType: existing?.edgeLightType ?? "none",
+          hologramImage: existing?.hologramImage ?? null,
+          hologramColor: existing?.hologramColor ?? DEFAULT_HOLOGRAM_COLOR,
+          hologramOpacity: existing?.hologramOpacity ?? DEFAULT_HOLOGRAM_OPACITY,
           ...patch,
         };
         next.set(donationId, updated);
@@ -184,6 +197,24 @@ export function CitySceneEditor() {
   const handleBuildingShapeChange = useCallback(
     (donationId: number, buildingShape: BuildingShape) =>
       updateCustomization(donationId, { buildingShape }),
+    [updateCustomization],
+  );
+
+  const handleHologramImageChange = useCallback(
+    (donationId: number, hologramImage: string | null) =>
+      updateCustomization(donationId, { hologramImage }),
+    [updateCustomization],
+  );
+
+  const handleHologramColorChange = useCallback(
+    (donationId: number, hologramColor: string) =>
+      updateCustomization(donationId, { hologramColor }),
+    [updateCustomization],
+  );
+
+  const handleHologramOpacityChange = useCallback(
+    (donationId: number, hologramOpacity: number) =>
+      updateCustomization(donationId, { hologramOpacity }),
     [updateCustomization],
   );
 
@@ -252,12 +283,18 @@ export function CitySceneEditor() {
             initialSignText={c.signText}
             initialSignSides={c.signSides}
             initialEdgeLightType={c.edgeLightType}
+            initialHologramImage={c.hologramImage}
+            initialHologramColor={c.hologramColor}
+            initialHologramOpacity={c.hologramOpacity}
             onColorChange={handleBuildingColorChange}
             onBuildingShapeChange={handleBuildingShapeChange}
             onRooftopChange={handleRooftopChange}
             onSignTextChange={handleSignTextChange}
             onSignSidesChange={handleSignSidesChange}
             onEdgeLightTypeChange={handleEdgeLightTypeChange}
+            onHologramImageChange={handleHologramImageChange}
+            onHologramColorChange={handleHologramColorChange}
+            onHologramOpacityChange={handleHologramOpacityChange}
             onClose={handleCloseCustomizePanel}
           />
         );

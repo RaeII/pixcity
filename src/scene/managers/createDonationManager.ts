@@ -29,6 +29,17 @@ import {
   setEdgeLightMeshShadowEnabled,
 } from "../builders/createEdgeLightMesh";
 import {
+  createHologramMesh,
+  disposeHologramMesh,
+  positionHologram,
+  setHologramImage,
+  setHologramOpacity,
+  setHologramTint,
+  tickHologram,
+  type HologramEntry,
+} from "../builders/createHologramMesh";
+import { DEFAULT_HOLOGRAM_COLOR, DEFAULT_HOLOGRAM_OPACITY } from "../types";
+import {
   createTwistedBuildingMesh,
   disposeTwistedBuildingSharedResources,
 } from "../builders/createTwistedBuildingMesh";
@@ -169,6 +180,7 @@ export type DonationManager = {
   getDonationWorldPosition: (donationId: number) => THREE.Vector3 | null;
   setFocusedDonation: (donationId: number | null) => void;
   updateDonationCustomization: (donationId: number, customization: BuildingCustomization) => void;
+  tickAnimations: (elapsedSeconds: number, deltaMs: number) => void;
   dispose: () => void;
 };
 
@@ -907,6 +919,7 @@ export function createDonationManager({
     syncRooftops();
     syncSigns();
     syncEdgeLights();
+    syncHolograms();
 
     rebuildRoads(r, blockSpacing, streetWidth);
   };
@@ -1192,6 +1205,82 @@ export function createDonationManager({
   };
 
 
+  // --- Hologramas ---
+  // Mapa: donationId → HologramEntry. O loadToken interno do entry protege
+  // contra race conditions quando o usuário troca a imagem antes do load
+  // anterior completar.
+  const hologramMeshes = new Map<number, HologramEntry>();
+
+  const getBuildingFootprint = (donationId: number) => {
+    if (!readDonationTransform(donationId)) return null;
+    return {
+      width: tmpTransformScale.x,
+      depth: tmpTransformScale.z,
+      height: tmpTransformScale.y,
+    };
+  };
+
+  const syncHolograms = () => {
+    for (const [donId, entry] of hologramMeshes) {
+      const footprint = getBuildingFootprint(donId);
+      if (!footprint) {
+        entry.group.visible = false;
+        continue;
+      }
+      entry.group.visible = true;
+      const center = tmpTransformPosition.clone();
+      positionHologram(entry, center, footprint);
+    }
+  };
+
+  const setHologram = (
+    donationId: number,
+    dataUrl: string | null,
+    color: string,
+    opacity: number,
+  ) => {
+    const existing = hologramMeshes.get(donationId);
+
+    if (!dataUrl) {
+      if (existing) {
+        scene.remove(existing.group);
+        disposeHologramMesh(existing);
+        hologramMeshes.delete(donationId);
+      }
+      return;
+    }
+
+    const footprint = getBuildingFootprint(donationId);
+    if (!footprint) return;
+
+    let entry = existing;
+    if (!entry) {
+      entry = createHologramMesh(footprint, { color, opacity });
+      hologramMeshes.set(donationId, entry);
+      scene.add(entry.group);
+      const center = tmpTransformPosition.clone();
+      positionHologram(entry, center, footprint);
+    } else {
+      setHologramTint(entry, color);
+      setHologramOpacity(entry, opacity);
+    }
+
+    if (entry.imageDataUrl === dataUrl) {
+      // Mesmo dataURL — reposicionar apenas (cobre rebuilds sem trocar imagem)
+      const center = tmpTransformPosition.clone();
+      positionHologram(entry, center, footprint);
+      return;
+    }
+
+    void setHologramImage(entry, dataUrl, footprint).then(() => {
+      const fp = getBuildingFootprint(donationId);
+      if (!fp) return;
+      const center = tmpTransformPosition.clone();
+      const e = hologramMeshes.get(donationId);
+      if (e) positionHologram(e, center, fp);
+    });
+  };
+
   const updateCustomShapeColor = (donationId: number, color: string) => {
     const entry = customShapeMeshes.get(donationId);
     if (!entry) return;
@@ -1455,6 +1544,9 @@ export function createDonationManager({
       const prevTilingScale = prevCustomization?.tilingScale ?? 1;
       const prevTextureTransform = prevCustomization?.textureTransform ??
         DEFAULT_BUILDING_TEXTURE_TRANSFORM;
+      const prevHologramImage = prevCustomization?.hologramImage ?? null;
+      const prevHologramColor = prevCustomization?.hologramColor ?? DEFAULT_HOLOGRAM_COLOR;
+      const prevHologramOpacity = prevCustomization?.hologramOpacity ?? DEFAULT_HOLOGRAM_OPACITY;
       donation.customization = customization;
 
       const prevNeedsCustom = needsCustomMesh(prevCustomization);
@@ -1514,6 +1606,32 @@ export function createDonationManager({
       if (customization.edgeLightType !== prevEdgeLightType) {
         setEdgeLight(donationId, customization.edgeLightType);
       }
+
+      // Holograma: imagem muda (incluindo remoção) → recarregar.
+      // Cor/opacidade só ajustam uniforms — sem reload da textura.
+      if (customization.hologramImage !== prevHologramImage) {
+        setHologram(
+          donationId,
+          customization.hologramImage,
+          customization.hologramColor,
+          customization.hologramOpacity,
+        );
+      } else {
+        const entry = hologramMeshes.get(donationId);
+        if (entry) {
+          if (customization.hologramColor !== prevHologramColor) {
+            setHologramTint(entry, customization.hologramColor);
+          }
+          if (customization.hologramOpacity !== prevHologramOpacity) {
+            setHologramOpacity(entry, customization.hologramOpacity);
+          }
+        }
+      }
+    },
+    tickAnimations(elapsedSeconds, deltaMs) {
+      for (const entry of hologramMeshes.values()) {
+        tickHologram(entry, elapsedSeconds, deltaMs);
+      }
     },
     dispose() {
       removeFocusHighlight();
@@ -1537,6 +1655,12 @@ export function createDonationManager({
       }
       edgeLightMeshes.clear();
       disposeEdgeLightSharedResources();
+      // Limpar hologramas
+      for (const [, entry] of hologramMeshes) {
+        scene.remove(entry.group);
+        disposeHologramMesh(entry);
+      }
+      hologramMeshes.clear();
       // Limpar prédios com formato customizado
       for (const [, entry] of customShapeMeshes) {
         disposeCustomShapeEntry(entry);

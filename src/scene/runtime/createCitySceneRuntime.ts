@@ -316,6 +316,8 @@ export function createCitySceneRuntime({
       donationManager.endEnvCapture();
     }
 
+    donationManager.tickAnimations(time / 1000, delta * 1000);
+
     renderer.render(scene, camera);
   };
 

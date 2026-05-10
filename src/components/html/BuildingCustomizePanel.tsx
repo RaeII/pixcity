@@ -1,11 +1,23 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PanelSection } from "./controls/PanelSection";
 import { ColorField } from "./controls/ColorField";
+import { RangeField } from "./controls/RangeField";
 import type {
   BuildingShape,
   EdgeLightType,
   RooftopType,
 } from "../../scene/types";
+
+const HOLOGRAM_MAX_BYTES = 4 * 1024 * 1024; // 4 MB — limite saudável para data URL em React state
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler arquivo"));
+    reader.readAsDataURL(file);
+  });
+}
 
 const SHAPE_OPTIONS: { value: BuildingShape; label: string }[] = [
   { value: "default", label: "Padrão" },
@@ -46,12 +58,18 @@ type BuildingCustomizePanelProps = {
   initialSignText: string;
   initialSignSides: number;
   initialEdgeLightType: EdgeLightType;
+  initialHologramImage: string | null;
+  initialHologramColor: string;
+  initialHologramOpacity: number;
   onColorChange: (donationId: number, color: string) => void;
   onBuildingShapeChange: (donationId: number, shape: BuildingShape) => void;
   onRooftopChange: (donationId: number, rooftopType: RooftopType) => void;
   onSignTextChange: (donationId: number, signText: string) => void;
   onSignSidesChange: (donationId: number, signSides: number) => void;
   onEdgeLightTypeChange: (donationId: number, edgeLightType: EdgeLightType) => void;
+  onHologramImageChange: (donationId: number, hologramImage: string | null) => void;
+  onHologramColorChange: (donationId: number, color: string) => void;
+  onHologramOpacityChange: (donationId: number, opacity: number) => void;
   onClose: () => void;
 };
 
@@ -63,12 +81,18 @@ export function BuildingCustomizePanel({
   initialSignText,
   initialSignSides,
   initialEdgeLightType,
+  initialHologramImage,
+  initialHologramColor,
+  initialHologramOpacity,
   onColorChange,
   onBuildingShapeChange,
   onRooftopChange,
   onSignTextChange,
   onSignSidesChange,
   onEdgeLightTypeChange,
+  onHologramImageChange,
+  onHologramColorChange,
+  onHologramOpacityChange,
   onClose,
 }: BuildingCustomizePanelProps) {
   const [color, setColor] = useState(initialColor);
@@ -77,6 +101,11 @@ export function BuildingCustomizePanel({
   const [signText, setSignText] = useState(initialSignText);
   const [signSides, setSignSides] = useState(initialSignSides);
   const [edgeLightType, setEdgeLightType] = useState<EdgeLightType>(initialEdgeLightType);
+  const [hologramImage, setHologramImage] = useState<string | null>(initialHologramImage);
+  const [hologramColor, setHologramColor] = useState(initialHologramColor);
+  const [hologramOpacity, setHologramOpacity] = useState(initialHologramOpacity);
+  const [hologramError, setHologramError] = useState<string | null>(null);
+  const hologramInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
@@ -106,6 +135,42 @@ export function BuildingCustomizePanel({
   const handleEdgeLightTypeChange = (newType: EdgeLightType) => {
     setEdgeLightType(newType);
     onEdgeLightTypeChange(donationId, newType);
+  };
+
+  const handleHologramFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > HOLOGRAM_MAX_BYTES) {
+      setHologramError("Arquivo muito grande (máx. 4 MB).");
+      event.target.value = "";
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setHologramImage(dataUrl);
+      setHologramError(null);
+      onHologramImageChange(donationId, dataUrl);
+    } catch {
+      setHologramError("Não foi possível ler o arquivo.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleHologramRemove = () => {
+    setHologramImage(null);
+    setHologramError(null);
+    onHologramImageChange(donationId, null);
+  };
+
+  const handleHologramColorChange = (newColor: string) => {
+    setHologramColor(newColor);
+    onHologramColorChange(donationId, newColor);
+  };
+
+  const handleHologramOpacityChange = (newOpacity: number) => {
+    setHologramOpacity(newOpacity);
+    onHologramOpacityChange(donationId, newOpacity);
   };
 
   return (
@@ -218,6 +283,71 @@ export function BuildingCustomizePanel({
             ))}
           </div>
 
+        </PanelSection>
+        <PanelSection title="Holograma">
+          <p className="mb-2 text-xs text-white/50">
+            Imagem ou GIF projetado acima do edifício com efeito cyberpunk.
+          </p>
+          <input
+            ref={hologramInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={handleHologramFileChange}
+            className="hidden"
+          />
+          {hologramImage ? (
+            <div className="space-y-2">
+              <div className="overflow-hidden rounded-lg border border-white/10 bg-black/40">
+                <img
+                  src={hologramImage}
+                  alt="Pré-visualização do holograma"
+                  className="h-24 w-full object-contain"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => hologramInputRef.current?.click()}
+                  className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 transition-colors hover:border-white/20 hover:text-white"
+                >
+                  Trocar
+                </button>
+                <button
+                  onClick={handleHologramRemove}
+                  className="flex-1 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-200 transition-colors hover:bg-red-500/20"
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => hologramInputRef.current?.click()}
+              className="w-full rounded-lg border border-dashed border-white/15 bg-white/5 px-3 py-3 text-xs text-white/60 transition-colors hover:border-white/30 hover:text-white"
+            >
+              Enviar imagem ou GIF
+            </button>
+          )}
+          {hologramError && (
+            <p className="mt-2 text-xs text-red-300">{hologramError}</p>
+          )}
+          {hologramImage && (
+            <div className="mt-3 space-y-3">
+              <ColorField
+                label="Cor do holograma"
+                value={hologramColor}
+                onChange={handleHologramColorChange}
+              />
+              <RangeField
+                label="Opacidade"
+                value={hologramOpacity}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={handleHologramOpacityChange}
+                valueLabel={`${Math.round(hologramOpacity * 100)}%`}
+              />
+            </div>
+          )}
         </PanelSection>
       </div>
     </div>
