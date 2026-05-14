@@ -107,9 +107,15 @@ const GARDEN_DECK_MATERIAL = new THREE.MeshStandardMaterial({
   metalness: 0.04,
 });
 
-const GARDEN_PATH_MATERIAL = new THREE.MeshStandardMaterial({
-  color: 0xb8aa91,
-  roughness: 0.9,
+const GARDEN_POOL_COPING_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0xc3b79d,
+  roughness: 0.86,
+  metalness: 0.0,
+});
+
+const GARDEN_POOL_TILE_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x7fb2c8,
+  roughness: 0.58,
   metalness: 0.0,
 });
 
@@ -163,14 +169,25 @@ const GARDEN_WOOD_MATERIAL = new THREE.MeshStandardMaterial({
   metalness: 0.05,
 });
 
-const GARDEN_WATER_MATERIAL = new THREE.MeshStandardMaterial({
-  color: 0x4c9fc4,
-  emissive: new THREE.Color(0x123847),
-  emissiveIntensity: 0.22,
-  roughness: 0.18,
+const GARDEN_WATER_MATERIAL = new THREE.MeshPhysicalMaterial({
+  color: 0x5fb7d5,
+  roughness: 0.03,
   metalness: 0.0,
   transparent: true,
-  opacity: 0.72,
+  opacity: 0.62,
+  transmission: 0.42,
+  thickness: 0.16,
+  ior: 1.333,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.04,
+  envMapIntensity: 0.9,
+});
+
+const GARDEN_POOL_CAUSTIC_MATERIAL = new THREE.MeshBasicMaterial({
+  color: 0xcdf8ff,
+  transparent: true,
+  opacity: 0.28,
+  depthWrite: false,
 });
 
 const GARDEN_WARM_LIGHT_MATERIAL = new THREE.MeshStandardMaterial({
@@ -203,6 +220,9 @@ const GARDEN_SHRUB_GEOMETRY = new THREE.SphereGeometry(1, 8, 6);
 const GARDEN_LIGHT_GEOMETRY = new THREE.SphereGeometry(1, 8, 5);
 let gardenGrassTexture: THREE.CanvasTexture | null = null;
 let gardenWoodTexture: THREE.CanvasTexture | null = null;
+let gardenPoolTileTexture: THREE.CanvasTexture | null = null;
+let gardenPoolWaterNormalTexture: THREE.CanvasTexture | null = null;
+let gardenPoolCausticTexture: THREE.CanvasTexture | null = null;
 let gardenLeafCardTexture: THREE.CanvasTexture | null = null;
 
 /** Cria um feixe com alpha gradiente via vertex colors (opaco na fonte, transparente no topo). */
@@ -277,7 +297,8 @@ const SHARED_ROOFTOP_MATERIALS: THREE.Material[] = [
   HELIPAD_GREEN_LENS_MATERIAL,
   HELIPAD_UTILITY_MATERIAL,
   GARDEN_DECK_MATERIAL,
-  GARDEN_PATH_MATERIAL,
+  GARDEN_POOL_COPING_MATERIAL,
+  GARDEN_POOL_TILE_MATERIAL,
   GARDEN_PLANTER_MATERIAL,
   GARDEN_SOIL_MATERIAL,
   GARDEN_GRASS_MATERIAL,
@@ -287,6 +308,7 @@ const SHARED_ROOFTOP_MATERIALS: THREE.Material[] = [
   GARDEN_TRUNK_MATERIAL,
   GARDEN_WOOD_MATERIAL,
   GARDEN_WATER_MATERIAL,
+  GARDEN_POOL_CAUSTIC_MATERIAL,
   GARDEN_WARM_LIGHT_MATERIAL,
 ];
 
@@ -305,6 +327,20 @@ function configureGardenTexture(
   repeatY: number,
 ): THREE.CanvasTexture {
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.anisotropy = 2;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function configureGardenNormalTexture(
+  texture: THREE.CanvasTexture,
+  repeatX: number,
+  repeatY: number,
+): THREE.CanvasTexture {
+  texture.colorSpace = THREE.NoColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(repeatX, repeatY);
@@ -412,6 +448,120 @@ function getGardenWoodMaterial(): THREE.MeshStandardMaterial {
   GARDEN_WOOD_MATERIAL.map = gardenWoodTexture;
   GARDEN_WOOD_MATERIAL.needsUpdate = true;
   return GARDEN_WOOD_MATERIAL;
+}
+
+function getGardenPoolTileMaterial(): THREE.MeshStandardMaterial {
+  if (!gardenPoolTileTexture) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      ctx.fillStyle = "#76abc3";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y <= 128; y += 16) {
+        ctx.strokeStyle = "rgba(219, 245, 250, 0.58)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(128, y + 0.5);
+        ctx.stroke();
+      }
+
+      for (let x = 0; x <= 128; x += 16) {
+        ctx.strokeStyle = "rgba(38, 112, 138, 0.34)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, 128);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < 80; i++) {
+        const x = (i * 43) % 128;
+        const y = (i * 71) % 128;
+        ctx.fillStyle = i % 2 === 0
+          ? "rgba(255, 255, 255, 0.14)"
+          : "rgba(42, 116, 145, 0.12)";
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+
+    gardenPoolTileTexture = configureGardenTexture(new THREE.CanvasTexture(canvas), 3, 2);
+  }
+
+  GARDEN_POOL_TILE_MATERIAL.map = gardenPoolTileTexture;
+  GARDEN_POOL_TILE_MATERIAL.needsUpdate = true;
+  return GARDEN_POOL_TILE_MATERIAL;
+}
+
+function getGardenPoolWaterMaterial(): THREE.MeshPhysicalMaterial {
+  if (!gardenPoolWaterNormalTexture) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      ctx.fillStyle = "rgb(128, 128, 255)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < 36; i++) {
+        const y = (i * 17) % 128;
+        ctx.strokeStyle = i % 2 === 0
+          ? "rgba(103, 146, 255, 0.72)"
+          : "rgba(154, 118, 255, 0.5)";
+        ctx.lineWidth = i % 3 === 0 ? 2 : 1;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.bezierCurveTo(32, y - 10, 70, y + 12, 128, y - 4);
+        ctx.stroke();
+      }
+    }
+
+    gardenPoolWaterNormalTexture = configureGardenNormalTexture(
+      new THREE.CanvasTexture(canvas),
+      2.5,
+      2,
+    );
+  }
+
+  GARDEN_WATER_MATERIAL.normalMap = gardenPoolWaterNormalTexture;
+  GARDEN_WATER_MATERIAL.normalScale.set(0.18, 0.18);
+  GARDEN_WATER_MATERIAL.needsUpdate = true;
+  return GARDEN_WATER_MATERIAL;
+}
+
+function getGardenPoolCausticMaterial(): THREE.MeshBasicMaterial {
+  if (!gardenPoolCausticTexture) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "rgba(235, 255, 255, 0.62)";
+      ctx.lineWidth = 2;
+
+      for (let i = 0; i < 18; i++) {
+        const x = (i * 31) % 128;
+        const y = (i * 47) % 128;
+        ctx.beginPath();
+        ctx.moveTo(x - 28, y);
+        ctx.bezierCurveTo(x - 10, y - 13, x + 18, y + 15, x + 42, y - 5);
+        ctx.stroke();
+      }
+    }
+
+    gardenPoolCausticTexture = configureGardenTexture(new THREE.CanvasTexture(canvas), 2, 1.4);
+  }
+
+  GARDEN_POOL_CAUSTIC_MATERIAL.map = gardenPoolCausticTexture;
+  GARDEN_POOL_CAUSTIC_MATERIAL.needsUpdate = true;
+  return GARDEN_POOL_CAUSTIC_MATERIAL;
 }
 
 function getGardenLeafCardMaterial(): THREE.MeshBasicMaterial {
@@ -674,21 +824,37 @@ function createGarden(footprint?: RooftopFootprint): THREE.Group {
   addBox(GARDEN_SOIL_MATERIAL, [GARDEN_PLANTER_WIDTH * 0.56, GARDEN_SOIL_HEIGHT, gardenD * 0.68], [sideX, soilY, 0]);
   addBox(GARDEN_SOIL_MATERIAL, [GARDEN_PLANTER_WIDTH * 0.56, GARDEN_SOIL_HEIGHT, gardenD * 0.68], [-sideX, soilY, 0]);
 
-  const pathY = surfaceY + 0.009;
-  for (let i = -2; i <= 2; i++) {
-    addBox(
-      GARDEN_PATH_MATERIAL,
-      [innerW * 0.22, 0.012, innerD * 0.13],
-      [0, pathY, (i * innerD) / 5.8],
-      false,
-      true,
-    );
-  }
-
+  const poolW = innerW * 0.42;
+  const poolD = innerD * 0.3;
+  const poolX = innerW * 0.23;
+  const poolZ = -innerD * 0.22;
+  const poolY = surfaceY + 0.01;
+  const coping = 0.045;
   addBox(
-    GARDEN_WATER_MATERIAL,
-    [innerW * 0.34, 0.012, innerD * 0.18],
-    [innerW * 0.23, pathY + 0.003, -innerD * 0.2],
+    GARDEN_POOL_COPING_MATERIAL,
+    [poolW + coping * 2, 0.018, poolD + coping * 2],
+    [poolX, poolY, poolZ],
+    true,
+    true,
+  );
+  addBox(
+    getGardenPoolTileMaterial(),
+    [poolW, 0.018, poolD],
+    [poolX, poolY + 0.004, poolZ],
+    false,
+    true,
+  );
+  addBox(
+    getGardenPoolCausticMaterial(),
+    [poolW * 0.9, 0.006, poolD * 0.82],
+    [poolX, poolY + 0.017, poolZ],
+    false,
+    false,
+  );
+  addBox(
+    getGardenPoolWaterMaterial(),
+    [poolW * 0.92, 0.014, poolD * 0.84],
+    [poolX, poolY + 0.026, poolZ],
     false,
     false,
   );
@@ -925,6 +1091,12 @@ export function disposeRooftopSharedResources(): void {
   gardenGrassTexture = null;
   gardenWoodTexture?.dispose();
   gardenWoodTexture = null;
+  gardenPoolTileTexture?.dispose();
+  gardenPoolTileTexture = null;
+  gardenPoolWaterNormalTexture?.dispose();
+  gardenPoolWaterNormalTexture = null;
+  gardenPoolCausticTexture?.dispose();
+  gardenPoolCausticTexture = null;
   gardenLeafCardTexture?.dispose();
   gardenLeafCardTexture = null;
 }
