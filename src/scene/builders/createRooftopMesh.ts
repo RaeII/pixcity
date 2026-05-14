@@ -15,6 +15,15 @@ const SPOTLIGHT_BEAM_HEIGHT = 10.0;
 const HELIPAD_DECK_HEIGHT = 0.035;
 const HELIPAD_ROOF_CLEARANCE = 0.006;
 const HELIPAD_PAINT_THICKNESS = 0.004;
+const GARDEN_ROOF_CLEARANCE = 0.008;
+const GARDEN_DECK_HEIGHT = 0.045;
+const GARDEN_SOIL_HEIGHT = 0.026;
+const GARDEN_PLANTER_HEIGHT = 0.11;
+const GARDEN_PLANTER_WIDTH = 0.09;
+const GARDEN_RAIL_HEIGHT = 0.2;
+const GARDEN_TREE_COUNT = 4;
+const GARDEN_BRANCHES_PER_TREE = 5;
+const GARDEN_LEAF_CARDS_PER_TREE = 15;
 
 const SPOTLIGHT_HOUSING_MATERIAL = new THREE.MeshStandardMaterial({
   color: 0x222222,
@@ -92,6 +101,86 @@ const HELIPAD_UTILITY_MATERIAL = new THREE.MeshStandardMaterial({
   metalness: 0.38,
 });
 
+const GARDEN_DECK_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x3f4240,
+  roughness: 0.82,
+  metalness: 0.04,
+});
+
+const GARDEN_PATH_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0xb8aa91,
+  roughness: 0.9,
+  metalness: 0.0,
+});
+
+const GARDEN_PLANTER_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x59534a,
+  roughness: 0.78,
+  metalness: 0.08,
+});
+
+const GARDEN_SOIL_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x24170f,
+  roughness: 0.96,
+  metalness: 0.0,
+});
+
+const GARDEN_GRASS_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x4f6840,
+  roughness: 0.98,
+  metalness: 0.0,
+});
+
+const GARDEN_LEAF_CARD_MATERIAL = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  transparent: true,
+  alphaTest: 0.08,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+});
+
+const GARDEN_LEAF_DARK_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x1f5d32,
+  roughness: 0.86,
+  metalness: 0.0,
+});
+
+const GARDEN_LEAF_LIGHT_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x5d9b55,
+  roughness: 0.88,
+  metalness: 0.0,
+});
+
+const GARDEN_TRUNK_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x6a4630,
+  roughness: 0.82,
+  metalness: 0.0,
+});
+
+const GARDEN_WOOD_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x76583a,
+  roughness: 0.78,
+  metalness: 0.05,
+});
+
+const GARDEN_WATER_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0x4c9fc4,
+  emissive: new THREE.Color(0x123847),
+  emissiveIntensity: 0.22,
+  roughness: 0.18,
+  metalness: 0.0,
+  transparent: true,
+  opacity: 0.72,
+});
+
+const GARDEN_WARM_LIGHT_MATERIAL = new THREE.MeshStandardMaterial({
+  color: 0xffdd99,
+  emissive: new THREE.Color(0xffb64d),
+  emissiveIntensity: 1.35,
+  roughness: 0.24,
+  metalness: 0.0,
+});
+
 const HELIPAD_DECK_GEOMETRY = new THREE.CylinderGeometry(
   1,
   1,
@@ -106,6 +195,15 @@ const HELIPAD_STRIP_GEOMETRY = new THREE.BoxGeometry(1, HELIPAD_PAINT_THICKNESS,
 const HELIPAD_LIGHT_BASE_GEOMETRY = new THREE.CylinderGeometry(1, 1, 0.018, 12);
 const HELIPAD_LIGHT_LENS_GEOMETRY = new THREE.CylinderGeometry(1, 1, 0.012, 12);
 const HELIPAD_UTILITY_GEOMETRY = new THREE.BoxGeometry(1, 1, 1);
+const GARDEN_BOX_GEOMETRY = new THREE.BoxGeometry(1, 1, 1);
+const GARDEN_TRUNK_GEOMETRY = new THREE.CylinderGeometry(0.56, 1, 1, 7);
+const GARDEN_BRANCH_GEOMETRY = new THREE.CylinderGeometry(0.35, 1, 1, 6);
+const GARDEN_LEAF_CARD_GEOMETRY = new THREE.PlaneGeometry(1, 1);
+const GARDEN_SHRUB_GEOMETRY = new THREE.SphereGeometry(1, 8, 6);
+const GARDEN_LIGHT_GEOMETRY = new THREE.SphereGeometry(1, 8, 5);
+let gardenGrassTexture: THREE.CanvasTexture | null = null;
+let gardenWoodTexture: THREE.CanvasTexture | null = null;
+let gardenLeafCardTexture: THREE.CanvasTexture | null = null;
 
 /** Cria um feixe com alpha gradiente via vertex colors (opaco na fonte, transparente no topo). */
 function createBeamGeometry(
@@ -160,6 +258,12 @@ const SHARED_ROOFTOP_GEOMETRIES: THREE.BufferGeometry[] = [
   HELIPAD_LIGHT_BASE_GEOMETRY,
   HELIPAD_LIGHT_LENS_GEOMETRY,
   HELIPAD_UTILITY_GEOMETRY,
+  GARDEN_BOX_GEOMETRY,
+  GARDEN_TRUNK_GEOMETRY,
+  GARDEN_BRANCH_GEOMETRY,
+  GARDEN_LEAF_CARD_GEOMETRY,
+  GARDEN_SHRUB_GEOMETRY,
+  GARDEN_LIGHT_GEOMETRY,
 ];
 
 const SHARED_ROOFTOP_MATERIALS: THREE.Material[] = [
@@ -172,6 +276,18 @@ const SHARED_ROOFTOP_MATERIALS: THREE.Material[] = [
   HELIPAD_LIGHT_BASE_MATERIAL,
   HELIPAD_GREEN_LENS_MATERIAL,
   HELIPAD_UTILITY_MATERIAL,
+  GARDEN_DECK_MATERIAL,
+  GARDEN_PATH_MATERIAL,
+  GARDEN_PLANTER_MATERIAL,
+  GARDEN_SOIL_MATERIAL,
+  GARDEN_GRASS_MATERIAL,
+  GARDEN_LEAF_CARD_MATERIAL,
+  GARDEN_LEAF_DARK_MATERIAL,
+  GARDEN_LEAF_LIGHT_MATERIAL,
+  GARDEN_TRUNK_MATERIAL,
+  GARDEN_WOOD_MATERIAL,
+  GARDEN_WATER_MATERIAL,
+  GARDEN_WARM_LIGHT_MATERIAL,
 ];
 
 function setShadowRole(
@@ -181,6 +297,193 @@ function setShadowRole(
 ): void {
   mesh.userData.rooftopCastsShadow = castsShadow;
   mesh.userData.rooftopReceivesShadow = receivesShadow;
+}
+
+function configureGardenTexture(
+  texture: THREE.CanvasTexture,
+  repeatX: number,
+  repeatY: number,
+): THREE.CanvasTexture {
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.anisotropy = 2;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function getGardenGrassMaterial(): THREE.MeshStandardMaterial {
+  if (!gardenGrassTexture) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      ctx.fillStyle = "#536b42";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < 520; i++) {
+        const x = (i * 37) % 128;
+        const y = (i * 61) % 128;
+        const length = 5 + (i % 7);
+        const lean = ((i % 9) - 4) * 0.35;
+        ctx.strokeStyle = i % 5 === 0
+          ? "rgba(105, 131, 74, 0.62)"
+          : i % 3 === 0
+            ? "rgba(47, 79, 38, 0.56)"
+            : "rgba(72, 105, 55, 0.5)";
+        ctx.lineWidth = i % 11 === 0 ? 1.4 : 0.75;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + lean, y - length);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < 90; i++) {
+        const x = (i * 53) % 128;
+        const y = (i * 29) % 128;
+        ctx.fillStyle = i % 2 === 0
+          ? "rgba(36, 62, 31, 0.22)"
+          : "rgba(130, 143, 91, 0.2)";
+        ctx.fillRect(x, y, 1.5, 1.5);
+      }
+    }
+
+    gardenGrassTexture = configureGardenTexture(new THREE.CanvasTexture(canvas), 4, 4);
+  }
+
+  GARDEN_GRASS_MATERIAL.map = gardenGrassTexture;
+  GARDEN_GRASS_MATERIAL.needsUpdate = true;
+  return GARDEN_GRASS_MATERIAL;
+}
+
+function getGardenWoodMaterial(): THREE.MeshStandardMaterial {
+  if (!gardenWoodTexture) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      const base = ctx.createLinearGradient(0, 0, 128, 0);
+      base.addColorStop(0, "#6b4e31");
+      base.addColorStop(0.42, "#8a6844");
+      base.addColorStop(1, "#5b3f27");
+      ctx.fillStyle = base;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < 34; i++) {
+        const y = (i * 11) % 128;
+        const offset = (i % 5) * 6;
+        ctx.strokeStyle = i % 3 === 0
+          ? "rgba(45, 29, 17, 0.42)"
+          : "rgba(151, 112, 70, 0.36)";
+        ctx.lineWidth = i % 4 === 0 ? 2.1 : 1.1;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.bezierCurveTo(32, y + offset - 12, 76, y - offset + 10, 128, y + (i % 7) - 3);
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < 4; i++) {
+        const x = 24 + i * 27;
+        const y = 24 + ((i * 31) % 74);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate((i - 1.5) * 0.34);
+        ctx.strokeStyle = "rgba(48, 31, 18, 0.5)";
+        ctx.fillStyle = "rgba(84, 54, 31, 0.24)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 13, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 6, 2.2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    gardenWoodTexture = configureGardenTexture(new THREE.CanvasTexture(canvas), 2.8, 1.4);
+  }
+
+  GARDEN_WOOD_MATERIAL.map = gardenWoodTexture;
+  GARDEN_WOOD_MATERIAL.needsUpdate = true;
+  return GARDEN_WOOD_MATERIAL;
+}
+
+function getGardenLeafCardMaterial(): THREE.MeshBasicMaterial {
+  if (!gardenLeafCardTexture) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "source-over";
+
+      const leaves = [
+        [36, 42, 26, 13, -0.65, "#245f34"],
+        [62, 36, 31, 14, 0.25, "#367a40"],
+        [88, 45, 26, 12, 0.72, "#5a914e"],
+        [45, 67, 34, 15, 0.62, "#2f743b"],
+        [76, 68, 36, 16, -0.38, "#6a9f58"],
+        [56, 91, 29, 13, -0.85, "#225a32"],
+        [92, 91, 25, 12, 0.45, "#4f8845"],
+        [28, 88, 22, 10, 0.18, "#5f9952"],
+      ] as const;
+
+      for (const [x, y, rx, ry, rotation, color] of leaves) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(18, 54, 27, 0.34)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-rx * 0.55, 0);
+        ctx.lineTo(rx * 0.62, 0);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    gardenLeafCardTexture = new THREE.CanvasTexture(canvas);
+    gardenLeafCardTexture.colorSpace = THREE.SRGBColorSpace;
+    gardenLeafCardTexture.needsUpdate = true;
+  }
+
+  GARDEN_LEAF_CARD_MATERIAL.map = gardenLeafCardTexture;
+  GARDEN_LEAF_CARD_MATERIAL.needsUpdate = true;
+  return GARDEN_LEAF_CARD_MATERIAL;
+}
+
+function setCylinderBetween(
+  mesh: THREE.InstancedMesh,
+  index: number,
+  start: THREE.Vector3,
+  end: THREE.Vector3,
+  radius: number,
+  dummy: THREE.Object3D,
+): void {
+  const direction = end.clone().sub(start);
+  const length = direction.length();
+  if (length <= 0.001) return;
+
+  dummy.position.copy(start).add(end).multiplyScalar(0.5);
+  dummy.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    direction.multiplyScalar(1 / length),
+  );
+  dummy.scale.set(radius, length, radius);
+  dummy.updateMatrix();
+  mesh.setMatrixAt(index, dummy.matrix);
 }
 
 function createSpotlights(): THREE.Group {
@@ -318,9 +621,259 @@ function createHelipad(footprint?: RooftopFootprint): THREE.Group {
   return group;
 }
 
+function createGarden(footprint?: RooftopFootprint): THREE.Group {
+  const group = new THREE.Group();
+  const width = Math.max(1, footprint?.width ?? 1);
+  const depth = Math.max(1, footprint?.depth ?? 1);
+  const gardenW = THREE.MathUtils.clamp(width * 0.82, 0.72, 1.9);
+  const gardenD = THREE.MathUtils.clamp(depth * 0.82, 0.72, 1.9);
+  const deckTopY = GARDEN_ROOF_CLEARANCE + GARDEN_DECK_HEIGHT;
+  const surfaceY = deckTopY + 0.004;
+  const innerW = Math.max(0.38, gardenW - GARDEN_PLANTER_WIDTH * 2.4);
+  const innerD = Math.max(0.38, gardenD - GARDEN_PLANTER_WIDTH * 2.4);
+
+  const addBox = (
+    material: THREE.Material,
+    scale: [number, number, number],
+    position: [number, number, number],
+    castsShadow = true,
+    receivesShadow = true,
+  ) => {
+    const mesh = new THREE.Mesh(GARDEN_BOX_GEOMETRY, material);
+    mesh.scale.set(scale[0], scale[1], scale[2]);
+    mesh.position.set(position[0], position[1], position[2]);
+    setShadowRole(mesh, castsShadow, receivesShadow);
+    group.add(mesh);
+    return mesh;
+  };
+
+  addBox(
+    GARDEN_DECK_MATERIAL,
+    [gardenW, GARDEN_DECK_HEIGHT, gardenD],
+    [0, GARDEN_ROOF_CLEARANCE + GARDEN_DECK_HEIGHT / 2, 0],
+  );
+
+  addBox(
+    getGardenGrassMaterial(),
+    [innerW, 0.01, innerD],
+    [0, surfaceY + 0.002, 0],
+    false,
+    true,
+  );
+
+  const planterY = deckTopY + GARDEN_PLANTER_HEIGHT / 2;
+  const soilY = deckTopY + GARDEN_PLANTER_HEIGHT + GARDEN_SOIL_HEIGHT / 2 + 0.002;
+  const frontZ = gardenD / 2 - GARDEN_PLANTER_WIDTH / 2;
+  const sideX = gardenW / 2 - GARDEN_PLANTER_WIDTH / 2;
+  addBox(GARDEN_PLANTER_MATERIAL, [gardenW, GARDEN_PLANTER_HEIGHT, GARDEN_PLANTER_WIDTH], [0, planterY, frontZ]);
+  addBox(GARDEN_PLANTER_MATERIAL, [gardenW, GARDEN_PLANTER_HEIGHT, GARDEN_PLANTER_WIDTH], [0, planterY, -frontZ]);
+  addBox(GARDEN_PLANTER_MATERIAL, [GARDEN_PLANTER_WIDTH, GARDEN_PLANTER_HEIGHT, gardenD], [sideX, planterY, 0]);
+  addBox(GARDEN_PLANTER_MATERIAL, [GARDEN_PLANTER_WIDTH, GARDEN_PLANTER_HEIGHT, gardenD], [-sideX, planterY, 0]);
+  addBox(GARDEN_SOIL_MATERIAL, [gardenW * 0.88, GARDEN_SOIL_HEIGHT, GARDEN_PLANTER_WIDTH * 0.56], [0, soilY, frontZ]);
+  addBox(GARDEN_SOIL_MATERIAL, [gardenW * 0.88, GARDEN_SOIL_HEIGHT, GARDEN_PLANTER_WIDTH * 0.56], [0, soilY, -frontZ]);
+  addBox(GARDEN_SOIL_MATERIAL, [GARDEN_PLANTER_WIDTH * 0.56, GARDEN_SOIL_HEIGHT, gardenD * 0.68], [sideX, soilY, 0]);
+  addBox(GARDEN_SOIL_MATERIAL, [GARDEN_PLANTER_WIDTH * 0.56, GARDEN_SOIL_HEIGHT, gardenD * 0.68], [-sideX, soilY, 0]);
+
+  const pathY = surfaceY + 0.009;
+  for (let i = -2; i <= 2; i++) {
+    addBox(
+      GARDEN_PATH_MATERIAL,
+      [innerW * 0.22, 0.012, innerD * 0.13],
+      [0, pathY, (i * innerD) / 5.8],
+      false,
+      true,
+    );
+  }
+
+  addBox(
+    GARDEN_WATER_MATERIAL,
+    [innerW * 0.34, 0.012, innerD * 0.18],
+    [innerW * 0.23, pathY + 0.003, -innerD * 0.2],
+    false,
+    false,
+  );
+
+  const benchZ = innerD * 0.18;
+  const woodMaterial = getGardenWoodMaterial();
+  addBox(woodMaterial, [innerW * 0.34, 0.025, 0.055], [-innerW * 0.23, deckTopY + 0.075, benchZ]);
+  addBox(woodMaterial, [innerW * 0.34, 0.08, 0.025], [-innerW * 0.23, deckTopY + 0.105, benchZ - 0.045]);
+  addBox(woodMaterial, [0.025, 0.07, 0.025], [-innerW * 0.36, deckTopY + 0.035, benchZ]);
+  addBox(woodMaterial, [0.025, 0.07, 0.025], [-innerW * 0.1, deckTopY + 0.035, benchZ]);
+
+  const pergolaX = -innerW * 0.24;
+  const pergolaZ = -innerD * 0.24;
+  const pergolaH = 0.28;
+  for (const x of [-0.12, 0.12]) {
+    for (const z of [-0.1, 0.1]) {
+      addBox(woodMaterial, [0.025, pergolaH, 0.025], [pergolaX + x, deckTopY + pergolaH / 2, pergolaZ + z]);
+    }
+  }
+  addBox(woodMaterial, [0.32, 0.025, 0.025], [pergolaX, deckTopY + pergolaH, pergolaZ - 0.1]);
+  addBox(woodMaterial, [0.32, 0.025, 0.025], [pergolaX, deckTopY + pergolaH, pergolaZ + 0.1]);
+  addBox(woodMaterial, [0.025, 0.025, 0.28], [pergolaX - 0.12, deckTopY + pergolaH + 0.03, pergolaZ]);
+  addBox(woodMaterial, [0.025, 0.025, 0.28], [pergolaX + 0.12, deckTopY + pergolaH + 0.03, pergolaZ]);
+
+  const trunkMesh = new THREE.InstancedMesh(
+    GARDEN_TRUNK_GEOMETRY,
+    GARDEN_TRUNK_MATERIAL,
+    GARDEN_TREE_COUNT,
+  );
+  const branchMesh = new THREE.InstancedMesh(
+    GARDEN_BRANCH_GEOMETRY,
+    GARDEN_TRUNK_MATERIAL,
+    GARDEN_TREE_COUNT * GARDEN_BRANCHES_PER_TREE,
+  );
+  const leafCardMesh = new THREE.InstancedMesh(
+    GARDEN_LEAF_CARD_GEOMETRY,
+    getGardenLeafCardMaterial(),
+    GARDEN_TREE_COUNT * GARDEN_LEAF_CARDS_PER_TREE,
+  );
+  const treePositions: Array<[number, number, number]> = [
+    [-sideX, deckTopY + GARDEN_PLANTER_HEIGHT, -frontZ],
+    [sideX, deckTopY + GARDEN_PLANTER_HEIGHT, -frontZ],
+    [-sideX, deckTopY + GARDEN_PLANTER_HEIGHT, frontZ],
+    [sideX, deckTopY + GARDEN_PLANTER_HEIGHT, frontZ],
+  ];
+  const dummy = new THREE.Object3D();
+  let branchIndex = 0;
+  let leafCardIndex = 0;
+  treePositions.forEach(([x, y, z], index) => {
+    const trunkH = 0.16 + (index % 2) * 0.035;
+    const trunkBase = new THREE.Vector3(x * 0.9, y, z * 0.88);
+    const trunkTop = new THREE.Vector3(x * 0.9, y + trunkH, z * 0.88);
+    const treeYaw = index * 0.72;
+
+    setCylinderBetween(trunkMesh, index, trunkBase, trunkTop, 0.02, dummy);
+
+    for (let branch = 0; branch < GARDEN_BRANCHES_PER_TREE; branch++) {
+      const angle = treeYaw + branch * 1.26;
+      const branchStart = trunkBase.clone().setY(y + trunkH * (0.48 + branch * 0.085));
+      const branchLength = 0.12 + (branch % 2) * 0.035;
+      const branchEnd = new THREE.Vector3(
+        trunkBase.x + Math.cos(angle) * branchLength,
+        branchStart.y + 0.055 + (branch % 3) * 0.012,
+        trunkBase.z + Math.sin(angle) * branchLength,
+      );
+
+      setCylinderBetween(
+        branchMesh,
+        branchIndex,
+        branchStart,
+        branchEnd,
+        0.009 - branch * 0.0009,
+        dummy,
+      );
+      branchIndex += 1;
+
+      for (let card = 0; card < 3; card++) {
+        const cardYaw = angle + card * 1.05;
+        const cardLift = (card - 1) * 0.018;
+        dummy.position.set(
+          branchEnd.x + Math.cos(cardYaw) * 0.025,
+          branchEnd.y + cardLift,
+          branchEnd.z + Math.sin(cardYaw) * 0.025,
+        );
+        dummy.rotation.set(
+          -0.16 + card * 0.15,
+          cardYaw + Math.PI / 2,
+          (card - 1) * 0.42,
+        );
+        dummy.scale.set(0.2 + card * 0.018, 0.15 + (branch % 2) * 0.02, 1);
+        dummy.updateMatrix();
+        leafCardMesh.setMatrixAt(leafCardIndex, dummy.matrix);
+        leafCardIndex += 1;
+      }
+    }
+  });
+  trunkMesh.instanceMatrix.needsUpdate = true;
+  branchMesh.instanceMatrix.needsUpdate = true;
+  leafCardMesh.instanceMatrix.needsUpdate = true;
+  setShadowRole(trunkMesh, true, true);
+  setShadowRole(branchMesh, true, true);
+  setShadowRole(leafCardMesh, false, false);
+  group.add(trunkMesh, branchMesh, leafCardMesh);
+
+  const shrubCount = 18;
+  const shrubsDark = new THREE.InstancedMesh(
+    GARDEN_SHRUB_GEOMETRY,
+    GARDEN_LEAF_DARK_MATERIAL,
+    Math.ceil(shrubCount / 2),
+  );
+  const shrubsLight = new THREE.InstancedMesh(
+    GARDEN_SHRUB_GEOMETRY,
+    GARDEN_LEAF_LIGHT_MATERIAL,
+    Math.floor(shrubCount / 2),
+  );
+  let darkShrubIndex = 0;
+  let lightShrubIndex = 0;
+  for (let i = 0; i < shrubCount; i++) {
+    const t = i / (shrubCount - 1);
+    const side = i % 4;
+    const edgeT = -0.42 + (t % 0.5) * 1.68;
+    const x = side < 2 ? edgeT * gardenW : (side === 2 ? -sideX : sideX) * 0.96;
+    const z = side < 2 ? (side === 0 ? -frontZ : frontZ) * 0.93 : edgeT * gardenD;
+    const radius = 0.035 + (i % 3) * 0.009;
+    dummy.position.set(x, deckTopY + GARDEN_PLANTER_HEIGHT + radius * 0.6, z);
+    dummy.scale.set(radius * 1.2, radius * 0.75, radius);
+    dummy.updateMatrix();
+    if (i % 2 === 0) {
+      shrubsDark.setMatrixAt(darkShrubIndex, dummy.matrix);
+      darkShrubIndex += 1;
+    } else {
+      shrubsLight.setMatrixAt(lightShrubIndex, dummy.matrix);
+      lightShrubIndex += 1;
+    }
+  }
+  shrubsDark.instanceMatrix.needsUpdate = true;
+  shrubsLight.instanceMatrix.needsUpdate = true;
+  setShadowRole(shrubsDark, true, true);
+  setShadowRole(shrubsLight, true, true);
+  group.add(shrubsDark, shrubsLight);
+
+  const lightCount = 8;
+  const gardenLights = new THREE.InstancedMesh(GARDEN_LIGHT_GEOMETRY, GARDEN_WARM_LIGHT_MATERIAL, lightCount);
+  for (let i = 0; i < lightCount; i++) {
+    const angle = (i / lightCount) * Math.PI * 2 + Math.PI / 8;
+    dummy.position.set(
+      Math.cos(angle) * gardenW * 0.43,
+      deckTopY + GARDEN_RAIL_HEIGHT * 0.8,
+      Math.sin(angle) * gardenD * 0.43,
+    );
+    dummy.scale.set(0.018, 0.018, 0.018);
+    dummy.updateMatrix();
+    gardenLights.setMatrixAt(i, dummy.matrix);
+  }
+  gardenLights.instanceMatrix.needsUpdate = true;
+  setShadowRole(gardenLights, false, false);
+  group.add(gardenLights);
+
+  const postCount = 16;
+  const railPosts = new THREE.InstancedMesh(GARDEN_BOX_GEOMETRY, GARDEN_PLANTER_MATERIAL, postCount);
+  for (let i = 0; i < postCount; i++) {
+    const t = (i % 4) / 3 - 0.5;
+    const side = Math.floor(i / 4);
+    const x = side < 2 ? t * gardenW : (side === 2 ? -gardenW / 2 : gardenW / 2);
+    const z = side < 2 ? (side === 0 ? -gardenD / 2 : gardenD / 2) : t * gardenD;
+    dummy.position.set(x, deckTopY + GARDEN_RAIL_HEIGHT / 2, z);
+    dummy.scale.set(0.018, GARDEN_RAIL_HEIGHT, 0.018);
+    dummy.updateMatrix();
+    railPosts.setMatrixAt(i, dummy.matrix);
+  }
+  railPosts.instanceMatrix.needsUpdate = true;
+  setShadowRole(railPosts, true, true);
+  group.add(railPosts);
+  addBox(GARDEN_PLANTER_MATERIAL, [gardenW, 0.018, 0.018], [0, deckTopY + GARDEN_RAIL_HEIGHT, -gardenD / 2]);
+  addBox(GARDEN_PLANTER_MATERIAL, [gardenW, 0.018, 0.018], [0, deckTopY + GARDEN_RAIL_HEIGHT, gardenD / 2]);
+  addBox(GARDEN_PLANTER_MATERIAL, [0.018, 0.018, gardenD], [-gardenW / 2, deckTopY + GARDEN_RAIL_HEIGHT, 0]);
+  addBox(GARDEN_PLANTER_MATERIAL, [0.018, 0.018, gardenD], [gardenW / 2, deckTopY + GARDEN_RAIL_HEIGHT, 0]);
+
+  return group;
+}
+
 const FACTORIES: Record<Exclude<RooftopType, "none">, RooftopFactory> = {
   spotlights: createSpotlights,
   helipad: createHelipad,
+  garden: createGarden,
 };
 
 /**
@@ -368,6 +921,12 @@ export function disposeRooftopSharedResources(): void {
   for (const material of SHARED_ROOFTOP_MATERIALS) {
     material.dispose();
   }
+  gardenGrassTexture?.dispose();
+  gardenGrassTexture = null;
+  gardenWoodTexture?.dispose();
+  gardenWoodTexture = null;
+  gardenLeafCardTexture?.dispose();
+  gardenLeafCardTexture = null;
 }
 
 /** @deprecated Use disposeRooftopSharedResources. Mantido para compatibilidade. */

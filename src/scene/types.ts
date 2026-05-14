@@ -3,7 +3,8 @@ import * as THREE from "three";
 export type RooftopType =
   | "none"
   | "spotlights"
-  | "helipad";
+  | "helipad"
+  | "garden";
 
 export type EdgeLightType =
   | "none"
