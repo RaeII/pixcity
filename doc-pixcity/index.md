@@ -133,10 +133,7 @@ Ele guarda todos os estados:
 - `sceneStats`, `hoverInfo`
 - `showControlPanel` — toggle do painel de configuração (escondido por padrão)
 - `selectedBuildingId` — edifício selecionado para personalização
-  <<<<<<< HEAD
-- # `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo, letreiro e LED de arestas
-- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo, letreiro, LED de arestas e holograma cyberpunk
-  > > > > > > > codex/suggest-building-designs-for-customization-dthloe
+- `buildingCustomizations` — `Map<donationId, BuildingCustomization>` com cor, formato (default/twisted/octagonal/setback/tapered/chrysler/hearst/empire/taipei/one-trade), acessório de topo (holofotes, heliponto, jardim suspenso ou helicóptero), letreiro, LED de arestas e holograma cyberpunk
 
 E entrega para:
 
@@ -252,15 +249,11 @@ flowchart LR
 | Alterar torre Taipei 101 (taipei)                | [[scene-builders#createTaipeiBuildingMesh.ts]]    |
 | Alterar torre One Trade (one-trade)              | [[scene-builders#createOneTradeBuildingMesh.ts]]  |
 
-# <<<<<<< HEAD
-
 | Alterar torre Chrysler (chrysler) | [[scene-builders#createChryslerBuildingMesh.ts]] |
-
-> > > > > > > codex/suggest-building-designs-for-customization-dthloe
-> > > > > > > | Alterar geração dos prédios de doação | [[scene-managers]] |
-> > > > > > > | Alterar o ciclo completo da cena | [[scene-runtime]] |
-> > > > > > > | Entender o contrato dos dados | [[scene-types]] |
-> > > > > > > | Entender como React sincroniza com Three.js | [[scene-hooks]] |
+| Alterar geração dos prédios de doação | [[scene-managers]] |
+| Alterar o ciclo completo da cena | [[scene-runtime]] |
+| Entender o contrato dos dados | [[scene-types]] |
+| Entender como React sincroniza com Three.js | [[scene-hooks]] |
 
 ## Ordem de Leitura Recomendada
 

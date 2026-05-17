@@ -37,6 +37,7 @@ const ROOFTOP_OPTIONS: { value: RooftopType; label: string }[] = [
   { value: "spotlights", label: "Holofotes" },
   { value: "helipad", label: "Heliponto" },
   { value: "garden", label: "Jardim suspenso" },
+  { value: "helicopter", label: "Helicóptero" },
 ];
 
 const EDGE_LIGHT_OPTIONS: { value: EdgeLightType; label: string }[] = [

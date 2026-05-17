@@ -242,6 +242,8 @@ type RooftopType =
   | "none"           // sem estrutura
   | "spotlights"     // 4 holofotes com feixe de luz para cima
   | "helipad"        // heliponto realista com pintura e luzes de perímetro
+  | "garden"         // jardim suspenso com deck, vegetação e piscina
+  | "helicopter"     // helicóptero leve low-poly realista pousado no topo
 ```
 
 ### `EdgeLightType`

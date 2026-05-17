@@ -115,6 +115,8 @@ Factory para acessórios de topo dos edifícios. Chamado pelo [[scene-managers|D
 |---|---|---|---|
 | `spotlights` | `CylinderGeometry` × 3 + `CircleGeometry` × 1 compartilhadas pelo módulo | `SPOTLIGHT_HOUSING_MATERIAL` + `SPOTLIGHT_LENS_MATERIAL` + `SPOTLIGHT_BEAM_MATERIAL` compartilhados | 4 holofotes nos cantos (±0.35, ±0.35) — base (0.08r) + corpo cônico (0.04–0.07r, 0.12h) + lente emissiva amarela + feixe cônico (0.22r, 10.0h) com vertex alpha gradiente (opaco na fonte, desvanece no topo via curva quadrática). Não cria luzes reais por edifício. |
 | `helipad` | `CylinderGeometry`, `TorusGeometry`, `RingGeometry`, `BoxGeometry` e pequenos cilindros compartilhados | Materiais de concreto escuro, aro metálico, pintura branca e lentes verdes emissivas | Heliponto proporcional ao topo do edifício, com base circular baixa, aro metálico, anel externo pintado, “H” central limpo, 12 luzes verdes de perímetro e escotilha técnica discreta. Não cria luzes reais por edifício. |
+| `garden` | `BoxGeometry`, `CylinderGeometry`, `SphereGeometry`, `PlaneGeometry` e instancing para vegetação | Materiais compartilhados de deck, solo, vegetação, água, madeira e luzes quentes | Jardim suspenso proporcional ao topo com deck, canteiros, piscina, banco, pérgola, arbustos, pequenas árvores e guarda-corpo. |
+| `helicopter` | `SphereGeometry`, `BoxGeometry`, `CylinderGeometry`, `CircleGeometry` e pequena esfera compartilhadas | Materiais de fuselagem metálica escura, vidro físico translúcido, acabamento claro, rotores, disco de rotor sutil, esquis e luz emissiva | Helicóptero leve simplificado e realista pousado no topo: fuselagem elipsoidal, cabine arredondada, janelas laterais, carenagem de motor, boom de cauda afunilado, estabilizadores, rotor principal de 3 pás com disco translúcido de movimento, rotor traseiro, esquis tubulares e luz frontal. O tamanho é calculado pelo footprint do edifício. |
 
 **Recursos compartilhados (estáticos de módulo):**
 
@@ -127,6 +129,13 @@ Factory para acessórios de topo dos edifícios. Chamado pelo [[scene-managers|D
 | `HELIPAD_RIM_MATERIAL` | `#3f4548` | 0.62 | 0.42 | Aro metálico baixo |
 | `HELIPAD_PAINT_MATERIAL` | `#e8edf1` | 0.78 | 0.0 | Pintura branca dos anéis e do “H” |
 | `HELIPAD_GREEN_LENS_MATERIAL` | `#bfffee` | 0.18 | 0.0 | Lentes verdes emissivas de perímetro |
+| `HELICOPTER_BODY_MATERIAL` | `#1f272c` | 0.44 | 0.46 | Fuselagem escura com acabamento metálico discreto |
+| `HELICOPTER_CABIN_MATERIAL` | `#8fb7c9` | 0.04 | 0.0 | Bolha de cabine translúcida com clearcoat |
+| `HELICOPTER_WINDOW_MATERIAL` | `#6e9fb4` | 0.06 | 0.0 | Janelas laterais translúcidas |
+| `HELICOPTER_TRIM_MATERIAL` | `#c7d0d3` | 0.36 | 0.42 | Faixa inferior e estabilizador claro |
+| `HELICOPTER_ROTOR_MATERIAL` | `#111416` | 0.38 | 0.72 | Pás e rotor traseiro escuros e metálicos |
+| `HELICOPTER_ROTOR_BLUR_MATERIAL` | `#dde8ee` | — | — | `MeshBasicMaterial` translúcido para sugerir disco de rotor em movimento |
+| `HELICOPTER_SKID_MATERIAL` | `#4e565b` | 0.42 | 0.74 | Esquis, mastros e hub |
 
 As geometrias de base, corpo, lente e feixe também são compartilhadas. `disposeRooftopMesh()` apenas libera as referências do grupo; o descarte de GPU dos recursos compartilhados acontece no dispose final.
 

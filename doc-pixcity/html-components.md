@@ -95,7 +95,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 | **Formato** | Botões | Opções: padrão (caixa), torre torcida, torre octogonal, torre setback, torre afunilada, Chrysler, Hearst Tower, Empire State, Taipei 101 ou One Trade |
 | **Texturas** | `RangeField` | Tiling Scale, escala X/Y e offset X/Y — ajusta a repetição/alinhamento da textura **só nesse edifício**. Valores diferentes do padrão fazem o prédio sair do `InstancedMesh` |
 | **Letreiro** | Input de texto + seletor de lados | Marca/empresa na fachada (máx 30 chars). Seletor de lados (1–4) aparece quando há texto |
-| **Topo** | Botões | Opções: nenhum, holofotes ou heliponto |
+| **Topo** | Botões | Opções: nenhum, holofotes, heliponto, jardim suspenso ou helicóptero |
 | **LED de arestas** | Botões | Liga/desliga o LED nas arestas verticais e topo |
 
 > [!note] Fluxo de personalização
@@ -110,7 +110,7 @@ Painel de personalização de um edifício individual, exibido ao clicar em um p
 > - **LED de arestas** → `THREE.Group` (core emissivo + halo aditivo) via [[scene-builders#createEdgeLightMesh.ts|createEdgeLightMesh]]
 
 > [!warning] Limitação: acessórios em formatos customizados
-> Letreiros e LEDs possuem tratamento específico para formatos customizados, mas holofotes/heliponto ainda usam a **caixa lógica** (`width/depth/height` da bounding box). Em formatos com topo não retangular, acessórios de topo podem ocupar a área da bounding box, não exatamente a silhueta da cobertura.
+> Letreiros e LEDs possuem tratamento específico para formatos customizados, mas acessórios de topo como holofotes, heliponto, jardim e helicóptero ainda usam a **caixa lógica** (`width/depth/height` da bounding box). Em formatos com topo não retangular, acessórios de topo podem ocupar a área da bounding box, não exatamente a silhueta da cobertura.
 
 ---
 

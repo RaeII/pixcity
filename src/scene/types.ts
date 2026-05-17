@@ -4,7 +4,8 @@ export type RooftopType =
   | "none"
   | "spotlights"
   | "helipad"
-  | "garden";
+  | "garden"
+  | "helicopter";
 
 export type EdgeLightType =
   | "none"
